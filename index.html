@@ -16,6 +16,25 @@
   <!-- stylesheets, fonts, etc... -->
 </head>
 <body>
+    <!-- Contact click tracking -->
+  <script>
+    document.addEventListener('click', function (e) {
+      const link = e.target.closest('a');
+      if (!link) return;
+
+      const href = (link.getAttribute('href') || '').trim();
+      if (!href) return;
+
+      const isEmail = href.toLowerCase().startsWith('mailto:');
+      const isPhone = href.toLowerCase().startsWith('tel:');
+
+      if (isEmail || isPhone) {
+        gtag('event', 'contact_click', {
+          method: isEmail ? 'email' : 'phone',
+          link_url: href
+        });
+    });
+  </script>
   <!-- your existing site content -->
 </body>
 </html>
