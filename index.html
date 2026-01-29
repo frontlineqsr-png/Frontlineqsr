@@ -1,44 +1,9 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNM91NHH34"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-FNM91NHH34');
-  </script>
-  <!-- your existing head content continues below -->
+  <!-- Basic Meta -->
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Frontline QSR</title>
-  <!-- stylesheets, fonts, etc... -->
-</head>
-<body>
-    <!-- Contact click tracking -->
-  <script>
-    document.addEventListener('click', function (e) {
-      const link = e.target.closest('a');
-      if (!link) return;
-
-      const href = (link.getAttribute('href') || '').trim();
-      if (!href) return;
-
-      const isEmail = href.toLowerCase().startsWith('mailto:');
-      const isPhone = href.toLowerCase().startsWith('tel:');
-
-      if (isEmail || isPhone) {
-        gtag('event', 'contact_click', {
-          method: isEmail ? 'email' : 'phone',
-          link_url: href
-        });
-    });
-  </script>
-</body>
-</html>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
 
   <!-- Primary SEO -->
   <title>FrontlineQSR | QSR Operations & Franchise Performance Consulting</title>
@@ -50,15 +15,13 @@
   <meta property="og:description" content="Operator-tested execution for QSR brands: throughput, labor efficiency, guest consistency, and franchise accountability—built to scale." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://frontlineqsr.com/" />
-  <!-- Optional: add an image once you have one -->
-  <!-- <meta property="og:image" content="./assets/og-image.jpg" /> -->
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="FrontlineQSR | QSR Operations & Franchise Performance Consulting" />
   <meta name="twitter:description" content="Operator-tested execution for QSR brands—built to scale." />
 
-  <!-- Schema (simple + safe). Update fields when ready. -->
+  <!-- Schema -->
   <script type="application/ld+json">
   {
     "@context":"https://schema.org",
@@ -75,6 +38,15 @@
       "Regional Performance Advisory"
     ]
   }
+  </script>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNM91NHH34"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-FNM91NHH34');
   </script>
 
   <style>
@@ -120,12 +92,7 @@
       display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.2px;
     }
     .logo-img{width:180px; height:auto; display:block;}
-@media (max-width: 620px){.logo-img{width:150px;}}
-.logo{
-      width:34px;height:34px;border-radius:10px;
-      background: linear-gradient(135deg, rgba(106,228,255,.95), rgba(168,255,106,.90));
-      box-shadow: 0 10px 30px rgba(106,228,255,.18);
-    }
+    @media (max-width: 620px){.logo-img{width:150px;}}
     .links{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
     .links a{
       font-size:14px; color:var(--muted);
@@ -372,6 +339,18 @@
 
 <body>
   <header class="topbar">
+    <!-- Company Motto Bar -->
+    <div style="
+      text-align:center;
+      font-size:13px;
+      color:var(--muted);
+      padding:8px 12px;
+      border-bottom:1px solid var(--line);
+      background: rgba(11,15,20,.85);
+    ">
+      It’s not a sales problem. It’s a frontline problem.
+    </div>
+
     <div class="wrap">
       <div class="nav">
         <a class="brand" href="#top">
@@ -386,7 +365,13 @@
           <a href="#timeline">Pilot Timeline</a>
           <a href="#results">Results</a>
           <a href="#insights">Insights</a>
-          <a class="btn primary" href="#contact">Work With Me</a>
+          <!-- CTA buttons: add class + data attributes for tracking -->
+          <a class="btn primary cta-link" data-cta="work_with_me" data-location="header" href="#contact">Work With Me</a>
+          <a class="btn linkedin-link"
+             href="https://www.linkedin.com/company/111776048"
+             data-location="header"
+             target="_blank"
+             rel="noopener">LinkedIn</a>
         </nav>
       </div>
     </div>
@@ -397,16 +382,16 @@
       <div class="hero-grid">
         <div>
           <div class="kicker"><span class="dot" aria-hidden="true"></span> QSR Operations • Franchise Performance • Frontline Leadership</div>
-          <h1>Rebuilding QSR Brands from the Inside Out.</h1>
+          <h1>It’s not a sales problem. It’s a frontline problem.</h1>
           <p class="lead">
-            FrontlineQSR helps quick-service restaurant brands restore operational discipline, strengthen frontline leadership,
-            and drive sustainable performance—without adding unnecessary complexity.
+            When execution breaks down on shift, every metric follows—speed, labor, accuracy, and guest consistency.
+            FrontlineQSR installs standards, leadership cadence, and simple systems teams can run every day—at scale.
           </p>
 
           <div class="cta-row">
-            <a class="btn primary" href="#contact">Start a Pilot Engagement</a>
-            <a class="btn" href="#timeline">See the Pilot Timeline</a>
-            <a class="btn" href="#results">What We Improve</a>
+            <a class="btn primary cta-link" data-cta="start_pilot" data-location="hero" href="#contact">Start a Pilot Engagement</a>
+            <a class="btn cta-link" data-cta="see_timeline" data-location="hero" href="#timeline">See the Pilot Timeline</a>
+            <a class="btn cta-link" data-cta="what_we_improve" data-location="hero" href="#results">What We Improve</a>
           </div>
 
           <div class="pill">
@@ -414,7 +399,7 @@
           </div>
 
           <p class="note" style="margin-top:14px;">
-            Prefer to book time right away? Use the schedule link in <a href="#contact" style="text-decoration:underline;">Contact</a>.
+            Prefer to book time right away? Use the schedule link in <a class="cta-link" data-cta="contact_anchor" data-location="hero_note" href="#contact" style="text-decoration:underline;">Contact</a>.
           </p>
         </div>
 
@@ -576,7 +561,7 @@
           </ul>
 
           <div class="divider"></div>
-          <a class="btn primary full" href="#contact">Discuss a Pilot</a>
+          <a class="btn primary full cta-link" data-cta="discuss_pilot" data-location="services_sidebar" href="#contact">Discuss a Pilot</a>
         </aside>
       </div>
     </div>
@@ -636,8 +621,8 @@
       </div>
 
       <div style="margin-top:14px;">
-        <a class="btn primary" href="#contact">Start a Pilot</a>
-        <a class="btn" href="#results">See Target Outcomes</a>
+        <a class="btn primary cta-link" data-cta="start_pilot_timeline" data-location="timeline_footer" href="#contact">Start a Pilot</a>
+        <a class="btn cta-link" data-cta="see_target_outcomes" data-location="timeline_footer" href="#results">See Target Outcomes</a>
       </div>
     </div>
   </section>
@@ -726,6 +711,8 @@
           <p>
             Strategy rarely fails on paper. It fails when the rush hits and the standards aren’t clear.
             Leadership cadence, non-negotiables, and simplification decide the outcome.
+          </p>
+        </article>
 
         <article class="card panel">
           <h3>Franchise Accountability Without Franchisee Revolt</h3>
@@ -749,31 +736,36 @@
           there is a clear path forward. Start with a focused conversation to see if a pilot engagement makes sense.
         </p>
 
-        
+        <div class="panel" style="padding:16px; margin-top:14px;">
+          <h3 style="margin:0 0 8px;">Schedule a Call</h3>
+          <p style="margin:0 0 12px; color:var(--muted); font-size:14px;">
+            To keep things simple (and free), scheduling is handled via email. Send a quick note with a few times that work for you,
+            and I’ll reply with a confirmed time and a Google Calendar invite.
+          </p>
+          <a class="btn primary full cta-link"
+             data-cta="email_request_call"
+             data-location="contact_schedule"
+             href="mailto:nrobinson@flqsr.com?subject=Strategy%20Call%20Request&body=Hi%20Nate,%0D%0A%0D%0AI'd%20like%20to%20schedule%20a%20strategy%20call.%0D%0A%0D%0AHere%20are%20a%20few%20times%20that%20work%20for%20me:%0D%0A-%20%0D%0A-%20%0D%0A-%20%0D%0A%0D%0ACompany/Brand:%20%0D%0AWhat%20we're%20trying%20to%20solve:%20%0D%0A%0D%0AThanks,"
+             target="_blank"
+             rel="noopener">Email to Request a Call</a>
+          <p class="note" style="margin:12px 0 0;">
+            Prefer not to open email? Use the contact form below and I’ll follow up with time options.
+          </p>
 
-<div class="panel" style="padding:16px; margin-top:14px;">
-  <h3 style="margin:0 0 8px;">Schedule a Call</h3>
-  <p style="margin:0 0 12px; color:var(--muted); font-size:14px;">
-    To keep things simple (and free), scheduling is handled via email. Send a quick note with a few times that work for you,
-    and I’ll reply with a confirmed time and a Google Calendar invite.
-  </p>
-  <a class="btn primary full" href="mailto:frontlineqsr@gmail.com?subject=Strategy%20Call%20Request&body=Hi%20Nate,%0D%0A%0D%0AI'd%20like%20to%20schedule%20a%20strategy%20call.%0D%0A%0D%0AHere%20are%20a%20few%20times%20that%20work%20for%20me:%0D%0A-%20%0D%0A-%20%0D%0A-%20%0D%0A%0D%0ACompany/Brand:%20%0D%0AWhat%20we're%20trying%20to%20solve:%20%0D%0A%0D%0AThanks," target="_blank" rel="noopener">Email to Request a Call</a>
-  <p class="note" style="margin:12px 0 0;">
-    Prefer not to open email? Use the contact form below and I’ll follow up with time options.
-  </p>
-</div>
-<p class="note" style="margin:12px 0 0;">
-    If the embed isn’t set up yet, you can still request a time by email:
-    <a href="mailto:nrobinson@flqsr.com?subject=Strategy%20Call%20Request&body=Hi%20Nate,%0D%0A%0D%0AI'd%20like%20to%20schedule%20a%20strategy%20call.%20Here%20are%20a%20few%20times%20that%20work%20for%20me:%0D%0A%0D%0AThanks," style="text-decoration:underline;">nrobinson@flqsr.com</a>.
-  </p>
-</div>
-
+          <p class="note" style="margin:12px 0 0;">
+            Email directly:
+            <a class="cta-link"
+               data-cta="email_direct"
+               data-location="contact_schedule"
+               href="mailto:nrobinson@flqsr.com?subject=Strategy%20Call%20Request&body=Hi%20Nate,%0D%0A%0D%0AI'd%20like%20to%20schedule%20a%20strategy%20call.%20Here%20are%20a%20few%20times%20that%20work%20for%20me:%0D%0A%0D%0AThanks,"
+               style="text-decoration:underline;">nrobinson@flqsr.com</a>.
+          </p>
         </div>
 
         <div class="divider"></div>
 
-        <!-- Form: Replace action="#" with your Formspree endpoint to send to your Gmail -->
-        <form action="mailto:nrobinson@flqsr.com" method="post" enctype="text/plain">
+        <!-- Form (mailto for now) -->
+        <form action="mailto:nrobinson@flqsr.com" method="post" enctype="text/plain" class="cta-form" data-location="contact_form">
           <div>
             <label for="name">Name</label>
             <input id="name" name="name" type="text" placeholder="Your name" required />
@@ -788,18 +780,18 @@
           </div>
           <div class="full">
             <label for="message">What are you trying to solve?</label>
-            <textarea id="message" name="message" placeholder="Sales, labor, speed, franchise consistency, guest experience, etc."></textarea>
+            <textarea id="message" name="message" placeholder="Speed, labor, franchise consistency, guest experience, execution, etc."></textarea>
           </div>
 
           <div class="full" style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
             <button class="btn primary" type="submit">Send Message</button>
-            <a class="btn" href="mailto:nrobinson@flqsr.com">Email directly</a>
+            <a class="btn cta-link" data-cta="email_direct_button" data-location="contact_form" href="mailto:nrobinson@flqsr.com">Email directly</a>
             <span class="note">Response within 1–2 business days.</span>
           </div>
         </form>
 
         <p class="note" style="margin-top:12px;">
-          To activate the form: use Formspree and replace <code class="inline">action="#"</code> with your endpoint.
+          To activate the form: use Formspree and replace <code class="inline">action="mailto:..."</code> with your endpoint.
         </p>
       </div>
     </div>
@@ -814,14 +806,84 @@
           <a href="#services">Services</a>
           <a href="#timeline">Timeline</a>
           <a href="#contact">Contact</a>
-          <a href="https://www.linkedin.com/" target="_blank" rel="noopener">LinkedIn</a>
+          <a class="linkedin-link"
+             href="https://www.linkedin.com/company/111776048"
+             data-location="footer"
+             target="_blank"
+             rel="noopener">LinkedIn</a>
         </div>
       </div>
     </div>
   </footer>
 
   <script>
+    // Footer year
     document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Unified click tracking:
+    // - contact_click for mailto/tel
+    // - social_click for LinkedIn
+    // - cta_click for any element tagged with .cta-link
+    document.addEventListener('click', function (e) {
+      const a = e.target.closest('a');
+      const btnOrLink = e.target.closest('a,button');
+      const hrefRaw = a ? (a.getAttribute('href') || '').trim() : '';
+
+      // CTA tracking (anchors + buttons with .cta-link)
+      if (btnOrLink && btnOrLink.classList && btnOrLink.classList.contains('cta-link')) {
+        const cta = btnOrLink.getAttribute('data-cta') || (btnOrLink.textContent || '').trim() || 'unknown';
+        const location = btnOrLink.getAttribute('data-location') || 'unknown';
+
+        if (typeof gtag === 'function') {
+          gtag('event', 'cta_click', {
+            cta: cta,
+            location: location,
+            link_url: a ? a.href : undefined
+          });
+        }
+      }
+
+      // Contact click tracking
+      if (hrefRaw) {
+        const href = hrefRaw.toLowerCase();
+        const isEmail = href.startsWith('mailto:');
+        const isPhone = href.startsWith('tel:');
+
+        if (isEmail || isPhone) {
+          if (typeof gtag === 'function') {
+            gtag('event', 'contact_click', {
+              method: isEmail ? 'email' : 'phone',
+              link_url: hrefRaw
+            });
+          }
+        }
+      }
+
+      // LinkedIn social click tracking
+      if (a && a.classList && a.classList.contains('linkedin-link')) {
+        const location = a.getAttribute('data-location') || 'unknown';
+        if (typeof gtag === 'function') {
+          gtag('event', 'social_click', {
+            platform: 'linkedin',
+            location: location,
+            link_url: a.href
+          });
+        }
+      }
+    });
+
+    // Form submit tracking (mailto forms are imperfect, but this captures intent)
+    const ctaForm = document.querySelector('form.cta-form');
+    if (ctaForm) {
+      ctaForm.addEventListener('submit', function () {
+        const location = ctaForm.getAttribute('data-location') || 'contact_form';
+        if (typeof gtag === 'function') {
+          gtag('event', 'form_submit', {
+            location: location
+          });
+        }
+      });
+    }
   </script>
 </body>
 </html>
