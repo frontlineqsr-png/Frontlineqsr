@@ -15,13 +15,15 @@
   <meta property="og:description" content="Operator-tested execution for QSR brands: throughput, labor efficiency, guest consistency, and franchise accountability—built to scale." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://frontlineqsr.com/" />
+  <!-- Optional: add an image once you have one -->
+  <!-- <meta property="og:image" content="./assets/og-image.jpg" /> -->
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="FrontlineQSR | QSR Operations & Franchise Performance Consulting" />
   <meta name="twitter:description" content="Operator-tested execution for QSR brands—built to scale." />
 
-  <!-- Schema -->
+  <!-- Schema (simple + safe). Update fields when ready. -->
   <script type="application/ld+json">
   {
     "@context":"https://schema.org",
@@ -77,12 +79,22 @@
     }
     a{color:inherit;text-decoration:none}
     .wrap{max-width:var(--max); margin:0 auto; padding:0 20px}
+
     .topbar{
       position:sticky; top:0; z-index:10;
       backdrop-filter: blur(10px);
       background: rgba(11,15,20,.70);
       border-bottom:1px solid var(--line);
     }
+    .motto-bar{
+      text-align:center;
+      font-size:13px;
+      color:var(--muted);
+      padding:8px 12px;
+      border-bottom:1px solid var(--line);
+      background: rgba(11,15,20,.85);
+    }
+
     .nav{
       display:flex; align-items:center; justify-content:space-between;
       padding:14px 0;
@@ -93,6 +105,7 @@
     }
     .logo-img{width:180px; height:auto; display:block;}
     @media (max-width: 620px){.logo-img{width:150px;}}
+
     .links{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
     .links a{
       font-size:14px; color:var(--muted);
@@ -100,6 +113,7 @@
       border:1px solid transparent;
     }
     .links a:hover{color:var(--text); background:rgba(255,255,255,.06)}
+
     .btn{
       display:inline-flex; align-items:center; justify-content:center;
       gap:10px;
@@ -120,6 +134,7 @@
     }
     .btn.primary:hover{border-color: rgba(106,228,255,.60)}
     .btn.full{width:100%}
+
     .hero{padding:70px 0 40px}
     .hero-grid{
       display:grid;
@@ -128,6 +143,7 @@
       align-items:stretch;
     }
     @media (max-width: 920px){ .hero-grid{grid-template-columns:1fr;} }
+
     .kicker{
       display:inline-flex;
       gap:10px;
@@ -158,6 +174,7 @@
       margin:0 0 22px;
     }
     .cta-row{display:flex; gap:12px; flex-wrap:wrap; margin:18px 0 0}
+
     .panel{
       background: rgba(255,255,255,.04);
       border:1px solid var(--line);
@@ -173,6 +190,7 @@
     }
     .hero-card h2, .hero-card h3{margin:0 0 6px; font-size:16px}
     .hero-card p{margin:0; color:var(--muted); font-size:14px}
+
     .stat-grid{
       display:grid;
       grid-template-columns: 1fr 1fr;
@@ -187,14 +205,17 @@
     }
     .stat strong{display:block; font-size:18px; letter-spacing:-.3px}
     .stat span{display:block; color:var(--muted); font-size:12.5px; margin-top:4px}
+
     .divider{height:1px; background:var(--line); margin:18px 0}
     section{padding:44px 0}
+
     .section-title{
       display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
       margin-bottom: 16px;
     }
     .section-title h2{margin:0; font-size:26px; letter-spacing:-.4px}
     .section-title p{margin:0; color:var(--muted); max-width:70ch}
+
     .cards{
       display:grid;
       grid-template-columns: repeat(12, 1fr);
@@ -226,6 +247,7 @@
       width:fit-content;
     }
     .pill b{color:var(--text)}
+
     .approach{
       display:grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -292,6 +314,7 @@
     }
     .cta h2{margin:0 0 8px; font-size:22px}
     .cta p{margin:0 0 16px; color:var(--muted)}
+
     form{
       display:grid;
       grid-template-columns: 1fr 1fr;
@@ -313,6 +336,7 @@
     textarea{min-height:120px; resize:vertical}
     input:focus, textarea:focus{border-color: rgba(106,228,255,.55)}
     .note{color:var(--muted); font-size:13px}
+
     .foot{
       padding:26px 0 46px;
       border-top: 1px solid var(--line);
@@ -325,6 +349,7 @@
     .smalllinks{display:flex; gap:14px; flex-wrap:wrap}
     .smalllinks a{color:var(--muted)}
     .smalllinks a:hover{color:var(--text)}
+
     code.inline{
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       font-size: 12px;
@@ -334,22 +359,28 @@
       border-radius: 10px;
       padding: 2px 8px;
     }
+
+    /* Insights image placement */
+    .insights-image{
+      padding:0;
+      overflow:hidden;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+    .insights-image img{
+      width:100%;
+      height:100%;
+      object-fit:cover;
+      min-height:380px;
+      display:block;
+    }
   </style>
 </head>
 
 <body>
   <header class="topbar">
-    <!-- Company Motto Bar -->
-    <div style="
-      text-align:center;
-      font-size:13px;
-      color:var(--muted);
-      padding:8px 12px;
-      border-bottom:1px solid var(--line);
-      background: rgba(11,15,20,.85);
-    ">
-      It’s not a sales problem. It’s a frontline problem.
-    </div>
+    <div class="motto-bar">It’s not a sales problem. It’s a frontline problem.</div>
 
     <div class="wrap">
       <div class="nav">
@@ -365,11 +396,12 @@
           <a href="#timeline">Pilot Timeline</a>
           <a href="#results">Results</a>
           <a href="#insights">Insights</a>
-          <!-- CTA buttons: add class + data attributes for tracking -->
+
           <a class="btn primary cta-link" data-cta="work_with_me" data-location="header" href="#contact">Work With Me</a>
-          <a class="btn linkedin-link"
-             href="https://www.linkedin.com/company/111776048"
+
+          <a class="linkedin-link"
              data-location="header"
+             href="https://www.linkedin.com/company/111776048"
              target="_blank"
              rel="noopener">LinkedIn</a>
         </nav>
@@ -382,7 +414,9 @@
       <div class="hero-grid">
         <div>
           <div class="kicker"><span class="dot" aria-hidden="true"></span> QSR Operations • Franchise Performance • Frontline Leadership</div>
+
           <h1>It’s not a sales problem. It’s a frontline problem.</h1>
+
           <p class="lead">
             When execution breaks down on shift, every metric follows—speed, labor, accuracy, and guest consistency.
             FrontlineQSR installs standards, leadership cadence, and simple systems teams can run every day—at scale.
@@ -535,17 +569,24 @@
               <h3>Operational Assessment</h3>
               <p>Store-level review of execution, leadership, and guest experience—ending with a prioritized action plan.</p>
             </div>
+
             <div class="card" style="grid-column: span 6;">
               <h3>Performance & Turnaround Support</h3>
               <p>Stabilize underperforming units and rebuild standards that hold across shifts and teams.</p>
             </div>
+
             <div class="card" style="grid-column: span 6;">
               <h3>Regional & Multi-Unit Advisory</h3>
               <p>Consistency across markets: field leadership, scalable standards, and ongoing executive support.</p>
             </div>
+
             <div class="card" style="grid-column: span 12;">
               <h3>Pilot Engagements</h3>
-              <p>Start with a focused pilot to prove outcomes—then scale regionally once results are real.</p>
+              <p>
+                Start with a focused, remote-first pilot designed to prove outcomes quickly.
+                Engagements are primarily virtual, with an optional on-site visit after week six
+                if in-field validation or leadership alignment is needed.
+              </p>
             </div>
           </div>
         </div>
@@ -611,7 +652,11 @@
         <div class="panel step">
           <div class="tag">Weeks 7–8</div>
           <h3>Rollout & Scale Plan</h3>
-          <p>Convert wins into a repeatable playbook, training plan, and regional rollout sequence.</p>
+          <p>
+            Convert wins into a repeatable playbook, training plan, and regional rollout sequence.
+            Final validation is completed remotely, with an optional on-site visit if leadership
+            alignment or field calibration is required.
+          </p>
           <ul class="list">
             <li><span class="check"></span> Playbook + training plan</li>
             <li><span class="check"></span> Regional rollout</li>
@@ -698,6 +743,7 @@
     </div>
   </section>
 
+  <!-- INSIGHTS (cards left, your image right) -->
   <section id="insights">
     <div class="wrap">
       <div class="section-title">
@@ -705,24 +751,34 @@
         <p>Short, direct perspectives on QSR execution, franchise performance, and store-level consistency.</p>
       </div>
 
-      <div class="cards">
-        <article class="card panel">
-          <h3>Why Most QSR Turnarounds Fail at the Store Level</h3>
-          <p>
-            Strategy rarely fails on paper. It fails when the rush hits and the standards aren’t clear.
-            Leadership cadence, non-negotiables, and simplification decide the outcome.
-          </p>
-        </article>
+      <div class="two-col">
+        <div class="cards">
+          <article class="card panel">
+            <h3>Why Most QSR Turnarounds Fail at the Store Level</h3>
+            <p>
+              Strategy rarely fails on paper. It fails when the rush hits and the standards aren’t clear.
+              Leadership cadence, non-negotiables, and simplification decide the outcome.
+            </p>
+          </article>
 
-        <article class="card panel">
-          <h3>Franchise Accountability Without Franchisee Revolt</h3>
-          <p>Accountability works when expectations are clear, cadence is consistent, and enforcement is fair.</p>
-        </article>
+          <article class="card panel">
+            <h3>Franchise Accountability Without Franchisee Revolt</h3>
+            <p>Accountability works when expectations are clear, cadence is consistent, and enforcement is fair.</p>
+          </article>
 
-        <article class="card panel">
-          <h3>Complexity Is the Silent Killer of Speed</h3>
-          <p>If teams can’t execute it during a busy shift, it isn’t scalable. Simplification is innovation.</p>
-        </article>
+          <article class="card panel">
+            <h3>Complexity Is the Silent Killer of Speed</h3>
+            <p>If teams can’t execute it during a busy shift, it isn’t scalable. Simplification is innovation.</p>
+          </article>
+        </div>
+
+        <div class="panel insights-image">
+          <img
+            src="./assets/insights-frontline-problem.jpg"
+            alt="It’s not a sales problem. It’s a frontline problem."
+            loading="lazy"
+          />
+        </div>
       </div>
     </div>
   </section>
@@ -739,18 +795,16 @@
         <div class="panel" style="padding:16px; margin-top:14px;">
           <h3 style="margin:0 0 8px;">Schedule a Call</h3>
           <p style="margin:0 0 12px; color:var(--muted); font-size:14px;">
-            To keep things simple (and free), scheduling is handled via email. Send a quick note with a few times that work for you,
+            To keep things simple, scheduling is handled via email. Send a quick note with a few times that work for you,
             and I’ll reply with a confirmed time and a Google Calendar invite.
           </p>
+
           <a class="btn primary full cta-link"
              data-cta="email_request_call"
              data-location="contact_schedule"
              href="mailto:nrobinson@flqsr.com?subject=Strategy%20Call%20Request&body=Hi%20Nate,%0D%0A%0D%0AI'd%20like%20to%20schedule%20a%20strategy%20call.%0D%0A%0D%0AHere%20are%20a%20few%20times%20that%20work%20for%20me:%0D%0A-%20%0D%0A-%20%0D%0A-%20%0D%0A%0D%0ACompany/Brand:%20%0D%0AWhat%20we're%20trying%20to%20solve:%20%0D%0A%0D%0AThanks,"
              target="_blank"
              rel="noopener">Email to Request a Call</a>
-          <p class="note" style="margin:12px 0 0;">
-            Prefer not to open email? Use the contact form below and I’ll follow up with time options.
-          </p>
 
           <p class="note" style="margin:12px 0 0;">
             Email directly:
@@ -807,8 +861,8 @@
           <a href="#timeline">Timeline</a>
           <a href="#contact">Contact</a>
           <a class="linkedin-link"
-             href="https://www.linkedin.com/company/111776048"
              data-location="footer"
+             href="https://www.linkedin.com/company/111776048"
              target="_blank"
              rel="noopener">LinkedIn</a>
         </div>
@@ -820,19 +874,18 @@
     // Footer year
     document.getElementById("year").textContent = new Date().getFullYear();
 
-    // Unified click tracking:
+    // Unified tracking:
+    // - cta_click for elements tagged with .cta-link (lead intent)
     // - contact_click for mailto/tel
     // - social_click for LinkedIn
-    // - cta_click for any element tagged with .cta-link
     document.addEventListener('click', function (e) {
       const a = e.target.closest('a');
-      const btnOrLink = e.target.closest('a,button');
-      const hrefRaw = a ? (a.getAttribute('href') || '').trim() : '';
+      const clickable = e.target.closest('a,button');
 
-      // CTA tracking (anchors + buttons with .cta-link)
-      if (btnOrLink && btnOrLink.classList && btnOrLink.classList.contains('cta-link')) {
-        const cta = btnOrLink.getAttribute('data-cta') || (btnOrLink.textContent || '').trim() || 'unknown';
-        const location = btnOrLink.getAttribute('data-location') || 'unknown';
+      // CTA click tracking
+      if (clickable && clickable.classList && clickable.classList.contains('cta-link')) {
+        const cta = clickable.getAttribute('data-cta') || (clickable.textContent || '').trim() || 'unknown';
+        const location = clickable.getAttribute('data-location') || 'unknown';
 
         if (typeof gtag === 'function') {
           gtag('event', 'cta_click', {
@@ -844,30 +897,33 @@
       }
 
       // Contact click tracking
-      if (hrefRaw) {
-        const href = hrefRaw.toLowerCase();
-        const isEmail = href.startsWith('mailto:');
-        const isPhone = href.startsWith('tel:');
+      if (a) {
+        const hrefRaw = (a.getAttribute('href') || '').trim();
+        if (hrefRaw) {
+          const href = hrefRaw.toLowerCase();
+          const isEmail = href.startsWith('mailto:');
+          const isPhone = href.startsWith('tel:');
 
-        if (isEmail || isPhone) {
-          if (typeof gtag === 'function') {
-            gtag('event', 'contact_click', {
-              method: isEmail ? 'email' : 'phone',
-              link_url: hrefRaw
-            });
+          if (isEmail || isPhone) {
+            if (typeof gtag === 'function') {
+              gtag('event', 'contact_click', {
+                method: isEmail ? 'email' : 'phone',
+                link_url: hrefRaw
+              });
+            }
           }
         }
-      }
 
-      // LinkedIn social click tracking
-      if (a && a.classList && a.classList.contains('linkedin-link')) {
-        const location = a.getAttribute('data-location') || 'unknown';
-        if (typeof gtag === 'function') {
-          gtag('event', 'social_click', {
-            platform: 'linkedin',
-            location: location,
-            link_url: a.href
-          });
+        // LinkedIn click tracking
+        if (a.classList && a.classList.contains('linkedin-link')) {
+          const location = a.getAttribute('data-location') || 'unknown';
+          if (typeof gtag === 'function') {
+            gtag('event', 'social_click', {
+              platform: 'linkedin',
+              location: location,
+              link_url: a.href
+            });
+          }
         }
       }
     });
