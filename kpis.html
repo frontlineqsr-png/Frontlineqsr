@@ -1,1 +1,92 @@
-<!doctype html><html><head><title>KPIs</title></head><body><h1>KPIs</h1></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FrontlineQSR | KPIs</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script src="assets/kpis.js" defer></script>
+</head>
+<body>
+
+<header class="brandbar">
+  <div class="left">
+    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
+    <div class="title">Client Dashboard</div>
+  </div>
+  <div class="right">
+    <div class="pill">KPIs</div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <nav class="nav">
+      <a href="index.html">Overview</a>
+      <a class="active" href="kpis.html">KPIs</a>
+      <a href="action-plan.html">Action Plan</a>
+      <a href="reports.html">Reports</a>
+      <a href="upload.html">Upload Data</a>
+      <a href="payments.html">Payments</a>
+      <a href="contracts.html">Contracts</a>
+      <a href="admin.html">Admin Review</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+
+    <section class="card">
+      <h1 style="margin:0 0 6px 0;">KPIs</h1>
+      <div class="meta">
+        KPI updates are unlocked when Admin approves your latest upload.
+      </div>
+    </section>
+
+    <!-- Gate panel -->
+    <section class="card" id="gatePanel" style="margin-top:14px;">
+      <h2 style="margin:0 0 10px 0;">Status</h2>
+      <div id="gateText" class="meta">Checking approval status…</div>
+
+      <div class="actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn primary" href="upload.html">Upload Data</a>
+        <a class="btn" href="admin.html">Admin Review</a>
+        <button class="btn" id="refreshKpiBtn" type="button">Refresh</button>
+      </div>
+    </section>
+
+    <!-- Approved summary -->
+    <section class="card hidden" id="approvedPanel" style="margin-top:14px;">
+      <h2 style="margin:0 0 10px 0;">Latest Approved Submission</h2>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="meta">Approved Months</div>
+          <div id="approvedMonths" style="margin-top:8px;"></div>
+        </div>
+
+        <div class="card">
+          <div class="meta">Files</div>
+          <div id="approvedFiles" style="margin-top:8px;"></div>
+        </div>
+      </div>
+
+      <div class="meta" style="margin-top:12px;">
+        Reviewed: <span id="reviewedAt">—</span>
+      </div>
+    </section>
+
+    <!-- KPI placeholder (we’ll compute later) -->
+    <section class="card hidden" id="kpiPanel" style="margin-top:14px;">
+      <h2 style="margin:0 0 10px 0;">KPI Cards</h2>
+      <div class="meta">
+        KPI calculations will appear here once the upload pipeline stores parsed rows per month.
+        For now, this confirms the approval gate is working end-to-end.
+      </div>
+    </section>
+
+  </main>
+</div>
+
+</body>
+</html>
