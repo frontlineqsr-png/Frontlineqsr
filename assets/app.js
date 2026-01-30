@@ -1,314 +1,290 @@
-// FrontlineQSR Upload Validation + Submit-to-Admin (localStorage queue)
-// Works with upload.html (client) + admin.html (admin)
+// ==============================
+// FrontlineQSR Upload (Pilot v1)
+// 3 months: Two Months Ago, Last Month, Current Month
+// ==============================
 
-const MONTHS_REQUIRED = 5;
+const REQUIRED_COLUMNS = ["Date", "Location", "Sales", "Labor", "Transactions"];
+const ADMIN_QUEUE_KEY = "flqsr_admin_queue_v1";
 
-// These should match what you WANT clients to upload (edit as needed)
-const REQUIRED_COLUMNS = [
-  "Date",
-  "Location",
-  "Sales",
-  "Labor",
-  "Transactions"
-];
+let issuesCache = []; // for Download Issues
 
-// Storage keys (admin reads from these)
-const QUEUE_KEY = "flqsr_adminQueue";
+// ---------- date helpers ----------
+function addMonths(base, delta) {
+  const d = new Date(base);
+  d.setMonth(d.getMonth() + delta);
+  return d;
+}
 
-const uploadSlots = document.getElementById("uploadSlots");
-const validateBtn = document.getElementById("validateBtn");
-const downloadBtn = document.getElementById("downloadIssuesBtn");
-const resetBtn = document.getElementById("resetBtn");
-const statusText = document.getElementById("statusText");
-const issuesList = document.getElementById("issuesList");
+function monthKey(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  return `${y}-${m}`; // ex: 2026-01
+}
 
-// Optional button (if present in upload.html)
-const submitBtn = document.getElementById("submitForReviewBtn");
+function monthLabel(d) {
+  return d.toLocaleString(undefined, { month: "long", year: "numeric" }); // ex: January 2026
+}
 
-let uploads = [];
-let lastIssues = [];
-let lastValidatedPayload = null;
+// ---------- csv helpers ----------
+async function readFirstLine(file) {
+  const text = await file.text();
+  return (text.split(/\r?\n/)[0] || "").trim();
+}
 
-// ---------- helpers ----------
-function getQueue() {
+function parseHeader(line) {
+  // Simple CSV header parser: splits on commas and trims quotes.
+  // (Good enough for standard exports where header names do not contain commas.)
+  return line
+    .split(",")
+    .map(s => s.trim().replace(/^"|"$/g, ""));
+}
+
+function missingColumns(headerCols) {
+  const set = new Set(headerCols.map(c => (c || "").trim()));
+  return REQUIRED_COLUMNS.filter(req => !set.has(req));
+}
+
+// ---------- ui helpers ----------
+function $(id) { return document.getElementById(id); }
+
+function setStatus(text) {
+  const el = $("statusText");
+  if (el) el.innerHTML = text;
+}
+
+function setIssuesList(items) {
+  const box = $("issuesList");
+  if (!box) return;
+
+  if (!items.length) {
+    box.innerHTML = "";
+    return;
+  }
+
+  box.innerHTML = `
+    <ul class="list">
+      ${items.map(x => `<li>${escapeHtml(x)}</li>`).join("")}
+    </ul>
+  `;
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function enableDownloadIssues(enabled) {
+  const btn = $("downloadIssuesBtn");
+  if (!btn) return;
+  btn.disabled = !enabled;
+}
+
+// ---------- slots ----------
+function buildSlots() {
+  const root = $("uploadSlots");
+  if (!root) return;
+
+  const now = new Date();
+
+  const slots = [
+    { id: "m2", title: "Two Months Ago", date: addMonths(now, -2) },
+    { id: "m1", title: "Last Month",     date: addMonths(now, -1) },
+    { id: "m0", title: "Current Month",  date: addMonths(now, 0)  }
+  ];
+
+  root.innerHTML = slots.map(s => {
+    const key = monthKey(s.date);
+    const label = monthLabel(s.date);
+    return `
+      <div class="card">
+        <h3 style="margin:0 0 6px 0;">${s.title}</h3>
+        <div class="meta" style="margin-bottom:10px;">${label}</div>
+
+        <input type="hidden" id="key_${s.id}" value="${key}" />
+
+        <label class="field">
+          <span>CSV File</span>
+          <input type="file" id="file_${s.id}" accept=".csv" />
+        </label>
+
+        <div class="meta" id="msg_${s.id}" style="margin-top:8px;"></div>
+      </div>
+    `;
+  }).join("");
+}
+
+function clearSlotMessages() {
+  ["m2","m1","m0"].forEach(id => {
+    const el = $(`msg_${id}`);
+    if (el) el.textContent = "";
+  });
+}
+
+function clearFileInputs() {
+  ["m2","m1","m0"].forEach(id => {
+    const el = $(`file_${id}`);
+    if (el) el.value = "";
+  });
+}
+
+// ---------- validation ----------
+async function validateSlot(id) {
+  const fileEl = $(`file_${id}`);
+  const msgEl  = $(`msg_${id}`);
+  const keyEl  = $(`key_${id}`);
+
+  const file = fileEl?.files?.[0] || null;
+  const key = keyEl?.value || "";
+
+  if (!file) {
+    if (msgEl) msgEl.textContent = "No file selected yet.";
+    return { ok: false, id, key, fileName: null, missing: ["(no file)"] };
+  }
+
+  const first = await readFirstLine(file);
+  const header = parseHeader(first);
+  const missing = missingColumns(header);
+
+  if (missing.length) {
+    if (msgEl) msgEl.textContent = `Missing required columns: ${missing.join(", ")}`;
+    return { ok: false, id, key, fileName: file.name, missing };
+  }
+
+  if (msgEl) msgEl.textContent = "Looks good ✅";
+  return { ok: true, id, key, fileName: file.name, missing: [] };
+}
+
+function loadQueue() {
   try {
-    return JSON.parse(localStorage.getItem(QUEUE_KEY) || "[]");
-  } catch (e) {
+    const raw = localStorage.getItem(ADMIN_QUEUE_KEY);
+    const data = raw ? JSON.parse(raw) : [];
+    return Array.isArray(data) ? data : [];
+  } catch {
     return [];
   }
 }
 
-function setQueue(queue) {
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+function saveQueue(list) {
+  localStorage.setItem(ADMIN_QUEUE_KEY, JSON.stringify(list));
 }
 
-function setStatus(msg, isError = false) {
-  if (!statusText) return;
-  statusText.textContent = msg;
-  statusText.style.opacity = "1";
-  statusText.style.color = isError ? "#ffb4b4" : "";
+// On success, we queue a single "submission" containing the 3 months
+function queueSubmission(validResults) {
+  const queue = loadQueue();
+
+  const months = validResults.map(r => r.key);
+  const files  = validResults.map(r => r.fileName);
+
+  const submission = {
+    id: (crypto?.randomUUID?.() || `sub_${Date.now()}_${Math.random().toString(16).slice(2)}`),
+    clientName: "Example Location",
+    createdAt: new Date().toISOString(),
+    status: "pending",
+    months,     // ["2026-04","2026-05","2026-06"]
+    files,      // ["apr.csv","may.csv","jun.csv"]
+    adminNotes: ""
+  };
+
+  queue.unshift(submission); // newest first
+  saveQueue(queue);
 }
 
-function clearIssuesUI() {
-  if (issuesList) issuesList.innerHTML = "";
-}
+// ---------- actions ----------
+async function handleValidate() {
+  issuesCache = [];
+  enableDownloadIssues(false);
+  clearSlotMessages();
 
-function renderIssues(issues) {
-  clearIssuesUI();
-  if (!issuesList) return;
+  setStatus(`Validating…`);
 
-  if (!issues.length) {
-    issuesList.innerHTML = `<div class="meta">No issues found.</div>`;
+  const results = [];
+  results.push(await validateSlot("m2"));
+  results.push(await validateSlot("m1"));
+  results.push(await validateSlot("m0"));
+
+  // Require all 3 files selected to proceed (simple + less confusion)
+  const missingFiles = results.filter(r => !r.fileName);
+  if (missingFiles.length) {
+    const msg = `Please select all 3 files (Two Months Ago, Last Month, Current Month).`;
+    issuesCache = [msg];
+    setStatus(`<span style="color:#ffb3b3;">${escapeHtml(msg)}</span>`);
+    setIssuesList(issuesCache);
+    enableDownloadIssues(true);
     return;
   }
 
-  const ul = document.createElement("ul");
-  ul.className = "list";
-  issues.forEach((x) => {
-    const li = document.createElement("li");
-    li.textContent = x;
-    ul.appendChild(li);
+  // Build issue list
+  const issues = [];
+  results.forEach((r, idx) => {
+    const label = idx === 0 ? "Two Months Ago" : idx === 1 ? "Last Month" : "Current Month";
+    const prettyMonth = monthLabel(new Date(r.key + "-01"));
+
+    if (!r.ok) {
+      if (r.fileName) {
+        issues.push(`${label} (${prettyMonth}): Missing required columns: ${r.missing.join(", ")}`);
+      } else {
+        issues.push(`${label} (${prettyMonth}): No file selected.`);
+      }
+    }
   });
-  issuesList.appendChild(ul);
-}
 
-function csvParseHeader(text) {
-  // Get first non-empty line
-  const lines = text.split(/\r?\n/).map(l => l.trim());
-  const first = lines.find(l => l.length > 0);
-  if (!first) return [];
-  // Basic CSV split (good enough for headers)
-  return first.split(",").map(h => h.trim().replace(/^"|"$/g, ""));
-}
-
-function normalizeHeader(h) {
-  return String(h || "").trim().toLowerCase();
-}
-
-function hasAllRequiredColumns(headers) {
-  const norm = new Set(headers.map(normalizeHeader));
-  const missing = [];
-  for (const col of REQUIRED_COLUMNS) {
-    if (!norm.has(normalizeHeader(col))) missing.push(col);
+  if (issues.length) {
+    issuesCache = issues;
+    setStatus(`<span style="color:#ffb3b3;">Found ${issues.length} issue(s). Fix them and validate again.</span>`);
+    setIssuesList(issues);
+    enableDownloadIssues(true);
+    return;
   }
-  return missing;
+
+  // Success: queue to admin
+  queueSubmission(results);
+
+  setStatus(`<span style="color:#b6ffcf;">All good ✅ Submission queued for Admin Review.</span>`);
+  setIssuesList([]);
+  enableDownloadIssues(false);
 }
 
-function escapeCSV(val) {
-  const s = String(val ?? "");
-  if (/[,"\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
+function handleDownloadIssues() {
+  if (!issuesCache.length) return;
 
-function downloadTextFile(filename, content) {
-  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const content = [
+    "FrontlineQSR Upload Issues",
+    `Generated: ${new Date().toLocaleString()}`,
+    "",
+    ...issuesCache
+  ].join("\n");
+
+  const blob = new Blob([content], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename;
+  a.download = "flqsr-upload-issues.txt";
   document.body.appendChild(a);
   a.click();
   a.remove();
+
   URL.revokeObjectURL(url);
 }
 
-// ---------- UI build ----------
-function generateMonthOptions() {
-  const months = [
-    "January","February","March","April","May","June",
-    "July","August","September","October","November","December"
-  ];
-  return months.map(m => `<option value="${m}">${m}</option>`).join("");
-}
-
-function buildUploadSlots() {
-  if (!uploadSlots) return;
-
-  uploadSlots.innerHTML = "";
-  uploads = [];
-
-  for (let i = 1; i <= MONTHS_REQUIRED; i++) {
-    const slot = document.createElement("div");
-    slot.className = "card";
-
-    slot.innerHTML = `
-      <h4>Month ${i}</h4>
-      <label class="meta" style="display:block;margin-top:8px;">Month</label>
-      <select class="monthSelect">
-        <option value="">Select Month</option>
-        ${generateMonthOptions()}
-      </select>
-
-      <label class="meta" style="display:block;margin-top:10px;">CSV File</label>
-      <input type="file" accept=".csv" class="fileInput" />
-
-      <div class="meta error hidden" style="margin-top:8px;"></div>
-    `;
-
-    uploadSlots.appendChild(slot);
-    uploads.push(slot);
-  }
-}
-
-// ---------- validation ----------
-async function validateAll() {
-  lastIssues = [];
-  lastValidatedPayload = null;
-
-  // Disable submit until validation passes
-  if (submitBtn) submitBtn.disabled = true;
-
-  setStatus("Validating files...");
-  clearIssuesUI();
-
-  const usedMonths = new Set();
-  const payload = {
-    client: "Example Location",
-    submittedAt: new Date().toISOString(),
-    months: [],
-    files: []
-  };
-
-  for (let i = 0; i < uploads.length; i++) {
-    const slot = uploads[i];
-    const month = slot.querySelector(".monthSelect")?.value || "";
-    const fileInput = slot.querySelector(".fileInput");
-    const file = fileInput?.files?.[0];
-
-    const slotErrors = [];
-
-    if (!month) slotErrors.push(`Month ${i + 1}: Please select a month.`);
-    if (month && usedMonths.has(month)) slotErrors.push(`Month ${i + 1}: Duplicate month selected (${month}).`);
-    if (month) usedMonths.add(month);
-
-    if (!file) {
-      slotErrors.push(`Month ${i + 1}: Please choose a .csv file.`);
-    } else if (!file.name.toLowerCase().endsWith(".csv")) {
-      slotErrors.push(`Month ${i + 1}: File must be a .csv`);
-    } else {
-      // Read header and validate required columns
-      const text = await file.text();
-      const headers = csvParseHeader(text);
-
-      if (!headers.length) {
-        slotErrors.push(`Month ${i + 1}: CSV appears empty / missing header row.`);
-      } else {
-        const missingCols = hasAllRequiredColumns(headers);
-        if (missingCols.length) {
-          slotErrors.push(`Month ${i + 1}: Missing required columns: ${missingCols.join(", ")}`);
-        }
-      }
-
-      payload.files.push({
-        month,
-        fileName: file.name,
-        size: file.size
-      });
-    }
-
-    // Show per-slot errors (optional)
-    const errorBox = slot.querySelector(".error");
-    if (errorBox) {
-      if (slotErrors.length) {
-        errorBox.classList.remove("hidden");
-        errorBox.textContent = slotErrors[0];
-      } else {
-        errorBox.classList.add("hidden");
-        errorBox.textContent = "";
-      }
-    }
-
-    lastIssues.push(...slotErrors);
-    payload.months.push({ month });
-  }
-
-  renderIssues(lastIssues);
-
-  if (lastIssues.length) {
-    setStatus(`Found ${lastIssues.length} issue(s). Fix them and validate again.`, true);
-    if (downloadBtn) downloadBtn.disabled = false; // allow issue download
-    return false;
-  }
-
-  // Passed validation
-  lastValidatedPayload = payload;
-  if (downloadBtn) downloadBtn.disabled = true;
-  if (submitBtn) submitBtn.disabled = false;
-
-  setStatus("Validation passed. You can now submit for Admin Review.");
-  return true;
-}
-
-// ---------- submit ----------
-function submitForAdminReview() {
-  if (!lastValidatedPayload) {
-    setStatus("Please validate files first.", true);
-    return;
-  }
-
-  const submission = {
-    id: Date.now(),
-    client: lastValidatedPayload.client || "Example Location",
-    submittedAt: lastValidatedPayload.submittedAt || new Date().toISOString(),
-    months: lastValidatedPayload.months || [],
-    files: lastValidatedPayload.files || [],
-    status: "pending",
-    notes: ""
-  };
-
-  const queue = getQueue();
-  queue.push(submission);
-  setQueue(queue);
-
-  setStatus("Submitted for Admin Review.");
-
-  // Optional: send them straight to admin review
-  // window.location.href = "admin.html";
-}
-
-// ---------- buttons ----------
-if (validateBtn) {
-  validateBtn.addEventListener("click", async () => {
-    try {
-      await validateAll();
-    } catch (e) {
-      console.error(e);
-      setStatus("Validation failed due to a script error. Check console.", true);
-    }
-  });
-}
-
-if (downloadBtn) {
-  downloadBtn.addEventListener("click", () => {
-    if (!lastIssues.length) return;
-    const header = ["Issue"].join(",");
-    const rows = lastIssues.map(i => escapeCSV(i)).join("\n");
-    downloadTextFile("upload_issues.csv", `${header}\n${rows}\n`);
-  });
-}
-
-if (resetBtn) {
-  resetBtn.addEventListener("click", () => {
-    buildUploadSlots();
-    lastIssues = [];
-    lastValidatedPayload = null;
-    if (downloadBtn) downloadBtn.disabled = true;
-    if (submitBtn) submitBtn.disabled = true;
-    clearIssuesUI();
-    setStatus("Reset complete.");
-  });
-}
-
-if (submitBtn) {
-  submitBtn.addEventListener("click", () => {
-    submitForAdminReview();
-  });
+function handleReset() {
+  issuesCache = [];
+  enableDownloadIssues(false);
+  clearSlotMessages();
+  clearFileInputs();
+  setIssuesList([]);
+  setStatus(`Add files for each month, then click <strong>Validate Files</strong>.`);
 }
 
 // ---------- init ----------
-buildUploadSlots();
+document.addEventListener("DOMContentLoaded", () => {
+  buildSlots();
 
-// Default state
-if (downloadBtn) downloadBtn.disabled = true;
-if (submitBtn) submitBtn.disabled = true;
-setStatus("Add files for each month, then click Validate Files.");
+  $("validateBtn")?.addEventListener("click", handleValidate);
+  $("downloadIssuesBtn")?.addEventListener("click", handleDownloadIssues);
+  $("resetBtn")?.addEventListener("click", handleReset);
+});
