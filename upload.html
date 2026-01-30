@@ -8,8 +8,11 @@
   <!-- Styles -->
   <link rel="stylesheet" href="assets/styles.css" />
 
+  <!-- Master List Loader (must load first) -->
+  <script src="assets/masterlist-loader.js?v=1" defer></script>
+
   <!-- Upload logic -->
-  <script src="assets/app.js" defer></script>
+  <script src="assets/app.js?v=1" defer></script>
 </head>
 
 <body>
@@ -49,9 +52,23 @@
       <h1>Upload Data</h1>
       <p class="muted">
         Upload <strong>3 monthly CSV files</strong>:
-        <strong>Two Months Ago + Last Month + Current Month</strong>.
+        <strong>current month + last month + two months ago</strong>.
         One combined CSV per month (sales + labor + transactions).
       </p>
+    </section>
+
+    <!-- ================= CLIENT SELECT (Master List) ================= -->
+    <section class="card">
+      <h3>Select Client</h3>
+      <div class="meta">Choose which location these 3 months belong to.</div>
+
+      <select id="clientSelect" style="margin-top:10px; width:100%; padding:10px; border-radius:10px;">
+        <option value="store_1">Loading clients…</option>
+      </select>
+
+      <div class="helper" style="margin-top:10px;">
+        If you don’t see stores yet, we’ll add one small function in <code>assets/app.js</code> next.
+      </div>
     </section>
 
     <!-- ================= REQUIREMENTS ================= -->
@@ -85,17 +102,9 @@
       </div>
 
       <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn primary" id="validateBtn" type="button">
-          Validate Files
-        </button>
-
-        <button class="btn" id="downloadIssuesBtn" type="button" disabled>
-          Download Issues
-        </button>
-
-        <button class="btn" id="resetBtn" type="button">
-          Reset
-        </button>
+        <button class="btn primary" id="validateBtn" type="button">Validate Files</button>
+        <button class="btn" id="downloadIssuesBtn" type="button" disabled>Download Issues</button>
+        <button class="btn" id="resetBtn" type="button">Reset</button>
       </div>
     </section>
 
@@ -112,15 +121,13 @@
     <section class="card">
       <h3>What happens next</h3>
       <ol class="list">
-        <li>Validation checks for missing columns.</li>
+        <li>Validation checks for missing columns and duplicate months.</li>
         <li>Your submission is queued for <strong>Admin Review</strong>.</li>
         <li>Once approved, KPIs and reports update on your dashboard.</li>
       </ol>
 
       <div style="margin-top:16px;">
-        <a href="admin.html" class="btn primary">
-          Go to Admin Review
-        </a>
+        <a href="admin.html" class="btn primary">Go to Admin Review</a>
       </div>
     </section>
 
