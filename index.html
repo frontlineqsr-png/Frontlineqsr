@@ -1,11 +1,47 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FrontlineQSR | QSR Operations & Franchise Performance</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-  <!-- Google Analytics -->
+  <!-- Primary SEO -->
+  <title>FrontlineQSR | QSR Operations & Franchise Performance Consulting</title>
+  <meta name="description" content="FrontlineQSR helps quick-service restaurant brands restore operational discipline, strengthen frontline leadership, and drive sustainable performance at scale." />
+  <meta name="robots" content="index,follow" />
+
+  <!-- Open Graph / Social -->
+  <meta property="og:title" content="FrontlineQSR | QSR Operations & Franchise Performance Consulting" />
+  <meta property="og:description" content="It’s not a sales problem. It’s a frontline problem." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://flqsr.com/" />
+  <!-- Optional: add an image once you have one -->
+  <!-- <meta property="og:image" content="./assets/og-image.jpg" /> -->
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="FrontlineQSR | QSR Operations & Franchise Performance Consulting" />
+  <meta name="twitter:description" content="It’s not a sales problem. It’s a frontline problem." />
+
+  <!-- Schema (simple + safe) -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"ProfessionalService",
+    "name":"FrontlineQSR",
+    "url":"https://flqsr.com/",
+    "email":"nrobinson@flqsr.com",
+    "description":"QSR operations and franchise performance consulting focused on frontline leadership, accountability, and scalable execution.",
+    "areaServed":"US",
+    "serviceType":[
+      "QSR Operational Assessment",
+      "Franchise Accountability Systems",
+      "Restaurant Turnaround Support",
+      "Regional Performance Advisory"
+    ]
+  }
+  </script>
+
+  <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNM91NHH34"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
@@ -13,9 +49,6 @@
     gtag('js', new Date());
     gtag('config', 'G-FNM91NHH34');
   </script>
-
-  <!-- SEO -->
-  <meta name="description" content="FrontlineQSR helps QSR brands fix frontline execution, leadership gaps, and operational inconsistency." />
 
   <style>
     :root{
@@ -26,14 +59,15 @@
       --line:rgba(255,255,255,.10);
       --accent:#6ae4ff;
       --accent2:#a8ff6a;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
       --radius:16px;
       --max:1120px;
     }
-
     *{box-sizing:border-box}
+    html,body{height:100%}
     body{
       margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
       background:
         radial-gradient(1200px 800px at 10% -10%, rgba(106,228,255,.18), transparent 55%),
         radial-gradient(900px 700px at 90% 10%, rgba(168,255,106,.12), transparent 50%),
@@ -42,77 +76,728 @@
       color:var(--text);
       line-height:1.45;
     }
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:var(--max); margin:0 auto; padding:0 20px}
 
-    a{text-decoration:none;color:inherit}
-    img{max-width:100%;border-radius:var(--radius)}
-
-    .wrap{max-width:var(--max);margin:0 auto;padding:20px}
-    .panel{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
-
-    header{padding:30px 0}
-    h1{font-size:clamp(32px,4vw,48px);margin-bottom:10px}
-    h2{margin-top:0}
-    p{color:var(--muted)}
-
-    .btn{
-      display:inline-block;
-      padding:12px 18px;
-      border-radius:12px;
-      background:linear-gradient(135deg,rgba(106,228,255,.25),rgba(168,255,106,.18));
-      border:1px solid rgba(255,255,255,.2);
-      font-weight:600;
-      margin-top:10px;
+    /* Motto bar */
+    .motto{
+      position:sticky;
+      top:0;
+      z-index:30;
+      text-align:center;
+      font-size:13px;
+      color:var(--muted);
+      padding:10px 12px;
+      background: rgba(11,15,20,.92);
+      border-bottom:1px solid var(--line);
+      backdrop-filter: blur(10px);
     }
 
-    footer{border-top:1px solid var(--line);margin-top:40px;padding:20px 0;text-align:center;color:var(--muted)}
+    /* Topbar */
+    .topbar{
+      position:sticky; top:44px; z-index:20;
+      backdrop-filter: blur(10px);
+      background: rgba(11,15,20,.70);
+      border-bottom:1px solid var(--line);
+    }
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:14px 0;
+      gap:14px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px; font-weight:700; letter-spacing:.2px;
+    }
+    .logo-img{width:180px; height:auto; display:block;}
+    @media (max-width: 620px){.logo-img{width:150px;}}
+    .links{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+    .links a{
+      font-size:14px; color:var(--muted);
+      padding:8px 10px; border-radius:10px;
+      border:1px solid transparent;
+    }
+    .links a:hover{color:var(--text); background:rgba(255,255,255,.06)}
+
+    /* Buttons */
+    .btn{
+      display:inline-flex; align-items:center; justify-content:center;
+      gap:10px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      color:var(--text);
+      padding:12px 16px;
+      border-radius:14px;
+      font-weight:600;
+      box-shadow: 0 10px 30px rgba(0,0,0,.18);
+      transition: transform .12s ease, background .12s ease, border-color .12s ease;
+      cursor:pointer;
+    }
+    .btn:hover{transform: translateY(-1px); background: rgba(255,255,255,.09); border-color: rgba(255,255,255,.18)}
+    .btn.primary{
+      border-color: rgba(106,228,255,.35);
+      background: linear-gradient(135deg, rgba(106,228,255,.18), rgba(168,255,106,.12));
+    }
+    .btn.primary:hover{border-color: rgba(106,228,255,.60)}
+    .btn.full{width:100%}
+    .btn.secondary{
+      border-color: rgba(255,255,255,.16);
+      background: rgba(255,255,255,.05);
+    }
+
+    /* Hero */
+    .hero{padding:70px 0 40px}
+    .hero-grid{
+      display:grid;
+      grid-template-columns: 1.15fr .85fr;
+      gap:26px;
+      align-items:stretch;
+    }
+    @media (max-width: 920px){ .hero-grid{grid-template-columns:1fr;} }
+
+    .kicker{
+      display:inline-flex;
+      gap:10px;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      color: var(--muted);
+      font-size:13px;
+      width:fit-content;
+    }
+    .kicker .dot{
+      width:10px;height:10px;border-radius:99px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(106,228,255,.12);
+    }
+    h1{
+      font-size: clamp(34px, 3.8vw, 54px);
+      line-height:1.06;
+      margin:16px 0 14px;
+      letter-spacing:-.8px;
+    }
+    .lead{
+      font-size:18px;
+      color:var(--muted);
+      max-width: 60ch;
+      margin:0 0 22px;
+    }
+    .cta-row{display:flex; gap:12px; flex-wrap:wrap; margin:18px 0 0}
+
+    .panel{
+      background: rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .hero-card{
+      padding:20px;
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+      min-height: 300px;
+    }
+    .hero-card h2, .hero-card h3{margin:0 0 6px; font-size:16px}
+    .hero-card p{margin:0; color:var(--muted); font-size:14px}
+    .stat-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+      margin-top:16px;
+    }
+    .stat{
+      padding:14px;
+      border-radius: 14px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+    }
+    .stat strong{display:block; font-size:18px; letter-spacing:-.3px}
+    .stat span{display:block; color:var(--muted); font-size:12.5px; margin-top:4px}
+
+    .divider{height:1px; background:var(--line); margin:18px 0}
+    section{padding:44px 0}
+
+    .section-title{
+      display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap;
+      margin-bottom: 16px;
+    }
+    .section-title h2{margin:0; font-size:26px; letter-spacing:-.4px}
+    .section-title p{margin:0; color:var(--muted); max-width:70ch}
+
+    .cards{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:14px;
+    }
+    .card{
+      grid-column: span 4;
+      padding:18px;
+      border-radius: var(--radius);
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+    }
+    .card h3{margin:2px 0 8px; font-size:16px}
+    .card p{margin:0; color:var(--muted); font-size:14px}
+    @media (max-width: 980px){ .card{grid-column: span 6;} }
+    @media (max-width: 620px){ .card{grid-column: span 12;} }
+
+    .approach{
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:14px;
+      margin-top: 14px;
+    }
+    .approach .card{grid-column:auto}
+    @media (max-width: 980px){ .approach{grid-template-columns:1fr} }
+
+    .two-col{
+      display:grid;
+      grid-template-columns: 1.05fr .95fr;
+      gap:14px;
+      align-items:start;
+    }
+    @media (max-width: 980px){ .two-col{grid-template-columns:1fr} }
+
+    /* Shield bullets */
+    .list{margin:12px 0 0; padding:0; list-style:none}
+    .list li{
+      display:flex; gap:10px; align-items:flex-start;
+      padding:10px 0;
+      border-top: 1px solid var(--line);
+      color:var(--muted);
+      font-size:14px;
+    }
+    .list li:first-child{border-top:none; padding-top:0}
+    .check{
+      flex:0 0 auto;
+      width:18px; height:18px;
+      margin-top:2px;
+      background: url("./assets/frontlineqsr-shield.svg") no-repeat center;
+      background-size: contain;
+      filter: drop-shadow(0 6px 14px rgba(106,228,255,.22));
+    }
+
+    /* Timeline */
+    .timeline{
+      display:grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap:14px;
+      margin-top: 10px;
+    }
+    .step{grid-column: span 3; padding:18px}
+    @media (max-width: 980px){ .step{grid-column: span 6;} }
+    @media (max-width: 620px){ .step{grid-column: span 12;} }
+    .step .tag{
+      display:inline-flex;
+      font-size:12px;
+      color:var(--muted);
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      padding:6px 10px;
+      border-radius:999px;
+      margin-bottom:10px;
+    }
+    .step h3{margin:0 0 6px; font-size:16px}
+    .step p{margin:0; color:var(--muted); font-size:14px}
+
+    /* CTA box */
+    .cta{
+      padding:26px;
+      border-radius: var(--radius);
+      border:1px solid rgba(106,228,255,.25);
+      background: linear-gradient(135deg, rgba(106,228,255,.10), rgba(168,255,106,.06));
+      box-shadow: var(--shadow);
+    }
+    .cta h2{margin:0 0 8px; font-size:22px}
+    .cta p{margin:0 0 16px; color:var(--muted)}
+    .note{color:var(--muted); font-size:13px}
+
+    /* Insights image slot */
+    .insights-media{
+      grid-column: span 8;
+      overflow:hidden;
+      padding:0;
+    }
+    .insights-media img{
+      width:100%;
+      height:100%;
+      display:block;
+      object-fit:cover;
+      min-height: 320px;
+      border-radius: var(--radius);
+    }
+    @media (max-width: 980px){ .insights-media{grid-column: span 12;} }
+
+    /* Footer */
+    .foot{
+      padding:26px 0 46px;
+      border-top: 1px solid var(--line);
+      color:var(--muted);
+      font-size:13px;
+    }
+    .foot .row{
+      display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;
+    }
+    .smalllinks{display:flex; gap:14px; flex-wrap:wrap}
+    .smalllinks a{color:var(--muted)}
+    .smalllinks a:hover{color:var(--text)}
+
+    code.inline{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      color: var(--text);
+      background: rgba(255,255,255,.06);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 2px 8px;
+    }
   </style>
 </head>
 
 <body>
+  <div class="motto">It’s not a sales problem. It’s a frontline problem.</div>
 
-<header class="wrap">
-  <h1>It’s not a sales problem.<br>It’s a frontline problem.</h1>
-  <p>FrontlineQSR helps QSR brands fix execution where it actually breaks — on shift.</p>
-</header>
+  <header class="topbar">
+    <div class="wrap">
+      <div class="nav">
+        <a class="brand" href="#top" aria-label="FrontlineQSR home">
+          <img class="logo-img" src="./assets/frontlineqsr-logo.png" alt="FrontlineQSR logo" />
+        </a>
 
-<section class="wrap">
-  <img src="./assets/insights-frontline-problem.jpg" alt="Frontline problem image">
-</section>
+        <nav class="links" aria-label="Primary">
+          <a href="#about">About</a>
+          <a href="#approach">Approach</a>
+          <a href="#services">Services</a>
+          <a href="#timeline">Pilot Timeline</a>
+          <a href="#results">Results</a>
+          <a href="#insights">Insights</a>
+          <a href="https://www.linkedin.com/company/111776048" target="_blank" rel="noopener">LinkedIn</a>
+          <a class="btn primary" href="#contact">Work With Me</a>
+        </nav>
+      </div>
+    </div>
+  </header>
 
-<section class="wrap panel">
-  <h2>About FrontlineQSR</h2>
-  <p>
-    FrontlineQSR is led by <strong>Nathaniel O. Robinson</strong>, a frontline operator and leader with
-    experience building performance systems that hold up during real shifts — not just on paper.
-  </p>
-  <p>
-    The focus is simple: fix frontline execution, strengthen leadership cadence, and create
-    standards that scale across locations.
-  </p>
-</section>
+  <main id="top" class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div>
+          <div class="kicker"><span class="dot" aria-hidden="true"></span> QSR Operations • Franchise Performance • Frontline Leadership</div>
+          <h1>Rebuilding QSR Brands from the Inside Out.</h1>
+          <p class="lead">
+            FrontlineQSR helps quick-service restaurant brands restore operational discipline, strengthen frontline leadership,
+            and drive sustainable performance—without adding unnecessary complexity.
+          </p>
 
-<section class="wrap panel">
-  <h2>Work With FrontlineQSR</h2>
-  <p>
-    If your brand is dealing with inconsistent execution, leadership gaps, labor pressure,
-    or declining guest experience, the next step is a focused strategy conversation.
-  </p>
+          <div class="cta-row">
+            <a class="btn primary" href="#contact">Start a Pilot Engagement</a>
+            <a class="btn" href="#timeline">See the Pilot Timeline</a>
+            <a class="btn" href="#results">What We Improve</a>
+          </div>
 
-  <a class="btn" href="mailto:nrobinson@flqsr.com">Email to Start</a>
+          <p class="note" style="margin-top:14px;">
+            Remote model with an optional store visit after week six (if needed).
+          </p>
+        </div>
 
-  <button class="btn" id="copyEmailTemplate">Copy Intake Template (Recommended)</button>
-</section>
+        <aside class="panel hero-card" aria-label="Highlights">
+          <div>
+            <h2>What you can expect</h2>
+            <p>Clear standards. Strong accountability. Simple systems teams can execute every day.</p>
 
-<footer>
-  © <span id="year"></span> FrontlineQSR
-</footer>
+            <div class="stat-grid">
+              <div class="stat">
+                <strong>Store-level first</strong>
+                <span>Fix what actually happens on shift.</span>
+              </div>
+              <div class="stat">
+                <strong>Repeatable playbooks</strong>
+                <span>Built for multi-unit rollout.</span>
+              </div>
+              <div class="stat">
+                <strong>Leadership systems</strong>
+                <span>Coaching that sticks in the field.</span>
+              </div>
+              <div class="stat">
+                <strong>Measured outcomes</strong>
+                <span>Align on KPIs and targets early.</span>
+              </div>
+            </div>
+          </div>
 
-<script>
-  document.getElementById("year").textContent = new Date().getFullYear();
-</script>
+          <div>
+            <div class="divider"></div>
+            <p style="margin:0; color:var(--muted); font-size:13px;">
+              <b style="color:var(--text);">Typical start:</b> 6–8 week pilot → scale regionally after results.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </main>
 
-<script>
-  const templateText =
+  <section id="about">
+    <div class="wrap">
+      <div class="section-title">
+        <h2>About FrontlineQSR</h2>
+        <p>
+          QSR brands don’t struggle because of a lack of ideas. They struggle because execution breaks down at the store level.
+          FrontlineQSR closes that gap with leadership standards, accountability systems, and operational discipline that scales.
+        </p>
+      </div>
+
+      <div class="cards">
+        <div class="card panel" style="grid-column: span 12; display:flex; gap:16px; align-items:center; flex-wrap:wrap;">
+          <img src="./assets/headshot.jpg" alt="FrontlineQSR founder headshot"
+               style="width:160px; height:160px; border-radius:999px; object-fit:cover; border:1px solid rgba(255,255,255,.18);" />
+          <div style="min-width:240px; flex:1;">
+            <h3 style="margin:0 0 6px;">Nathaniel O. Robinson — Founder, FrontlineQSR</h3>
+            <p style="margin:0; color:var(--muted); font-size:14px;">
+              FrontlineQSR is led by Nathaniel O. Robinson, a hands-on operator who has built and coached high-performing frontline teams in metric-driven environments.
+              The focus: practical execution that holds on real shifts—and scales across units.
+            </p>
+          </div>
+        </div>
+
+        <div class="card panel">
+          <h3>Frontline reality</h3>
+          <p>Built for busy shifts, labor constraints, and real customer flow—not ideal scenarios.</p>
+        </div>
+        <div class="card panel">
+          <h3>Executive clarity</h3>
+          <p>Diagnose fast, prioritize correctly, and deliver a plan teams can execute without change fatigue.</p>
+        </div>
+        <div class="card panel">
+          <h3>Built to scale</h3>
+          <p>Improvements designed to roll out across units and regions—without breaking consistency.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="approach">
+    <div class="wrap">
+      <div class="section-title">
+        <h2>The 3I Framework</h2>
+        <p>
+          Inspire, Invest, Innovate—built for clarity on shift and discipline that scales.
+        </p>
+      </div>
+
+      <div class="approach">
+        <div class="card panel">
+          <h3>Inspire</h3>
+          <p>Clarify expectations, strengthen ownership, and align teams around enforceable standards.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Shift standards and non-negotiables</li>
+            <li><span class="check" aria-hidden="true"></span> Coaching cadence and field rhythm</li>
+            <li><span class="check" aria-hidden="true"></span> Culture that supports performance</li>
+          </ul>
+        </div>
+
+        <div class="card panel">
+          <h3>Invest</h3>
+          <p>Invest time and training where it moves results—frontline leaders, core processes, and guest experience.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Training that translates to shifts</li>
+            <li><span class="check" aria-hidden="true"></span> Staffing leverage points and role clarity</li>
+            <li><span class="check" aria-hidden="true"></span> KPI alignment (speed, labor, quality)</li>
+          </ul>
+        </div>
+
+        <div class="card panel">
+          <h3>Innovate</h3>
+          <p>Simplify workflows and accountability so performance scales without burnout or confusion.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Process simplification and throughput</li>
+            <li><span class="check" aria-hidden="true"></span> Standards built for rollout</li>
+            <li><span class="check" aria-hidden="true"></span> “Simple wins” that compound</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="services">
+    <div class="wrap">
+      <div class="section-title">
+        <h2>QSR Consulting Services</h2>
+        <p>Outcome-driven engagements focused on execution, franchise performance, and scalable consistency.</p>
+      </div>
+
+      <div class="two-col">
+        <div class="panel" style="padding:18px;">
+          <div class="cards" style="gap:12px;">
+            <div class="card" style="grid-column: span 12;">
+              <h3>Operational Assessment</h3>
+              <p>Store-level review of execution, leadership, and guest experience—ending with a prioritized action plan.</p>
+            </div>
+            <div class="card" style="grid-column: span 6;">
+              <h3>Performance & Turnaround Support</h3>
+              <p>Stabilize underperforming units and rebuild standards that hold across shifts and teams.</p>
+            </div>
+            <div class="card" style="grid-column: span 6;">
+              <h3>Regional & Multi-Unit Advisory</h3>
+              <p>Consistency across markets: field leadership, scalable standards, and ongoing executive support.</p>
+            </div>
+            <div class="card" style="grid-column: span 12;">
+              <h3>Pilot Engagements</h3>
+              <p>Start with a focused pilot to prove outcomes—then scale once results are real.</p>
+            </div>
+          </div>
+        </div>
+
+        <aside class="panel" style="padding:18px;">
+          <h3 style="margin:0 0 8px;">Pilot Deliverables</h3>
+          <p style="margin:0; color:var(--muted); font-size:14px;">A roadmap leadership can run—plus early wins that create momentum.</p>
+          <ul class="list" style="margin-top:14px;">
+            <li><span class="check" aria-hidden="true"></span> KPI baseline + target alignment</li>
+            <li><span class="check" aria-hidden="true"></span> Execution standards + coaching cadence</li>
+            <li><span class="check" aria-hidden="true"></span> Accountability model (operators + franchisees)</li>
+            <li><span class="check" aria-hidden="true"></span> Simplified processes built to scale</li>
+          </ul>
+
+          <div class="divider"></div>
+          <a class="btn primary full" href="#contact">Discuss a Pilot</a>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <section id="timeline">
+    <div class="wrap">
+      <div class="section-title">
+        <h2>Pilot Engagement Timeline</h2>
+        <p>Most partnerships begin with a 6–8 week pilot. Diagnose fast, implement what matters, and create a rollout plan that scales.</p>
+      </div>
+
+      <div class="timeline">
+        <div class="panel step">
+          <div class="tag">Weeks 1–2</div>
+          <h3>Diagnose & Baseline</h3>
+          <p>Store walks, leadership interviews, KPI baseline, and root-cause mapping.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> KPI baseline + targets</li>
+            <li><span class="check" aria-hidden="true"></span> Execution breakdown by shift</li>
+            <li><span class="check" aria-hidden="true"></span> “Top 5” priority list</li>
+          </ul>
+        </div>
+
+        <div class="panel step">
+          <div class="tag">Weeks 3–4</div>
+          <h3>Standards & Cadence</h3>
+          <p>Install non-negotiables, coaching rhythm, and scoreboards that make accountability simple.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Shift standards</li>
+            <li><span class="check" aria-hidden="true"></span> Coaching cadence</li>
+            <li><span class="check" aria-hidden="true"></span> Scoreboard design</li>
+          </ul>
+        </div>
+
+        <div class="panel step">
+          <div class="tag">Weeks 5–6</div>
+          <h3>Process Simplification</h3>
+          <p>Reduce complexity. Improve throughput, labor efficiency, and guest consistency.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Workflow fixes</li>
+            <li><span class="check" aria-hidden="true"></span> Speed / throughput lift</li>
+            <li><span class="check" aria-hidden="true"></span> Role clarity</li>
+          </ul>
+        </div>
+
+        <div class="panel step">
+          <div class="tag">Weeks 7–8</div>
+          <h3>Rollout & Scale Plan</h3>
+          <p>Convert wins into a repeatable playbook, training plan, and rollout sequence.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Playbook + training plan</li>
+            <li><span class="check" aria-hidden="true"></span> Rollout sequence</li>
+            <li><span class="check" aria-hidden="true"></span> Executive summary</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="margin-top:14px;">
+        <a class="btn primary" href="#contact">Start a Pilot</a>
+        <a class="btn" href="#results">See Target Outcomes</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="results">
+    <div class="wrap">
+      <div class="section-title">
+        <h2>Results We Target</h2>
+        <p>Targets are set upfront. The focus is measurable improvements that hold across shifts and locations.</p>
+      </div>
+
+      <div class="cards">
+        <div class="card panel">
+          <h3>Throughput & Speed</h3>
+          <p>Drive-thru and line flow improvements teams can execute during peak traffic.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Order-to-delivery time</li>
+            <li><span class="check" aria-hidden="true"></span> Peak-hour capacity</li>
+            <li><span class="check" aria-hidden="true"></span> Bottleneck removal</li>
+          </ul>
+        </div>
+
+        <div class="card panel">
+          <h3>Labor Efficiency</h3>
+          <p>Better staffing leverage through role clarity, coaching cadence, and process simplification.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Labor % and productivity</li>
+            <li><span class="check" aria-hidden="true"></span> Staffing model alignment</li>
+            <li><span class="check" aria-hidden="true"></span> Reduced rework</li>
+          </ul>
+        </div>
+
+        <div class="card panel">
+          <h3>Guest Consistency</h3>
+          <p>Standards that protect customer experience regardless of who’s on shift.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Accuracy and quality</li>
+            <li><span class="check" aria-hidden="true"></span> Service behaviors</li>
+            <li><span class="check" aria-hidden="true"></span> Complaint reduction</li>
+          </ul>
+        </div>
+
+        <div class="card panel">
+          <h3>Franchise Accountability</h3>
+          <p>Clear expectations and a fair cadence that improves compliance without constant conflict.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Audit score lift</li>
+            <li><span class="check" aria-hidden="true"></span> Field cadence</li>
+            <li><span class="check" aria-hidden="true"></span> Consistent enforcement</li>
+          </ul>
+        </div>
+
+        <div class="card panel">
+          <h3>Leadership Systems</h3>
+          <p>Frontline leaders with coaching, standards, and routines that translate strategy into execution.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Coaching routines</li>
+            <li><span class="check" aria-hidden="true"></span> Daily/weekly rhythm</li>
+            <li><span class="check" aria-hidden="true"></span> Ownership by role</li>
+          </ul>
+        </div>
+
+        <div class="card panel">
+          <h3>Scale Readiness</h3>
+          <p>Operating standards and playbooks built for rollout and onboarding.</p>
+          <ul class="list">
+            <li><span class="check" aria-hidden="true"></span> Repeatable playbooks</li>
+            <li><span class="check" aria-hidden="true"></span> Training materials</li>
+            <li><span class="check" aria-hidden="true"></span> Rollout sequence</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="insights">
+    <div class="wrap">
+      <div class="section-title">
+        <h2>Insights</h2>
+        <p>Short, direct perspectives on QSR execution, franchise performance, and store-level consistency.</p>
+      </div>
+
+      <div class="cards">
+        <article class="card panel">
+          <h3>Why Most Turnarounds Fail at the Store Level</h3>
+          <p>
+            Strategy rarely fails on paper. It fails when the rush hits and standards aren’t clear.
+            Leadership cadence and simplification decide the outcome.
+          </p>
+        </article>
+
+        <div class="panel insights-media">
+          <img src="./assets/insights-frontline-problem.jpg" alt="FrontlineQSR insight image" />
+        </div>
+
+        <article class="card panel">
+          <h3>Accountability Without Revolt</h3>
+          <p>Accountability works when expectations are clear, cadence is consistent, and enforcement is fair.</p>
+        </article>
+
+        <article class="card panel">
+          <h3>Complexity Is the Silent Killer of Speed</h3>
+          <p>If teams can’t execute it during a busy shift, it isn’t scalable. Simplification is innovation.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section id="contact">
+    <div class="wrap">
+      <div class="cta">
+        <h2>Work With FrontlineQSR</h2>
+        <p>
+          Remote model with an optional store visit after week six (if needed). Start with a short intake so I can respond with clear next steps.
+        </p>
+
+        <div class="two-col" style="margin-top:14px;">
+          <div class="panel" style="padding:18px;">
+            <h3 style="margin:0 0 8px;">Start by Email</h3>
+            <p class="note" style="margin:0 0 12px;">
+              Gmail/iPhone can be inconsistent with pre-filled templates. Use the Copy button, then paste into your email for the cleanest experience.
+            </p>
+
+            <a class="btn primary full" href="mailto:nrobinson@flqsr.com" target="_blank" rel="noopener">Open Email (To: nrobinson@flqsr.com)</a>
+
+            <button class="btn secondary full" id="copyEmailTemplate" style="margin-top:10px;">
+              Copy Intake Template (Recommended)
+            </button>
+
+            <div class="divider"></div>
+
+            <p class="note" style="margin:0;">
+              Direct: <a href="mailto:nrobinson@flqsr.com" style="text-decoration:underline;">nrobinson@flqsr.com</a>
+            </p>
+          </div>
+
+          <aside class="panel" style="padding:18px;">
+            <h3 style="margin:0 0 8px;">What to include</h3>
+            <ul class="list" style="margin-top:12px;">
+              <li><span class="check" aria-hidden="true"></span> Company/Brand name</li>
+              <li><span class="check" aria-hidden="true"></span> # of locations + markets</li>
+              <li><span class="check" aria-hidden="true"></span> Your role (Franchisee / Operator / Corporate)</li>
+              <li><span class="check" aria-hidden="true"></span> What’s breaking down on shift</li>
+              <li><span class="check" aria-hidden="true"></span> KPI pain (speed, labor, consistency, complaints)</li>
+              <li><span class="check" aria-hidden="true"></span> Timeline + best call times</li>
+            </ul>
+          </aside>
+        </div>
+
+        <p class="note" style="margin-top:12px;">
+          If the page looks “cached” on iPhone after you update, open: <code class="inline">https://flqsr.com/?v=99</code>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <div class="wrap">
+      <div class="row">
+        <div>© <span id="year"></span> FrontlineQSR • QSR Operations & Franchise Performance</div>
+        <div class="smalllinks">
+          <a href="#about">About</a>
+          <a href="#services">Services</a>
+          <a href="#timeline">Timeline</a>
+          <a href="#contact">Contact</a>
+          <a href="https://www.linkedin.com/company/111776048" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // Footer year
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    // Copy intake template (iPhone/Gmail-proof)
+    const templateText =
 `Hi Nate,
 
 I’d like to request a FrontlineQSR strategy call.
@@ -122,28 +807,61 @@ Number of Locations:
 Markets / States:
 Your Role (Owner / Operator / Corporate):
 
-Primary issues on the frontline:
+Primary frontline issues:
 
-KPIs you want to improve (speed, labor, consistency, etc.):
+KPIs you want to improve (speed, labor, consistency, complaints, etc.):
 
 Timeline / urgency:
 
-Best times for a 20–30 min call:
+Best times for a 20–30 minute call:
 - 
 - 
 -
 
 Thanks,`;
 
-  document.getElementById('copyEmailTemplate').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(templateText);
-      alert('Copied. Open Gmail and paste into the email.');
-    } catch (e) {
-      prompt('Copy this text:', templateText);
-    }
-  });
-</script>
+    document.getElementById('copyEmailTemplate')?.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(templateText);
+        alert('Copied. Open Gmail and paste into the email.');
+        if (typeof gtag === 'function') {
+          gtag('event','cta_click',{link_text:'Copy Intake Template', link_url:'copy'});
+        }
+      } catch (e) {
+        prompt('Copy this text:', templateText);
+      }
+    });
 
+    // Track CTA + contact clicks
+    document.addEventListener('click', function (e) {
+      const el = e.target.closest('a, button');
+      if (!el) return;
+
+      const href = (el.getAttribute && el.getAttribute('href')) ? (el.getAttribute('href') || '').trim() : '';
+      const text = (el.textContent || '').trim();
+
+      // mailto/tel
+      if (href && (href.toLowerCase().startsWith('mailto:') || href.toLowerCase().startsWith('tel:'))) {
+        try {
+          gtag('event', 'contact_click', {
+            method: href.toLowerCase().startsWith('mailto:') ? 'email' : 'phone',
+            link_url: href,
+            link_text: text
+          });
+        } catch (err) {}
+        return;
+      }
+
+      // CTAs (buttons)
+      if (el.classList && el.classList.contains('btn')) {
+        try {
+          gtag('event', 'cta_click', {
+            link_url: href || '',
+            link_text: text
+          });
+        } catch (err) {}
+      }
+    });
+  </script>
 </body>
 </html>
