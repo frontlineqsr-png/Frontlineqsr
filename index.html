@@ -1,149 +1,149 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-<title>FrontlineQSR | QSR Operations & Franchise Performance</title>
-<meta name="description" content="FrontlineQSR helps QSR brands fix execution at the frontline—where performance is won or lost." />
-<meta name="robots" content="index,follow" />
+  <title>FrontlineQSR | QSR Operations & Franchise Performance Consulting</title>
+  <meta name="description" content="FrontlineQSR helps QSR brands restore operational discipline, strengthen frontline leadership, and drive sustainable performance at scale." />
+  <meta name="robots" content="index,follow" />
 
-<!-- GA4 -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-FNM91NHH34"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-FNM91NHH34');
-</script>
+  <!-- Open Graph -->
+  <meta property="og:title" content="FrontlineQSR | QSR Operations & Franchise Performance Consulting" />
+  <meta property="og:description" content="It’s not a sales problem. It’s a frontline problem." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://flqsr.com/" />
 
-<style>
-:root{
-  --bg:#0b0f14;
-  --panel:#0f1620;
-  --text:#e9eef5;
-  --muted:#b7c3d4;
-  --line:rgba(255,255,255,.1);
-  --accent:#6ae4ff;
-  --accent2:#a8ff6a;
-  --radius:16px;
-  --max:1120px;
-}
+  <!-- GA4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNM91NHH34"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-FNM91NHH34');
+  </script>
 
-*{box-sizing:border-box}
-body{
-  margin:0;
-  font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-  background: radial-gradient(1200px 800px at 10% -10%, rgba(106,228,255,.18), transparent 55%), var(--bg);
-  color:var(--text);
-}
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#0f1620;
+      --text:#e9eef5;
+      --muted:#b7c3d4;
+      --line:rgba(255,255,255,.10);
+      --accent:#6ae4ff;
+      --accent2:#a8ff6a;
+      --radius:16px;
+      --max:1120px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background:var(--bg);
+      color:var(--text);
+      line-height:1.45;
+    }
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
 
-a{text-decoration:none;color:inherit}
-.wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
+    /* Top */
+    .topbar{
+      position:sticky;top:0;z-index:10;
+      background:rgba(11,15,20,.9);
+      border-bottom:1px solid var(--line);
+    }
+    .motto{
+      text-align:center;
+      font-size:13px;
+      color:var(--muted);
+      padding:8px;
+      border-bottom:1px solid var(--line);
+    }
+    .nav{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:14px 0;
+    }
+    .brand{display:flex;align-items:center;gap:10px;font-weight:700}
+    .logo-img{width:160px}
 
-.topbar{
-  position:sticky;top:0;z-index:10;
-  backdrop-filter:blur(10px);
-  background:rgba(11,15,20,.85);
-  border-bottom:1px solid var(--line);
-}
-.motto{
-  text-align:center;
-  font-size:13px;
-  padding:8px;
-  color:var(--muted);
-  border-bottom:1px solid var(--line);
-}
+    .links{display:flex;gap:12px;flex-wrap:wrap}
+    .links a{font-size:14px;color:var(--muted)}
+    .links a:hover{color:var(--text)}
 
-.nav{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:14px 0;
-}
-.brand{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  font-weight:700;
-}
-.logo-img{width:160px}
+    .btn{
+      padding:12px 16px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      font-weight:600;
+    }
+    .btn.primary{
+      background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(168,255,106,.12));
+      border-color:rgba(106,228,255,.4);
+    }
 
-.links{display:flex;gap:12px;flex-wrap:wrap}
-.links a{color:var(--muted);font-size:14px}
-.links a:hover{color:var(--text)}
+    /* Layout */
+    section{padding:48px 0}
+    .panel{
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:18px;
+    }
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(12,1fr);
+      gap:14px;
+    }
+    .card{grid-column:span 4}
+    @media(max-width:900px){.card{grid-column:span 6}}
+    @media(max-width:600px){.card{grid-column:span 12}}
 
-.btn{
-  padding:12px 16px;
-  border-radius:14px;
-  border:1px solid var(--line);
-  background:rgba(255,255,255,.06);
-  font-weight:600;
-}
-.btn.primary{
-  background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(168,255,106,.12));
-  border-color:rgba(106,228,255,.4);
-}
+    /* Lists */
+    .list{list-style:none;padding:0;margin:0}
+    .list li{
+      display:flex;
+      gap:10px;
+      padding:10px 0;
+      border-top:1px solid var(--line);
+      color:var(--muted);
+    }
+    .list li:first-child{border-top:none}
 
-.hero{padding:70px 0}
-.hero h1{font-size:clamp(34px,4vw,54px)}
-.lead{color:var(--muted);max-width:60ch}
+    /* Shield bullets */
+    .check{
+      width:18px;
+      height:18px;
+      margin-top:2px;
+      background:url("/assets/frontlineqsr-shield.svg") no-repeat center;
+      background-size:contain;
+      filter:drop-shadow(0 4px 10px rgba(106,228,255,.25));
+    }
 
-.panel{
-  background:rgba(255,255,255,.04);
-  border:1px solid var(--line);
-  border-radius:var(--radius);
-  padding:18px;
-}
+    /* Founder */
+    .founder{
+      display:flex;
+      gap:18px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+    .founder img{
+      width:160px;
+      height:160px;
+      border-radius:999px;
+      object-fit:cover;
+      border:1px solid var(--line);
+    }
 
-section{padding:44px 0}
-
-.section-title h2{margin:0 0 6px}
-.section-title p{color:var(--muted)}
-
-.cards{
-  display:grid;
-  grid-template-columns:repeat(12,1fr);
-  gap:14px;
-}
-.card{grid-column:span 4}
-@media(max-width:900px){.card{grid-column:span 6}}
-@media(max-width:600px){.card{grid-column:span 12}}
-
-.list{list-style:none;padding:0;margin:0}
-.list li{
-  display:flex;
-  gap:10px;
-  padding:10px 0;
-  border-top:1px solid var(--line);
-  color:var(--muted);
-}
-.list li:first-child{border-top:none}
-
-.check{
-  width:18px;
-  height:18px;
-  background:url("./assets/frontlineqsr-shield.svg") no-repeat center;
-  background-size:contain;
-  margin-top:2px;
-  filter:drop-shadow(0 4px 10px rgba(106,228,255,.25));
-}
-
-.insights-image img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  min-height:380px;
-  border-radius:var(--radius);
-}
-
-footer{
-  border-top:1px solid var(--line);
-  padding:24px 0;
-  color:var(--muted);
-  font-size:13px;
-}
-</style>
+    footer{
+      border-top:1px solid var(--line);
+      padding:26px 0;
+      color:var(--muted);
+      font-size:13px;
+    }
+  </style>
 </head>
 
 <body>
@@ -152,11 +152,11 @@ footer{
   <div class="motto">It’s not a sales problem. It’s a frontline problem.</div>
   <div class="wrap nav">
     <div class="brand">
-      <img src="./assets/frontlineqsr-logo.png" class="logo-img" alt="FrontlineQSR" />
+      <img src="/assets/frontlineqsr-logo.png" class="logo-img" alt="FrontlineQSR">
     </div>
     <div class="links">
+      <a href="#about">About</a>
       <a href="#services">Services</a>
-      <a href="#results">Results</a>
       <a href="#insights">Insights</a>
       <a href="https://www.linkedin.com/company/111776048" target="_blank">LinkedIn</a>
       <a href="#contact" class="btn primary">Work With Me</a>
@@ -164,30 +164,35 @@ footer{
   </div>
 </header>
 
-<section class="hero">
+<section id="about">
   <div class="wrap">
-    <h1>Fix the frontline. Everything else follows.</h1>
-    <p class="lead">
-      FrontlineQSR helps QSR brands restore execution, accountability, and leadership
-      at the point where performance actually happens — the shift.
-    </p>
+    <div class="panel founder">
+      <img src="/assets/headshot.jpg" alt="Nathaniel O. Robinson">
+      <div>
+        <h2>Nathaniel O. Robinson — Founder</h2>
+        <p>
+          FrontlineQSR was founded by Nathaniel O. Robinson, a hands-on operator and frontline leader
+          with experience building, coaching, and stabilizing teams in high-pressure, metric-driven environments.
+          The work focuses on execution that survives real shifts — not theoretical strategy.
+        </p>
+        <p>
+          The core belief is simple: when frontline execution improves, every metric follows.
+        </p>
+      </div>
+    </div>
   </div>
 </section>
 
 <section id="services">
   <div class="wrap">
-    <div class="section-title">
-      <h2>What We Do</h2>
-      <p>Remote-first consulting with optional on-site validation after week six.</p>
-    </div>
-
+    <h2>Services</h2>
     <div class="cards">
       <div class="card panel">
         <h3>Operational Assessment</h3>
         <ul class="list">
           <li><span class="check"></span> Shift execution review</li>
           <li><span class="check"></span> KPI baseline</li>
-          <li><span class="check"></span> Priority action plan</li>
+          <li><span class="check"></span> Action roadmap</li>
         </ul>
       </div>
 
@@ -212,37 +217,15 @@ footer{
   </div>
 </section>
 
-<section id="results">
-  <div class="wrap">
-    <div class="section-title">
-      <h2>Results We Target</h2>
-    </div>
-    <div class="cards">
-      <div class="card panel">
-        <ul class="list">
-          <li><span class="check"></span> Throughput & speed</li>
-          <li><span class="check"></span> Labor efficiency</li>
-          <li><span class="check"></span> Guest consistency</li>
-        </ul>
-      </div>
-    </div>
-  </div>
-</section>
-
 <section id="insights">
   <div class="wrap">
-    <div class="section-title">
-      <h2>Insights</h2>
-    </div>
-
     <div class="cards">
       <div class="card panel">
-        <h3>Why QSR Turnarounds Fail</h3>
+        <h3>Why Turnarounds Fail</h3>
         <p>Strategy fails when frontline standards don’t survive the rush.</p>
       </div>
-
-      <div class="card panel insights-image">
-        <img src="./assets/insights-frontline-problem.jpg" alt="Frontline problem" />
+      <div class="card panel">
+        <img src="/assets/insights-frontline-problem.jpg" alt="Frontline problem" style="width:100%;border-radius:16px">
       </div>
     </div>
   </div>
