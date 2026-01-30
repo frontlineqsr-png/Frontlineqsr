@@ -2,222 +2,111 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>FrontlineQSR | Admin Review</title>
-
   <link rel="stylesheet" href="assets/styles.css" />
-  <script src="assets/app.js" defer></script>
 </head>
-
 <body>
 
-<header class="brandbar">
-  <div class="left">
-    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
-    <div class="title">Admin Dashboard</div>
-  </div>
-  <div class="right">
-    <div class="pill">Role: Admin</div>
-  </div>
-</header>
+  <!-- Top brand bar -->
+  <header class="brandbar">
+    <div class="left">
+      <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
+      <div class="title">Admin Dashboard</div>
+    </div>
+    <div class="right">
+      <div class="pill">Role: Admin</div>
+    </div>
+  </header>
 
-<div class="layout">
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <nav class="nav">
+        <a href="index.html">Overview</a>
+        <a href="kpis.html">KPIs</a>
+        <a href="action-plan.html">Action Plan</a>
+        <a href="reports.html">Reports</a>
+        <a href="upload.html">Client Uploads</a>
+        <a class="active" href="admin.html">Admin Review</a>
+        <a href="payments.html">Payments</a>
+        <a href="contracts.html">Contracts</a>
+      </nav>
+    </aside>
 
-  <aside class="sidebar">
-    <nav class="nav">
-      <a href="index.html">Overview</a>
-      <a href="kpis.html">KPIs</a>
-      <a href="action-plan.html">Action Plan</a>
-      <a href="reports.html">Reports</a>
-      <a href="upload.html">Client Uploads</a>
-      <a class="active" href="admin.html">Admin Review</a>
-      <a href="payments.html">Payments</a>
-      <a href="contracts.html">Contracts</a>
-    </nav>
-  </aside>
+    <!-- Main -->
+    <main class="main">
 
-  <main class="main">
+      <section class="card">
+        <h1 style="margin:0 0 6px 0;">Admin Review Queue</h1>
+        <div class="meta">
+          Review client submissions, approve to unlock KPI updates, or reject with notes.
+          (Pilot v1 uses your browser storage — no backend yet.)
+        </div>
 
-    <section class="card">
-      <h1>Admin Review Queue</h1>
-      <div class="meta">
-        Review client submissions, approve to unlock KPI updates, or reject with notes.
-        (Pilot v1 uses your browser storage — no backend yet.)
-      </div>
-    </section>
+        <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn primary" id="refreshQueueBtn" type="button">Refresh Queue</button>
+          <button class="btn" id="addDemoBtn" type="button">Add Demo Submission</button>
+          <button class="btn" id="clearQueueBtn" type="button">Clear Queue</button>
+        </div>
 
-    <section class="card">
-      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-        <button class="btn primary" id="adminRefreshBtn" type="button">Refresh Queue</button>
-        <button class="btn" id="adminSeedBtn" type="button">Add Demo Submission</button>
-        <button class="btn" id="adminClearBtn" type="button">Clear Queue</button>
-      </div>
-      <div class="meta" style="margin-top:10px;">
-        Tip: Use “Add Demo Submission” once so you can see the full workflow immediately.
-      </div>
-    </section>
+        <div class="meta" style="margin-top:10px;">
+          Tip: Use <strong>Add Demo Submission</strong> once so you can see the full workflow immediately.
+        </div>
+      </section>
 
-    <section class="card">
-      <h3>Submissions</h3>
-      <div id="adminQueue" class="meta" style="margin-top:10px;">Loading…</div>
-    </section>
+      <section class="card" style="margin-top:14px;">
+        <h2 style="margin:0 0 10px 0;">Submissions</h2>
 
-  </main>
-</div>
+        <div id="queueEmpty" class="meta">No submissions yet. Have a client submit from <a href="upload.html">Upload Data</a>.</div>
 
-<!-- Inline admin logic (fastest for GitHub Pages pilot) -->
-<script>
-(function () {
-  const KEY = "flqsr_review_queue";
+        <div id="queueList" class="grid-2" style="margin-top:10px;"></div>
+      </section>
 
-  const adminQueueEl = document.getElementById("adminQueue");
-  const refreshBtn = document.getElementById("adminRefreshBtn");
-  const seedBtn = document.getElementById("adminSeedBtn");
-  const clearBtn = document.getElementById("adminClearBtn");
+      <section class="card" style="margin-top:14px;">
+        <h2 style="margin:0 0 10px 0;">Details</h2>
 
-  function readQueue() {
-    try {
-      return JSON.parse(localStorage.getItem(KEY) || "[]");
-    } catch {
-      return [];
-    }
-  }
+        <div id="detailsEmpty" class="meta">Select a submission to review.</div>
 
-  function writeQueue(items) {
-    localStorage.setItem(KEY, JSON.stringify(items));
-  }
+        <div id="detailsPanel" class="hidden">
+          <div class="grid-2">
+            <div class="card">
+              <div class="meta">Client</div>
+              <div id="dClient" style="font-weight:700;"></div>
 
-  function fmtDate(ts) {
-    try {
-      return new Date(ts).toLocaleString();
-    } catch {
-      return "";
-    }
-  }
+              <div class="meta" style="margin-top:10px;">Submitted</div>
+              <div id="dSubmitted"></div>
 
-  function badge(status) {
-    const s = (status || "PENDING").toUpperCase();
-    if (s === "APPROVED") return `<span style="padding:4px 10px;border-radius:999px;border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.12)">APPROVED</span>`;
-    if (s === "REJECTED") return `<span style="padding:4px 10px;border-radius:999px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.12)">REJECTED</span>`;
-    return `<span style="padding:4px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06)">PENDING</span>`;
-  }
-
-  function render() {
-    const items = readQueue();
-
-    if (!items.length) {
-      adminQueueEl.innerHTML = `
-        <div class="meta">No submissions yet.</div>
-        <div class="meta" style="margin-top:6px;">Have a client submit from <a href="upload.html">Upload Data</a>, or click “Add Demo Submission”.</div>
-      `;
-      return;
-    }
-
-    adminQueueEl.innerHTML = items.map((it, idx) => {
-      const months = (it.months || []).join(", ");
-      const issues = (it.issues || []);
-      const issuesHtml = issues.length
-        ? `<ul class="list" style="margin-top:8px;">${issues.map(x => `<li>${x}</li>`).join("")}</ul>`
-        : `<div class="meta" style="margin-top:8px;">No validation issues recorded.</div>`;
-
-      const notes = it.notes ? it.notes : "";
-
-      return `
-        <div class="card" style="margin:12px 0;">
-          <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-            <div>
-              <div style="font-weight:800; font-size:18px;">Client: ${it.client || "Unknown"}</div>
-              <div class="meta">Submitted: ${fmtDate(it.submittedAt)}</div>
-              <div class="meta">Months: ${months || "(none)"}</div>
+              <div class="meta" style="margin-top:10px;">Status</div>
+              <div id="dStatus" class="pill" style="display:inline-block;"></div>
             </div>
-            <div>${badge(it.status)}</div>
+
+            <div class="card">
+              <div class="meta">Files</div>
+              <div id="dFiles" class="meta" style="margin-top:6px;"></div>
+
+              <div class="meta" style="margin-top:10px;">Months</div>
+              <div id="dMonths" class="meta" style="margin-top:6px;"></div>
+            </div>
           </div>
 
-          <div style="margin-top:10px;">
-            <div style="font-weight:700;">Validation Notes</div>
-            ${issuesHtml}
-          </div>
+          <div class="card" style="margin-top:12px;">
+            <div class="meta">Admin Notes (optional)</div>
+            <textarea id="adminNotes" rows="3" style="width:100%; margin-top:8px;"></textarea>
 
-          <div style="margin-top:12px;">
-            <label class="meta" style="display:block; margin-bottom:6px;">Admin Notes (saved)</label>
-            <textarea data-notes="${idx}" class="input" style="min-height:80px; width:100%;">${notes}</textarea>
-          </div>
+            <div class="actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+              <button class="btn primary" id="approveBtn" type="button">Approve</button>
+              <button class="btn" id="rejectBtn" type="button">Reject</button>
+            </div>
 
-          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:12px;">
-            <button class="btn primary" data-approve="${idx}" type="button">Approve</button>
-            <button class="btn" data-reject="${idx}" type="button">Reject</button>
-            <button class="btn" data-delete="${idx}" type="button">Remove</button>
+            <div id="adminStatus" class="meta" style="margin-top:10px;"></div>
           </div>
         </div>
-      `;
-    }).join("");
+      </section>
 
-    // Wire up buttons + notes
-    document.querySelectorAll("[data-approve]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const i = Number(btn.getAttribute("data-approve"));
-        const items = readQueue();
-        items[i].status = "APPROVED";
-        writeQueue(items);
-        render();
-      });
-    });
+    </main>
+  </div>
 
-    document.querySelectorAll("[data-reject]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const i = Number(btn.getAttribute("data-reject"));
-        const items = readQueue();
-        items[i].status = "REJECTED";
-        writeQueue(items);
-        render();
-      });
-    });
-
-    document.querySelectorAll("[data-delete]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const i = Number(btn.getAttribute("data-delete"));
-        const items = readQueue();
-        items.splice(i, 1);
-        writeQueue(items);
-        render();
-      });
-    });
-
-    document.querySelectorAll("textarea[data-notes]").forEach(area => {
-      area.addEventListener("input", () => {
-        const i = Number(area.getAttribute("data-notes"));
-        const items = readQueue();
-        items[i].notes = area.value;
-        writeQueue(items);
-      });
-    });
-  }
-
-  refreshBtn.addEventListener("click", render);
-
-  seedBtn.addEventListener("click", () => {
-    const items = readQueue();
-    items.unshift({
-      client: "Demo Location - Phoenix, AZ",
-      months: ["2026-01", "2025-12", "2025-11", "2025-10", "2025-09"],
-      issues: [],
-      submittedAt: Date.now(),
-      status: "PENDING",
-      notes: ""
-    });
-    writeQueue(items);
-    render();
-  });
-
-  clearBtn.addEventListener("click", () => {
-    writeQueue([]);
-    render();
-  });
-
-  render();
-})();
-</script>
-
+  <script src="assets/admin.js"></script>
 </body>
 </html>
-
