@@ -1,268 +1,230 @@
-// ==============================
-// FrontlineQSR KPIs (Pilot v1)
-// Reads latest approved submission from localStorage queue
-// Uses submission.monthlyTotals created at upload validation time
-// ==============================
+/* assets/kpis.js
+   KPIs page reader for static/localStorage workflow
+   Works with monthlyTotals shape: { m2, m1, m0 } from the new app.js
+   Reads latest approved submission saved by admin.js
+*/
 
-const QUEUE_KEY = "flqsr_admin_queue_v1";
+(() => {
+  "use strict";
 
-function $(id) { return document.getElementById(id); }
+  const APPROVED_KEYS = [
+    "flqsr_latest_approved_submission",
+    "flqsr_latest_approved_submission_v1",
+  ];
 
-function safeParseJSON(raw, fallback) {
-  try { return JSON.parse(raw); } catch { return fallback; }
-}
+  const $ = (id) => document.getElementById(id);
 
-function loadQueue() {
-  const raw = localStorage.getItem(QUEUE_KEY);
-  const data = safeParseJSON(raw || "[]", []);
-  return Array.isArray(data) ? data : [];
-}
+  function safeParse(raw) {
+    try { return JSON.parse(raw); } catch { return null; }
+  }
 
-function formatDate(iso) {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return iso;
-  return d.toLocaleString();
-}
+  function getLatestApproved() {
+    for (const k of APPROVED_KEYS) {
+      const raw = localStorage.getItem(k);
+      if (!raw) continue;
+      const parsed = safeParse(raw);
+      if (parsed && typeof parsed === "object") return parsed;
+    }
+    return null;
+  }
 
-function monthPretty(key) {
-  if (!key || !/^\d{4}-\d{2}$/.test(key)) return String(key || "—");
-  const d = new Date(`${key}-01T00:00:00`);
-  return d.toLocaleString(undefined, { month: "long", year: "numeric" });
-}
+  function fmtMoney(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return "$0.00";
+    return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  }
 
-function monthRoleFromNow(key) {
-  if (!key || !/^\d{4}-\d{2}$/.test(key)) return null;
+  function fmtNum(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return "0";
+    return v.toLocaleString();
+  }
 
-  const now = new Date();
-  const cur = now.getFullYear() * 12 + now.getMonth();
-  const [y, m] = key.split("-").map(Number);
-  const v = y * 12 + (m - 1);
+  function fmtPctFromRatio(r) {
+    const v = Number(r);
+    if (!Number.isFinite(v)) return "—";
+    return (v * 100).toFixed(1) + "%";
+  }
 
-  const diff = cur - v;
-  if (diff === 0) return "Current Month";
-  if (diff === 1) return "Last Month";
-  if (diff === 2) return "Two Months Ago";
-  return null;
-}
+  function pctChange(curr, prev) {
+    const c = Number(curr), p = Number(prev);
+    if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return NaN;
+    return (c - p) / p;
+  }
 
-function findLatestApproved(queue) {
-  const approved = queue
-    .filter(x => (x.status || "").toLowerCase() === "approved")
-    .sort((a, b) => {
-      const da = new Date(a.reviewedAt || a.createdAt || 0).getTime();
-      const db = new Date(b.reviewedAt || b.createdAt || 0).getTime();
-      return db - da;
-    });
-  return approved[0] || null;
-}
+  function getTotalsObj(submission, key) {
+    // Supports both:
+    // new app.js: monthlyTotals[key] = { sales, labor, transactions }
+    // older shapes: monthlyTotals[key].totals = { sales, labor, tx }
+    const mt = submission?.monthlyTotals?.[key];
+    if (!mt) return null;
 
-// ---------- number formatting ----------
-function fmtMoney(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "—";
-  return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
-}
+    // New shape
+    if ("sales" in mt || "labor" in mt || "transactions" in mt) {
+      return {
+        sales: Number(mt.sales) || 0,
+        labor: Number(mt.labor) || 0,
+        tx: Number(mt.transactions) || 0,
+      };
+    }
 
-function fmtNum(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "—";
-  return v.toLocaleString();
-}
+    // Older shape from earlier builds
+    if (mt.totals) {
+      return {
+        sales: Number(mt.totals.sales) || 0,
+        labor: Number(mt.totals.labor) || 0,
+        tx: Number(mt.totals.tx) || 0,
+      };
+    }
 
-function fmtPct(n) {
-  const v = Number(n);
-  if (!Number.isFinite(v)) return "—";
-  return `${(v * 100).toFixed(1)}%`;
-}
+    return null;
+  }
 
-function fmtDeltaPct(delta) {
-  // delta as fraction, ex: 0.12 = +12%
-  const v = Number(delta);
-  if (!Number.isFinite(v)) return "—";
-  const sign = v > 0 ? "+" : "";
-  return `${sign}${(v * 100).toFixed(1)}%`;
-}
+  function computeDerived(t) {
+    const sales = t.sales;
+    const labor = t.labor;
+    const tx = t.tx;
 
-function safeDiv(a, b) {
-  const x = Number(a), y = Number(b);
-  if (!Number.isFinite(x) || !Number.isFinite(y) || y === 0) return NaN;
-  return x / y;
-}
+    const laborPct = sales > 0 ? labor / sales : NaN;
+    const avgTicket = tx > 0 ? sales / tx : NaN;
 
-function changePct(prev, curr) {
-  // (curr-prev)/prev
-  const p = Number(prev), c = Number(curr);
-  if (!Number.isFinite(p) || !Number.isFinite(c) || p === 0) return NaN;
-  return (c - p) / p;
-}
+    return { sales, labor, tx, laborPct, avgTicket };
+  }
 
-// ---------- rendering ----------
-function renderGateAndSummary(latest) {
-  const gateText = $("gateText");
-  const approvedPanel = $("approvedPanel");
-  const kpiPanel = $("kpiPanel");
+  function pillHtml(label, tone) {
+    // tone: good | bad | neutral
+    const bg =
+      tone === "good" ? "rgba(46, 204, 113, 0.18)" :
+      tone === "bad" ? "rgba(231, 76, 60, 0.18)" :
+      "rgba(255,255,255,0.10)";
+    const br =
+      tone === "good" ? "rgba(46, 204, 113, 0.55)" :
+      tone === "bad" ? "rgba(231, 76, 60, 0.55)" :
+      "rgba(255,255,255,0.18)";
 
-  const monthsEl = $("approvedMonths");
-  const filesEl = $("approvedFiles");
-  const reviewedEl = $("reviewedAt");
+    return `<span class="pill" style="background:${bg}; border-color:${br};">${label}</span>`;
+  }
 
-  if (!latest) {
-    approvedPanel?.classList.add("hidden");
-    kpiPanel?.classList.add("hidden");
+  function deltaPill(change) {
+    if (!Number.isFinite(change)) return pillHtml("—", "neutral");
+    const pct = (change * 100).toFixed(1) + "%";
+    if (change > 0.0001) return pillHtml(`+${pct}`, "good");
+    if (change < -0.0001) return pillHtml(`${pct}`, "bad");
+    return pillHtml("0.0%", "neutral");
+  }
 
-    if (gateText) {
-      gateText.innerHTML = `
-        <span style="color:#ffb3b3;">Waiting for Admin Approval.</span>
-        <div class="meta" style="margin-top:8px;">
-          Upload your 3 CSVs, then have Admin approve the submission.
-        </div>
+  function render() {
+    const statusEl = $("kpiStatus");
+    const latestEl = $("latestApproved");
+    const cardsEl = $("kpiCards");
+
+    const sub = getLatestApproved();
+
+    if (!sub) {
+      if (statusEl) statusEl.innerHTML = `No approved submission found yet. Go to <a href="admin.html">Admin Review</a>, approve a submission, then refresh this page.`;
+      if (latestEl) latestEl.textContent = "None";
+      if (cardsEl) cardsEl.innerHTML = `<div class="meta">Waiting for approval…</div>`;
+      return;
+    }
+
+    const clientName = sub.clientName || sub.clientId || "Client";
+    const createdAt = sub.createdAt ? new Date(sub.createdAt).toLocaleString() : "—";
+    const reviewedAt = sub.reviewedAt ? new Date(sub.reviewedAt).toLocaleString() : "—";
+
+    if (statusEl) {
+      statusEl.innerHTML = `Approved ✅ KPIs unlocked for <strong>${clientName}</strong>.`;
+    }
+
+    if (latestEl) {
+      latestEl.innerHTML = `
+        <div><strong>Client:</strong> ${clientName}</div>
+        <div class="meta" style="margin-top:6px;">Submitted: ${createdAt}</div>
+        <div class="meta">Approved: ${reviewedAt}</div>
       `;
     }
-    return false;
-  }
 
-  approvedPanel?.classList.remove("hidden");
-  kpiPanel?.classList.remove("hidden");
+    // Pull 3 months from new pipeline: m2 (older), m1 (previous), m0 (current)
+    const t2 = getTotalsObj(sub, "m2");
+    const t1 = getTotalsObj(sub, "m1");
+    const t0 = getTotalsObj(sub, "m0");
 
-  if (gateText) {
-    gateText.innerHTML = `
-      <span style="color:#b6ffcf;">Approved ✅ KPIs unlocked.</span>
-      <div class="meta" style="margin-top:8px;">Showing the latest approved submission.</div>
-    `;
-  }
+    if (!t0 || !t1 || !t2) {
+      if (cardsEl) {
+        cardsEl.innerHTML = `
+          <div class="meta">
+            Approved submission found, but monthlyTotals is missing one or more months (m2, m1, m0).
+            Re-upload from <a href="upload.html">Upload Data</a> and approve again.
+          </div>
+          <pre style="white-space:pre-wrap; margin-top:10px;">${escapeHtml(JSON.stringify(sub.monthlyTotals || {}, null, 2))}</pre>
+        `;
+      }
+      return;
+    }
 
-  const months = Array.isArray(latest.months) ? latest.months : [];
-  const files = Array.isArray(latest.files) ? latest.files : [];
+    const m0 = computeDerived(t0);
+    const m1d = computeDerived(t1);
+    const m2d = computeDerived(t2);
 
-  if (monthsEl) {
-    monthsEl.innerHTML = months.length
-      ? months.map(mk => {
-          const role = monthRoleFromNow(mk);
-          const pretty = monthPretty(mk);
-          return role ? `<div><strong>${role}:</strong> ${pretty}</div>` : `<div>${pretty}</div>`;
-        }).join("")
-      : `<div class="meta">—</div>`;
-  }
+    const salesMoM = pctChange(m0.sales, m1d.sales);
+    const txMoM = pctChange(m0.tx, m1d.tx);
+    const laborPctDelta = (Number.isFinite(m0.laborPct) && Number.isFinite(m1d.laborPct)) ? (m0.laborPct - m1d.laborPct) : NaN;
+    const avgTicketMoM = pctChange(m0.avgTicket, m1d.avgTicket);
 
-  if (filesEl) {
-    filesEl.innerHTML = files.length
-      ? files.map(f => `<div>${String(f)}</div>`).join("")
-      : `<div class="meta">—</div>`;
-  }
+    const cards = `
+      <div class="grid-2" style="margin-top:10px;">
+        <div class="card">
+          <div class="meta">Sales (Current)</div>
+          <div style="font-weight:900; font-size:22px; margin-top:6px;">${fmtMoney(m0.sales)}</div>
+          <div class="meta" style="margin-top:10px;">MoM</div>
+          ${deltaPill(salesMoM)}
+          <div class="meta" style="margin-top:10px;">Prev</div>
+          <div>${fmtMoney(m1d.sales)}</div>
+        </div>
 
-  if (reviewedEl) reviewedEl.textContent = formatDate(latest.reviewedAt || latest.createdAt);
+        <div class="card">
+          <div class="meta">Labor % (Current)</div>
+          <div style="font-weight:900; font-size:22px; margin-top:6px;">${fmtPctFromRatio(m0.laborPct)}</div>
+          <div class="meta" style="margin-top:10px;">MoM Δ</div>
+          ${Number.isFinite(laborPctDelta) ? pillHtml((laborPctDelta*100).toFixed(1) + "%", laborPctDelta <= 0 ? "good" : "bad") : pillHtml("—", "neutral")}
+          <div class="meta" style="margin-top:10px;">Prev</div>
+          <div>${fmtPctFromRatio(m1d.laborPct)}</div>
+        </div>
 
-  return true;
-}
+        <div class="card">
+          <div class="meta">Transactions (Current)</div>
+          <div style="font-weight:900; font-size:22px; margin-top:6px;">${fmtNum(m0.tx)}</div>
+          <div class="meta" style="margin-top:10px;">MoM</div>
+          ${deltaPill(txMoM)}
+          <div class="meta" style="margin-top:10px;">Prev</div>
+          <div>${fmtNum(m1d.tx)}</div>
+        </div>
 
-function renderKpiCards(latest) {
-  const panel = $("kpiPanel");
-  if (!panel) return;
+        <div class="card">
+          <div class="meta">Avg Ticket (Current)</div>
+          <div style="font-weight:900; font-size:22px; margin-top:6px;">${Number.isFinite(m0.avgTicket) ? fmtMoney(m0.avgTicket) : "—"}</div>
+          <div class="meta" style="margin-top:10px;">MoM</div>
+          ${deltaPill(avgTicketMoM)}
+          <div class="meta" style="margin-top:10px;">Prev</div>
+          <div>${Number.isFinite(m1d.avgTicket) ? fmtMoney(m1d.avgTicket) : "—"}</div>
+        </div>
+      </div>
 
-  const months = Array.isArray(latest.months) ? latest.months : [];
-  const totals = latest.monthlyTotals && typeof latest.monthlyTotals === "object"
-    ? latest.monthlyTotals
-    : null;
-
-  if (!totals || !months.length) {
-    panel.innerHTML = `
-      <h2 style="margin:0 0 10px 0;">KPI Cards</h2>
-      <div class="meta" style="color:#ffb3b3;">
-        No monthlyTotals found in the latest approved submission.
-        Re-upload and Validate again after updating app.js.
+      <div class="card" style="margin-top:14px;">
+        <div style="font-weight:900;">Debug (Approved Monthly Totals)</div>
+        <div class="meta" style="margin-top:8px;">m2 (older): Sales ${fmtMoney(m2d.sales)}, Labor ${fmtMoney(m2d.labor)}, Tx ${fmtNum(m2d.tx)}</div>
+        <div class="meta">m1 (prev): Sales ${fmtMoney(m1d.sales)}, Labor ${fmtMoney(m1d.labor)}, Tx ${fmtNum(m1d.tx)}</div>
+        <div class="meta">m0 (current): Sales ${fmtMoney(m0.sales)}, Labor ${fmtMoney(m0.labor)}, Tx ${fmtNum(m0.tx)}</div>
       </div>
     `;
-    return;
+
+    if (cardsEl) cardsEl.innerHTML = cards;
   }
 
-  // Ensure order: m2, m1, m0 based on months array from upload
-  const m2 = months[0];
-  const m1 = months[1];
-  const m0 = months[2];
+  function escapeHtml(str) {
+    return String(str ?? "").replace(/[&<>"']/g, (c) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+  }
 
-  const t2 = totals[m2] || {};
-  const t1 = totals[m1] || {};
-  const t0 = totals[m0] || {};
-
-  // Core metrics for current month
-  const sales0 = t0.sales;
-  const labor0 = t0.labor;
-  const trans0 = t0.transactions;
-  const avgTicket0 = t0.avgTicket;
-
-  const laborPct0 = safeDiv(labor0, sales0); // labor as share of sales
-
-  // MoM changes
-  const salesCh_21 = changePct(t2.sales, t1.sales);
-  const salesCh_10 = changePct(t1.sales, t0.sales);
-
-  const laborPct2 = safeDiv(t2.labor, t2.sales);
-  const laborPct1 = safeDiv(t1.labor, t1.sales);
-  const laborPctCh_21 = changePct(laborPct2, laborPct1);
-  const laborPctCh_10 = changePct(laborPct1, laborPct0);
-
-  const transCh_21 = changePct(t2.transactions, t1.transactions);
-  const transCh_10 = changePct(t1.transactions, t0.transactions);
-
-  const avgTicketCh_21 = changePct(t2.avgTicket, t1.avgTicket);
-  const avgTicketCh_10 = changePct(t1.avgTicket, t0.avgTicket);
-
-  // Build KPI card HTML
-  panel.innerHTML = `
-    <h2 style="margin:0 0 10px 0;">KPI Cards</h2>
-
-    <div class="grid-2" style="margin-top:10px;">
-      ${kpiCardHtml("Sales (Current)", fmtMoney(sales0),
-        `${monthPretty(m0)}<br/>MoM: ${fmtDeltaPct(salesCh_10)} (vs ${monthPretty(m1)})<br/>Prev: ${fmtDeltaPct(salesCh_21)} (vs ${monthPretty(m2)})`
-      )}
-
-      ${kpiCardHtml("Labor % (Current)", fmtPct(laborPct0),
-        `${monthPretty(m0)}<br/>MoM: ${fmtDeltaPct(laborPctCh_10)}<br/>Prev: ${fmtDeltaPct(laborPctCh_21)}`
-      )}
-
-      ${kpiCardHtml("Transactions (Current)", fmtNum(trans0),
-        `${monthPretty(m0)}<br/>MoM: ${fmtDeltaPct(transCh_10)}<br/>Prev: ${fmtDeltaPct(transCh_21)}`
-      )}
-
-      ${kpiCardHtml("Avg Ticket (Current)", fmtMoney(avgTicket0),
-        `${monthPretty(m0)}<br/>MoM: ${fmtDeltaPct(avgTicketCh_10)}<br/>Prev: ${fmtDeltaPct(avgTicketCh_21)}`
-      )}
-    </div>
-
-    <div class="card" style="margin-top:14px;">
-      <div class="meta" style="font-weight:700; margin-bottom:8px;">Monthly Totals (Debug View)</div>
-      <div class="meta">
-        <div><strong>${monthPretty(m2)}:</strong> Sales ${fmtMoney(t2.sales)}, Labor ${fmtMoney(t2.labor)}, Tx ${fmtNum(t2.transactions)}, Avg Ticket ${fmtMoney(t2.avgTicket)}</div>
-        <div><strong>${monthPretty(m1)}:</strong> Sales ${fmtMoney(t1.sales)}, Labor ${fmtMoney(t1.labor)}, Tx ${fmtNum(t1.transactions)}, Avg Ticket ${fmtMoney(t1.avgTicket)}</div>
-        <div><strong>${monthPretty(m0)}:</strong> Sales ${fmtMoney(t0.sales)}, Labor ${fmtMoney(t0.labor)}, Tx ${fmtNum(t0.transactions)}, Avg Ticket ${fmtMoney(t0.avgTicket)}</div>
-      </div>
-    </div>
-  `;
-}
-
-function kpiCardHtml(title, value, subHtml) {
-  return `
-    <div class="card">
-      <div class="meta" style="font-weight:700;">${title}</div>
-      <div style="font-size:28px; font-weight:900; margin-top:8px;">${value}</div>
-      <div class="meta" style="margin-top:10px; line-height:1.35;">${subHtml}</div>
-    </div>
-  `;
-}
-
-function renderAll() {
-  const queue = loadQueue();
-  const latest = findLatestApproved(queue);
-
-  const ok = renderGateAndSummary(latest);
-  if (!ok) return;
-
-  renderKpiCards(latest);
-}
-
-// ---------- init ----------
-document.addEventListener("DOMContentLoaded", () => {
-  renderAll();
-  $("refreshKpiBtn")?.addEventListener("click", renderAll);
-});
+  document.addEventListener("DOMContentLoaded", render);
+})();
