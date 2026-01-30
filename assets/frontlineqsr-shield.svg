@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#6AE4FF"/>
+      <stop offset="100%" stop-color="#A8FF6A"/>
+    </linearGradient>
+  </defs>
+  <!-- Shield outline -->
+  <path d="M32 4 L52 10 V30 C52 42 42 54 32 60 C22 54 12 42 12 30 V10 L32 4 Z"
+        fill="url(#g)"/>
+  <!-- Inner cut for a crisp, logo-like look -->
+  <path d="M32 8 L48 13 V29 C48 39 40 49 32 54 C24 49 16 39 16 29 V13 L32 8 Z"
+        fill="#0B0F14" opacity="0.18"/>
+</svg>
