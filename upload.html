@@ -1,1 +1,89 @@
-<!doctype html><html><head><title>Upload</title></head><body><h1>Upload Data</h1></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FrontlineQSR | Upload Data</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+
+<header class="brandbar">
+  <div class="left">
+    <img src="assets/logo.png" alt="FrontlineQSR Logo" />
+    <div class="title">Client Dashboard</div>
+  </div>
+  <div class="right">
+    <div class="pill">Client: Example Location</div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <nav class="nav">
+      <a href="index.html">Overview</a>
+      <a href="kpis.html">KPIs</a>
+      <a href="action-plan.html">Action Plan</a>
+      <a href="reports.html">Reports</a>
+      <a href="upload.html">Upload Data</a>
+      <a href="payments.html">Payments</a>
+      <a href="contracts.html">Contracts</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">
+      <div>
+        <h1>Upload Data</h1>
+        <div class="sub">
+          Upload <strong>5 monthly CSV files</strong>: <strong>3 current months</strong> + <strong>2 previous months</strong>.
+          One combined CSV per month (sales + labor + transactions).
+        </div>
+      </div>
+    </div>
+
+    <section class="card">
+      <h3>CSV Requirements (Locked)</h3>
+      <ul class="list">
+        <li>File type: <strong>.csv</strong></li>
+        <li>One file per month (no duplicates)</li>
+        <li>Required columns: <code>Date</code>, <code>Location</code>, <code>Sales</code>, <code>Labor</code>, <code>Transactions</code></li>
+        <li>Labor can be hours or labor cost — we’ll standardize in Admin Review</li>
+      </ul>
+      <div class="helper">Tip: Export directly from your POS or scheduling tool; don’t screenshot.</div>
+    </section>
+
+    <section class="card">
+      <h3>Upload 5 Months</h3>
+
+      <div class="grid-2" id="uploadSlots">
+        <!-- Filled by JS -->
+      </div>
+
+      <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn primary" id="validateBtn" type="button">Validate Files</button>
+        <button class="btn" id="downloadIssuesBtn" type="button" disabled>Download Issues</button>
+        <button class="btn" id="resetBtn" type="button">Reset</button>
+      </div>
+
+      <div id="statusPanel" class="card" style="margin-top:14px;">
+        <h3>Status</h3>
+        <div id="statusText" class="meta">Add files for each month, then click <strong>Validate Files</strong>.</div>
+        <div id="issuesList" style="margin-top:10px;"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>What happens next</h3>
+      <ol class="list">
+        <li>Validation checks your files for missing columns and duplicate months.</li>
+        <li>Your submission is queued for <strong>Admin Review</strong>.</li>
+        <li>Once approved, KPIs and reports update on your dashboard.</li>
+      </ol>
+    </section>
+  </main>
+</div>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
