@@ -17,7 +17,6 @@
 <!-- ================= HEADER ================= -->
 <header class="brandbar">
   <div class="left">
-    <!-- ✅ FIXED LOGO PATH -->
     <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
     <div class="title">Client Dashboard</div>
   </div>
@@ -49,8 +48,8 @@
     <section class="card">
       <h1>Upload Data</h1>
       <p class="muted">
-        Upload <strong>5 monthly CSV files</strong>:
-        <strong>3 current months + 2 previous months</strong>.
+        Upload <strong>3 monthly CSV files</strong>:
+        <strong>Two Months Ago + Last Month + Current Month</strong>.
         One combined CSV per month (sales + labor + transactions).
       </p>
     </section>
@@ -78,9 +77,9 @@
 
     <!-- ================= UPLOAD ================= -->
     <section class="card">
-      <h3>Upload 5 Months</h3>
+      <h3>Upload 3 Months</h3>
 
-      <!-- JS injects the 5 upload cards here -->
+      <!-- JS injects the upload cards here -->
       <div class="grid-2" id="uploadSlots">
         <!-- Filled by app.js -->
       </div>
@@ -113,12 +112,11 @@
     <section class="card">
       <h3>What happens next</h3>
       <ol class="list">
-        <li>Validation checks for missing columns and duplicate months.</li>
+        <li>Validation checks for missing columns.</li>
         <li>Your submission is queued for <strong>Admin Review</strong>.</li>
         <li>Once approved, KPIs and reports update on your dashboard.</li>
       </ol>
 
-      <!-- STEP 2.1 -->
       <div style="margin-top:16px;">
         <a href="admin.html" class="btn primary">
           Go to Admin Review
