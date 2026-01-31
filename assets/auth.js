@@ -1,18 +1,25 @@
-/* assets/assets/auth.js
+/* assets/auth.js
    FrontlineQSR role-gate auth (static demo)
-   NOTE: Not real security (static site). Use backend later for production.
+   NOTE: Static-site gating only. Not real security without a backend.
 */
 (() => {
   "use strict";
 
-  const ROLE_KEY = "flqsr_role";              // "admin" | "client"
-  const USER_KEY = "flqsr_user";              // username
-  const CREDS_KEY = "flqsr_creds_v1";         // stored creds override
+  const ROLE_KEY  = "flqsr_role";   // "admin" | "client"
+  const USER_KEY  = "flqsr_user";
+  const CREDS_KEY = "flqsr_creds_v2";
 
-  // Defaults (can be overridden via localStorage using setCredentials)
+  // ✅ SET YOUR ADMIN LOGIN HERE
+  const ADMIN_USER = "nrobinson@flqsr.com";
+  const ADMIN_PASS = "Beastmode!";   
+
+  // ✅ CLIENT LOGIN (TEMP) — change later
+  const CLIENT_USER = "client";
+  const CLIENT_PASS = "client123";
+
   const DEFAULT_CREDS = {
-    admin: { username: "admin",  password: "admin123" },
-    client:{ username: "client", password: "client123" }
+    admin: { username: ADMIN_USER,  password: ADMIN_PASS },
+    client:{ username: CLIENT_USER, password: CLIENT_PASS }
   };
 
   function loadCreds() {
@@ -45,35 +52,34 @@
     return getRole() === role;
   }
 
-  // Supports ?next=somepage.html
   function getNextParam() {
     const u = new URL(location.href);
     const next = u.searchParams.get("next");
     if (!next) return "";
-    // basic safety: only allow relative links
+    // block external redirects
     if (next.includes("://") || next.startsWith("//")) return "";
     return next;
   }
 
   function goDefault(role) {
-    // pick your dashboards here
-    if (role === "admin") location.href = "../admin.html";
-    else location.href = "../kpis.html";
+    if (role === "admin") location.href = "admin.html";
+    else location.href = "kpis.html";
   }
 
   function login(username, password) {
-    username = String(username || "").trim();
+    username = String(username || "").trim().toLowerCase();
     password = String(password || "").trim();
     const creds = loadCreds();
 
-    // admin
-    if (username === creds.admin.username && password === creds.admin.password) {
+    const aUser = String(creds.admin.username || "").trim().toLowerCase();
+    const cUser = String(creds.client.username || "").trim().toLowerCase();
+
+    if (username === aUser && password === creds.admin.password) {
       setRole("admin", username);
       return { ok: true, role: "admin" };
     }
 
-    // client
-    if (username === creds.client.username && password === creds.client.password) {
+    if (username === cUser && password === creds.client.password) {
       setRole("client", username);
       return { ok: true, role: "client" };
     }
@@ -83,28 +89,26 @@
 
   function logout() {
     clearRole();
-    location.href = "../index.html";
+    location.href = "index.html";
   }
 
-  // Guards
   function requireAdmin() {
     if (!isAuthed("admin")) {
-      location.href = "../assets/login.htm?next=admin.html";
+      location.href = "login.htm?next=admin.html";
     }
   }
 
   function requireClient() {
     if (!isAuthed("client")) {
-      location.href = "../assets/login.htm?next=kpis.html";
+      location.href = "login.htm?next=kpis.html";
     }
   }
 
   function requireAny() {
-    const role = getRole();
-    if (!role) location.href = "../assets/login.htm";
+    if (!getRole()) location.href = "login.htm";
   }
 
-  // Allows you (admin) to change creds later without printing them on the login page
+  // Optional: set credentials later without displaying them
   function setCredentials(newAdminUser, newAdminPass, newClientUser, newClientPass) {
     const creds = loadCreds();
     if (newAdminUser) creds.admin.username = String(newAdminUser).trim();
@@ -114,7 +118,6 @@
     saveCreds(creds);
   }
 
-  // Expose API
   window.FLQSR_AUTH = {
     login,
     logout,
