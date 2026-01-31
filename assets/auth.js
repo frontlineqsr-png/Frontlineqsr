@@ -1,32 +1,34 @@
 /* assets/auth.js
    FrontlineQSR role-gate auth (static demo)
-   NOTE: Static-site gating only. Not real security without a backend.
+   NOTE: Static-site gating only (localStorage). Not real security without backend.
 */
 (() => {
   "use strict";
 
-  const ROLE_KEY  = "flqsr_role";   // "admin" | "client"
-  const USER_KEY  = "flqsr_user";
-  const CREDS_KEY = "flqsr_creds_v2";
+  const ROLE_KEY  = "flqsr_role";      // "admin" | "client"
+  const USER_KEY  = "flqsr_user";      // username/email
+  const CREDS_KEY = "flqsr_creds_v3";  // optional overrides
 
-  // ✅ SET YOUR ADMIN LOGIN HERE
+  // ✅ ADMIN LOGIN (YOU)
   const ADMIN_USER = "nrobinson@flqsr.com";
-  const ADMIN_PASS = "Beastmode!";   
+  const ADMIN_PASS = "ChangeMeNow123!"; // <-- change this to your preferred password
 
-  // ✅ CLIENT LOGIN (TEMP) — change later
+  // ✅ CLIENT LOGIN (PILOT TEST)
   const CLIENT_USER = "client";
   const CLIENT_PASS = "client123";
 
   const DEFAULT_CREDS = {
-    admin: { username: ADMIN_USER,  password: ADMIN_PASS },
-    client:{ username: CLIENT_USER, password: CLIENT_PASS }
+    admin:  { username: ADMIN_USER,  password: ADMIN_PASS },
+    client: { username: CLIENT_USER, password: CLIENT_PASS }
   };
 
+  function safeParse(v, fallback) {
+    try { return JSON.parse(v); } catch { return fallback; }
+  }
+
   function loadCreds() {
-    try {
-      const saved = JSON.parse(localStorage.getItem(CREDS_KEY) || "null");
-      if (saved && saved.admin && saved.client) return saved;
-    } catch (_) {}
+    const saved = safeParse(localStorage.getItem(CREDS_KEY), null);
+    if (saved && saved.admin && saved.client) return saved;
     return DEFAULT_CREDS;
   }
 
@@ -48,39 +50,49 @@
     return localStorage.getItem(ROLE_KEY) || "";
   }
 
+  function getUsername() {
+    return localStorage.getItem(USER_KEY) || "";
+  }
+
   function isAuthed(role) {
     return getRole() === role;
   }
 
+  // Supports ?next=somepage.html (prevents external redirects)
   function getNextParam() {
     const u = new URL(location.href);
     const next = u.searchParams.get("next");
     if (!next) return "";
-    // block external redirects
     if (next.includes("://") || next.startsWith("//")) return "";
+    if (next.startsWith("/")) return next.slice(1);
     return next;
   }
 
+  // ✅ Default dashboards per role
   function goDefault(role) {
     if (role === "admin") location.href = "admin.html";
-    else location.href = "kpis.html";
+    else location.href = "kpis.html"; // ✅ clients go to KPIs (then can navigate)
+  }
+
+  function normalizeUser(s) {
+    return String(s || "").trim().toLowerCase();
   }
 
   function login(username, password) {
-    username = String(username || "").trim().toLowerCase();
-    password = String(password || "").trim();
+    const u = normalizeUser(username);
+    const p = String(password || "").trim();
     const creds = loadCreds();
 
-    const aUser = String(creds.admin.username || "").trim().toLowerCase();
-    const cUser = String(creds.client.username || "").trim().toLowerCase();
+    const aUser = normalizeUser(creds.admin.username);
+    const cUser = normalizeUser(creds.client.username);
 
-    if (username === aUser && password === creds.admin.password) {
-      setRole("admin", username);
+    if (u === aUser && p === creds.admin.password) {
+      setRole("admin", u);
       return { ok: true, role: "admin" };
     }
 
-    if (username === cUser && password === creds.client.password) {
-      setRole("client", username);
+    if (u === cUser && p === creds.client.password) {
+      setRole("client", u);
       return { ok: true, role: "client" };
     }
 
@@ -92,6 +104,7 @@
     location.href = "index.html";
   }
 
+  // Guards
   function requireAdmin() {
     if (!isAuthed("admin")) {
       location.href = "login.htm?next=admin.html";
@@ -108,7 +121,7 @@
     if (!getRole()) location.href = "login.htm";
   }
 
-  // Optional: set credentials later without displaying them
+  // Optional: update creds later without showing them on the login page
   function setCredentials(newAdminUser, newAdminPass, newClientUser, newClientPass) {
     const creds = loadCreds();
     if (newAdminUser) creds.admin.username = String(newAdminUser).trim();
@@ -122,6 +135,7 @@
     login,
     logout,
     getRole,
+    getUsername,
     requireAdmin,
     requireClient,
     requireAny,
