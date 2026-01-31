@@ -11,7 +11,7 @@
 
   // ✅ ADMIN LOGIN (YOU)
   const ADMIN_USER = "nrobinson@flqsr.com";
-  const ADMIN_PASS = "ChangeMeNow123!"; // <-- change this to your preferred password
+  const ADMIN_PASS = "Ducks4Life!"; // <-- change this to your preferred password
 
   // ✅ CLIENT LOGIN (PILOT TEST)
   const CLIENT_USER = "client";
