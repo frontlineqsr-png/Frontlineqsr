@@ -1,211 +1,189 @@
 /* assets/kpis.js
-   FrontlineQSR KPI Cards (client page)
-   Reads latest approved submission from localStorage and displays:
-   - Sales (current) + MoM
-   - Labor % (current) + MoM delta
-   - Transactions (current) + MoM
-   - Avg Ticket (current) + MoM
+   Reads the latest approved submission and renders KPI Cards
 */
 
 (() => {
   "use strict";
 
   const APPROVED_KEY = "flqsr_latest_approved_submission";
-
   const $ = (id) => document.getElementById(id);
 
-  function safeParse(raw) {
-    try { return JSON.parse(raw); } catch { return null; }
+  function safeParse(str) {
+    try { return JSON.parse(str); } catch { return null; }
+  }
+
+  function money(n) {
+    if (!Number.isFinite(n)) return "—";
+    return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  }
+
+  function pct(n) {
+    if (!Number.isFinite(n)) return "—";
+    return (n * 100).toFixed(1) + "%";
+  }
+
+  function fmtInt(n) {
+    if (!Number.isFinite(n)) return "—";
+    return Math.round(n).toLocaleString();
   }
 
   function getApproved() {
-    const raw = localStorage.getItem(APPROVED_KEY);
-    return raw ? safeParse(raw) : null;
+    return safeParse(localStorage.getItem(APPROVED_KEY) || "");
   }
 
-  function fmtMoney(n) {
-    const v = Number(n);
-    if (!Number.isFinite(v)) return "$0.00";
-    return v.toLocaleString(undefined, { style: "currency", currency: "USD" });
+  function computeFromMonthlyTotals(mt) {
+    const m0 = mt?.m0;
+    const m1 = mt?.m1;
+    const m2 = mt?.m2;
+    if (!m0 || !m1) return null;
+
+    const salesMoM = m1.sales ? (m0.sales - m1.sales) / m1.sales : NaN;
+    const salesPrev = m2?.sales ? (m0.sales - m2.sales) / m2.sales : NaN;
+
+    const laborPct0 = m0.sales ? m0.labor / m0.sales : NaN;
+    const laborPct1 = m1.sales ? m1.labor / m1.sales : NaN;
+    const laborPct2 = m2?.sales ? m2.labor / m2.sales : NaN;
+
+    const laborMoM = Number.isFinite(laborPct0) && Number.isFinite(laborPct1) ? (laborPct0 - laborPct1) : NaN;
+    const laborPrev = Number.isFinite(laborPct0) && Number.isFinite(laborPct2) ? (laborPct0 - laborPct2) : NaN;
+
+    const txMoM = m1.transactions ? (m0.transactions - m1.transactions) / m1.transactions : NaN;
+    const txPrev = m2?.transactions ? (m0.transactions - m2.transactions) / m2.transactions : NaN;
+
+    const avg0 = m0.transactions ? m0.sales / m0.transactions : NaN;
+    const avg1 = m1.transactions ? m1.sales / m1.transactions : NaN;
+    const avg2 = m2?.transactions ? m2.sales / m2.transactions : NaN;
+
+    const avgMoM = Number.isFinite(avg0) && Number.isFinite(avg1) ? (avg0 - avg1) / avg1 : NaN;
+    const avgPrev = Number.isFinite(avg0) && Number.isFinite(avg2) ? (avg0 - avg2) / avg2 : NaN;
+
+    return {
+      currentMonthLabel: m0.monthLabel || "Current Month",
+      lastMonthLabel: m1.monthLabel || "Last Month",
+      prevMonthLabel: m2?.monthLabel || "Two Months Ago",
+
+      salesCurrent: m0.sales,
+      salesMoM,
+      salesPrev,
+
+      laborPctCurrent: laborPct0,
+      laborMoM,
+      laborPrev,
+
+      txCurrent: m0.transactions,
+      txMoM,
+      txPrev,
+
+      avgTicketCurrent: avg0,
+      avgMoM,
+      avgPrev,
+
+      debug: { m2, m1, m0 }
+    };
   }
 
-  function fmtNum(n) {
-    const v = Number(n);
-    if (!Number.isFinite(v)) return "0";
-    return v.toLocaleString();
-  }
+  function renderStatus(approved) {
+    const host = $("kpiStatus");
+    if (!host) return;
 
-  function fmtPct(r) {
-    const v = Number(r);
-    if (!Number.isFinite(v)) return "—";
-    return (v * 100).toFixed(1) + "%";
-  }
-
-  function pctChange(curr, prev) {
-    const c = Number(curr), p = Number(prev);
-    if (!Number.isFinite(c) || !Number.isFinite(p) || p === 0) return NaN;
-    return (c - p) / p;
-  }
-
-  function formatDate(iso) {
-    if (!iso) return "—";
-    const d = new Date(iso);
-    return isNaN(d.getTime()) ? iso : d.toLocaleString();
-  }
-
-  function getTotals(sub, key) {
-    const mt = sub?.monthlyTotals?.[key];
-    if (!mt) return null;
-
-    // New pipeline shape: { sales, labor, transactions }
-    const sales = Number(mt.sales) || 0;
-    const labor = Number(mt.labor) || 0;
-    const tx = Number(mt.transactions) || 0;
-
-    return { sales, labor, tx };
-  }
-
-  function derive(t) {
-    const sales = t.sales;
-    const labor = t.labor;
-    const tx = t.tx;
-
-    const laborPct = sales > 0 ? labor / sales : NaN;
-    const avgTicket = tx > 0 ? sales / tx : NaN;
-
-    return { sales, labor, tx, laborPct, avgTicket };
-  }
-
-  function pillHtml(change) {
-    if (!Number.isFinite(change)) {
-      return `<span class="pill" style="display:inline-block;">—</span>`;
-    }
-
-    const good = change >= 0;
-    const bg = good ? "rgba(46,204,113,0.18)" : "rgba(231,76,60,0.18)";
-    const br = good ? "rgba(46,204,113,0.55)" : "rgba(231,76,60,0.55)";
-    const pct = (change * 100).toFixed(1) + "%";
-    const label = change > 0 ? `+${pct}` : pct;
-
-    return `<span class="pill" style="background:${bg}; border-color:${br}; display:inline-block;">${label}</span>`;
-  }
-
-  function pillDeltaLabor(delta) {
-    if (!Number.isFinite(delta)) {
-      return `<span class="pill" style="display:inline-block;">—</span>`;
-    }
-
-    // For labor %, LOWER is better → negative delta is good
-    const good = delta <= 0;
-    const bg = good ? "rgba(46,204,113,0.18)" : "rgba(231,76,60,0.18)";
-    const br = good ? "rgba(46,204,113,0.55)" : "rgba(231,76,60,0.55)";
-    const label = (delta * 100).toFixed(1) + "%";
-
-    return `<span class="pill" style="background:${bg}; border-color:${br}; display:inline-block;">${label}</span>`;
-  }
-
-  function render() {
-    const statusEl = $("kpiStatus");
-    const latestEl = $("latestApproved");
-    const cardsEl = $("kpiCards");
-
-    const sub = getApproved();
-
-    if (!sub) {
-      if (statusEl) statusEl.innerHTML = `No approved submission found. Upload data, then have Admin approve it.`;
-      if (latestEl) latestEl.textContent = "None";
-      if (cardsEl) cardsEl.innerHTML = `<div class="meta">Waiting for approval…</div>`;
+    if (!approved) {
+      host.innerHTML = `<div class="meta">Not approved yet. Upload data and get Admin approval.</div>`;
       return;
     }
 
-    const clientName = sub.clientName || sub.clientId || "Client";
-    const submittedAt = formatDate(sub.createdAt);
-    const approvedAt = formatDate(sub.reviewedAt);
+    const client = approved.clientName || approved.clientId || "Client";
+    host.innerHTML = `
+      <div class="meta">
+        <strong>Approved ✅</strong> KPIs unlocked for <strong>${client}</strong>.
+      </div>
+    `;
+  }
 
-    if (statusEl) statusEl.innerHTML = `Approved ✅ KPIs unlocked for <strong>${clientName}</strong>.`;
+  function renderLatestApproved(approved) {
+    const host = $("latestApproved");
+    if (!host) return;
 
-    if (latestEl) {
-      latestEl.innerHTML = `
-        <div><strong>Client:</strong> ${clientName}</div>
-        <div class="meta" style="margin-top:6px;">Submitted: ${submittedAt}</div>
-        <div class="meta">Approved: ${approvedAt}</div>
-      `;
-    }
-
-    // Pull 3 months: m2 (older), m1 (prev), m0 (current)
-    const t0 = getTotals(sub, "m0");
-    const t1 = getTotals(sub, "m1");
-    const t2 = getTotals(sub, "m2");
-
-    if (!t0 || !t1) {
-      if (cardsEl) {
-        cardsEl.innerHTML = `
-          <div class="meta">
-            Approved submission found, but monthlyTotals is missing m0/m1.
-            Re-upload and approve again.
-          </div>
-        `;
-      }
+    if (!approved) {
+      host.innerHTML = `<div class="meta">No approved submission yet.</div>`;
       return;
     }
 
-    const m0 = derive(t0);
-    const m1 = derive(t1);
+    const client = approved.clientName || approved.clientId || "Client";
+    const submitted = approved.createdAt ? new Date(approved.createdAt).toLocaleString() : "—";
+    const approvedAt = approved.reviewedAt ? new Date(approved.reviewedAt).toLocaleString() : "—";
 
-    const salesMoM = pctChange(m0.sales, m1.sales);
-    const txMoM = pctChange(m0.tx, m1.tx);
-    const avgTicketMoM = pctChange(m0.avgTicket, m1.avgTicket);
-    const laborDelta = (Number.isFinite(m0.laborPct) && Number.isFinite(m1.laborPct)) ? (m0.laborPct - m1.laborPct) : NaN;
+    host.innerHTML = `
+      <div class="meta"><strong>Client:</strong> ${client}</div>
+      <div class="meta"><strong>Submitted:</strong> ${submitted}</div>
+      <div class="meta"><strong>Approved:</strong> ${approvedAt}</div>
+    `;
+  }
 
-    const debugLine = t2
-      ? `<div class="meta" style="margin-top:12px;">(Debug) m2 exists ✅</div>`
-      : `<div class="meta" style="margin-top:12px;">(Debug) m2 missing (optional)</div>`;
+  function renderCards(metrics) {
+    const host = $("kpiCards");
+    if (!host) return;
 
-    const html = `
+    if (!metrics) {
+      host.innerHTML = `<div class="meta">Approved, but KPI metrics are missing. (Need monthly totals m0/m1/m2)</div>`;
+      return;
+    }
+
+    host.innerHTML = `
       <div class="grid-2" style="margin-top:10px;">
-
         <div class="card">
           <div class="meta">Sales (Current)</div>
-          <div style="font-weight:900; font-size:22px; margin-top:6px;">${fmtMoney(m0.sales)}</div>
-          <div class="meta" style="margin-top:10px;">MoM</div>
-          ${pillHtml(salesMoM)}
-          <div class="meta" style="margin-top:10px;">Prev</div>
-          <div>${fmtMoney(m1.sales)}</div>
+          <div style="font-size:34px;font-weight:900;">${money(metrics.salesCurrent)}</div>
+          <div class="meta">MoM: ${pct(metrics.salesMoM)} (vs ${metrics.lastMonthLabel})</div>
+          <div class="meta">Prev: ${pct(metrics.salesPrev)} (vs ${metrics.prevMonthLabel})</div>
         </div>
 
         <div class="card">
           <div class="meta">Labor % (Current)</div>
-          <div style="font-weight:900; font-size:22px; margin-top:6px;">${fmtPct(m0.laborPct)}</div>
-          <div class="meta" style="margin-top:10px;">MoM Δ</div>
-          ${pillDeltaLabor(laborDelta)}
-          <div class="meta" style="margin-top:10px;">Prev</div>
-          <div>${fmtPct(m1.laborPct)}</div>
+          <div style="font-size:34px;font-weight:900;">${pct(metrics.laborPctCurrent)}</div>
+          <div class="meta">MoM: ${pct(metrics.laborMoM)} </div>
+          <div class="meta">Prev: ${pct(metrics.laborPrev)} </div>
         </div>
 
         <div class="card">
           <div class="meta">Transactions (Current)</div>
-          <div style="font-weight:900; font-size:22px; margin-top:6px;">${fmtNum(m0.tx)}</div>
-          <div class="meta" style="margin-top:10px;">MoM</div>
-          ${pillHtml(txMoM)}
-          <div class="meta" style="margin-top:10px;">Prev</div>
-          <div>${fmtNum(m1.tx)}</div>
+          <div style="font-size:34px;font-weight:900;">${fmtInt(metrics.txCurrent)}</div>
+          <div class="meta">MoM: ${pct(metrics.txMoM)}</div>
+          <div class="meta">Prev: ${pct(metrics.txPrev)}</div>
         </div>
 
         <div class="card">
           <div class="meta">Avg Ticket (Current)</div>
-          <div style="font-weight:900; font-size:22px; margin-top:6px;">${Number.isFinite(m0.avgTicket) ? fmtMoney(m0.avgTicket) : "—"}</div>
-          <div class="meta" style="margin-top:10px;">MoM</div>
-          ${pillHtml(avgTicketMoM)}
-          <div class="meta" style="margin-top:10px;">Prev</div>
-          <div>${Number.isFinite(m1.avgTicket) ? fmtMoney(m1.avgTicket) : "—"}</div>
+          <div style="font-size:34px;font-weight:900;">${money(metrics.avgTicketCurrent)}</div>
+          <div class="meta">MoM: ${pct(metrics.avgMoM)}</div>
+          <div class="meta">Prev: ${pct(metrics.avgPrev)}</div>
         </div>
-
       </div>
-      ${debugLine}
-    `;
 
-    if (cardsEl) cardsEl.innerHTML = html;
+      <div class="meta" style="margin-top:10px;">(Debug) m2 exists ${metrics.debug?.m2 ? "✅" : "❌"}</div>
+
+      <div class="card" style="margin-top:10px;">
+        <div class="meta" style="font-weight:800;">Monthly Totals (Debug View)</div>
+        <div class="meta" style="margin-top:8px;">
+          ${metrics.debug?.m2 ? `<div><strong>${metrics.prevMonthLabel}:</strong> Sales ${money(metrics.debug.m2.sales)}, Labor ${money(metrics.debug.m2.labor)}, Tx ${fmtInt(metrics.debug.m2.transactions)}</div>` : ""}
+          ${metrics.debug?.m1 ? `<div><strong>${metrics.lastMonthLabel}:</strong> Sales ${money(metrics.debug.m1.sales)}, Labor ${money(metrics.debug.m1.labor)}, Tx ${fmtInt(metrics.debug.m1.transactions)}</div>` : ""}
+          ${metrics.debug?.m0 ? `<div><strong>${metrics.currentMonthLabel}:</strong> Sales ${money(metrics.debug.m0.sales)}, Labor ${money(metrics.debug.m0.labor)}, Tx ${fmtInt(metrics.debug.m0.transactions)}</div>` : ""}
+        </div>
+      </div>
+    `;
   }
 
-  document.addEventListener("DOMContentLoaded", render);
+  function init() {
+    const approved = getApproved();
+
+    renderStatus(approved);
+    renderLatestApproved(approved);
+
+    // Use snapshot if present
+    const mt = approved?.approvedSnapshot?.monthlyTotals || approved?.monthlyTotals;
+    const metrics = computeFromMonthlyTotals(mt);
+
+    renderCards(metrics);
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
 })();
