@@ -5,139 +5,280 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Upload Data</title>
 
-  <!-- Styles -->
-  <link rel="stylesheet" href="assets/styles.css" />
+  <!-- Shared styles -->
+  <link rel="stylesheet" href="assets/styles.css?v=1" />
 
-  <!-- ================= AUTH ================= -->
-  <script src="assets/auth.js?v=7" defer></script>
+  <!-- Auth gate (client/admin allowed) -->
+  <script src="assets/auth.js?v=1" defer></script>
 
-  <!-- ================= DAYPART ANALYZER =================
-       MUST load BEFORE app.js because app.js uses FLQSR_SHIFT
-  -->
-  <script src="assets/shift-analyzer.js?v=1" defer></script>
+  <!-- Client list loader + app glue -->
+  <script src="assets/masterlist-loader.js?v=1" defer></script>
+  <script src="assets/app.js?v=1" defer></script>
 
-  <!-- ================= APP LOGIC ================= -->
-  <script src="assets/app.js?v=9" defer></script>
-
-  <!-- ================= ACCESS GUARD ================= -->
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // Prevent www vs non-www logout issues
-      if (location.hostname.startsWith("www.")) {
-        location.replace(location.href.replace("://www.", "://"));
-        return;
-      }
-
-      // Allow client OR admin
-      FLQSR_AUTH.requireClientOrAdmin();
-    });
-  </script>
+  <style>
+    /* Fallback styling in case styles.css changes */
+    .page {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+    .topbar {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:14px;
+    }
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      font-weight:700;
+    }
+    .brand img { height:34px; }
+    .navlinks {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .navlinks a, .navlinks button {
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color:#e9eef5;
+      padding:10px 12px;
+      border-radius:12px;
+      text-decoration:none;
+      font-weight:600;
+      cursor:pointer;
+    }
+    .navlinks a.primary {
+      border-color: rgba(125,255,155,.4);
+      background: rgba(125,255,155,.10);
+    }
+    .card {
+      border: 1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.05);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+    .meta { opacity:.85; font-size: 13px; }
+    .grid2 {
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    @media (max-width: 900px) {
+      .grid2 { grid-template-columns: 1fr; }
+    }
+    label { display:block; font-size: 13px; opacity: .9; margin-bottom: 6px; }
+    select, input[type="month"], input[type="file"]{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      color:#e9eef5;
+      outline:none;
+    }
+    .sectionTitle{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:12px;
+      margin: 0 0 10px 0;
+    }
+    .sectionTitle h2 { margin: 0; }
+    .actions {
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top: 10px;
+    }
+    .btn {
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color:#e9eef5;
+      padding:10px 12px;
+      border-radius:12px;
+      text-decoration:none;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .btn.primary {
+      border-color: rgba(125,255,155,.4);
+      background: rgba(125,255,155,.10);
+    }
+    .statusBox {
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      border-radius: 14px;
+      padding: 12px;
+    }
+  </style>
 </head>
 
 <body>
+  <!-- If auth.js supports it, allow only client/admin -->
+  <script>
+    // Safe: if auth.js doesn't expose this, nothing breaks.
+    window.FLQSR_AUTH_ALLOWED = ["admin", "client"];
+  </script>
 
-<!-- ================= HEADER ================= -->
-<header class="brandbar">
-  <div class="left">
-    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
-    <div class="title">Upload Data</div>
+  <div class="page">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <div class="brand">
+        <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR" />
+        <div>
+          <div style="font-size:16px;">FrontlineQSR</div>
+          <div class="meta">Upload Data</div>
+        </div>
+      </div>
+
+      <div class="navlinks">
+        <a class="primary" href="kpis.html">KPIs</a>
+        <a href="action-plan.html">Action Plan</a>
+        <a href="reports.html">Reports</a>
+        <a href="admin.html">Admin Review</a>
+        <a href="login.html">Login</a>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="card">
+      <div class="sectionTitle">
+        <h2 style="margin:0;">Upload Files</h2>
+        <div class="meta">Upload 3 monthly CSVs (required) + 3 weekly CSVs (optional).</div>
+      </div>
+      <div class="meta">
+        After Admin approval, KPIs + Action Plan will update automatically for the selected client.
+      </div>
+    </div>
+
+    <!-- Client selection -->
+    <div class="card">
+      <div class="sectionTitle">
+        <h2 style="margin:0;">Select Client</h2>
+        <div class="meta">Choose which location these uploads belong to.</div>
+      </div>
+      <label for="clientSelect">Client</label>
+      <select id="clientSelect">
+        <option value="">Loading clients…</option>
+      </select>
+      <div class="meta" style="margin-top:8px;">
+        If you don’t see clients, confirm <code>assets/masterlist.csv</code> exists and <code>assets/masterlist-loader.js</code> is loading.
+      </div>
+    </div>
+
+    <!-- Monthly uploads (required) -->
+    <div class="card">
+      <div class="sectionTitle">
+        <h2 style="margin:0;">3 Monthly CSVs (Required)</h2>
+        <div class="meta">Required columns: Date, Location, Sales, Labor, Transactions</div>
+      </div>
+
+      <div class="grid2">
+        <!-- Month 1 -->
+        <div class="card">
+          <h3 style="margin:0 0 10px 0;">Month 1</h3>
+          <label for="month1">Pick month</label>
+          <input id="month1" type="month" />
+          <div style="height:10px;"></div>
+          <label for="monthFile1">CSV File</label>
+          <input id="monthFile1" type="file" accept=".csv" />
+        </div>
+
+        <!-- Month 2 -->
+        <div class="card">
+          <h3 style="margin:0 0 10px 0;">Month 2</h3>
+          <label for="month2">Pick month</label>
+          <input id="month2" type="month" />
+          <div style="height:10px;"></div>
+          <label for="monthFile2">CSV File</label>
+          <input id="monthFile2" type="file" accept=".csv" />
+        </div>
+
+        <!-- Month 3 -->
+        <div class="card">
+          <h3 style="margin:0 0 10px 0;">Month 3</h3>
+          <label for="month3">Pick month</label>
+          <input id="month3" type="month" />
+          <div style="height:10px;"></div>
+          <label for="monthFile3">CSV File</label>
+          <input id="monthFile3" type="file" accept=".csv" />
+        </div>
+
+        <!-- Monthly notes -->
+        <div class="card">
+          <h3 style="margin:0 0 10px 0;">Monthly Tips</h3>
+          <div class="meta">
+            • Export directly from your POS / scheduling tool (don’t screenshot).<br/>
+            • Keep one file per month (no duplicates).<br/>
+            • Labor can be hours or cost — standardized during Admin Review.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weekly uploads (optional) -->
+    <div class="card">
+      <div class="sectionTitle">
+        <h2 style="margin:0;">3 Weekly CSVs (Optional)</h2>
+        <div class="meta">Use this for faster “in-month” progress tracking.</div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3 style="margin:0 0 10px 0;">Week 1</h3>
+          <label for="weekFile1">CSV File</label>
+          <input id="weekFile1" type="file" accept=".csv" />
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 10px 0;">Week 2</h3>
+          <label for="weekFile2">CSV File</label>
+          <input id="weekFile2" type="file" accept=".csv" />
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 10px 0;">Week 3</h3>
+          <label for="weekFile3">CSV File</label>
+          <input id="weekFile3" type="file" accept=".csv" />
+        </div>
+
+        <div class="card">
+          <h3 style="margin:0 0 10px 0;">Weekly Tips</h3>
+          <div class="meta">
+            • Weekly is optional, but helps show real progress in Reports.<br/>
+            • We’ll tie weekly deltas into KPI trends + Action Plan completion next.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions + status -->
+    <div class="card">
+      <div class="sectionTitle">
+        <h2 style="margin:0;">Submit for Review</h2>
+        <div class="meta">Admin will approve / reject in the Admin Review tab.</div>
+      </div>
+
+      <div class="actions">
+        <button class="btn primary" type="button" onclick="validateAndSubmit()">Validate & Submit</button>
+        <button class="btn" type="button" onclick="resetUpload()">Reset</button>
+      </div>
+
+      <div style="height:10px;"></div>
+
+      <div class="statusBox">
+        <div style="font-weight:700; margin-bottom:6px;">Status</div>
+        <div id="uploadStatus" class="meta">Add files, then click Validate & Submit.</div>
+      </div>
+    </div>
+
   </div>
-  <div class="right">
-    <div class="pill">Client Portal</div>
-    <button class="btn" onclick="FLQSR_AUTH.logout()">Logout</button>
-  </div>
-</header>
-
-<!-- ================= LAYOUT ================= -->
-<div class="layout">
-
-  <!-- ========== SIDEBAR ========== -->
-  <aside class="sidebar">
-    <nav class="nav">
-      <a href="kpis.html">KPIs</a>
-      <a href="action-plan.html">Action Plan</a>
-      <a href="reports.html">Reports</a>
-      <a class="active" href="upload.html">Upload Data</a>
-      <a href="admin.html">Admin Review</a>
-    </nav>
-  </aside>
-
-  <!-- ========== MAIN CONTENT ========== -->
-  <main class="main">
-
-    <!-- ================= INTRO ================= -->
-    <section class="card">
-      <h1>Upload Data</h1>
-      <p class="meta">
-        Upload <strong>at least 3 months</strong> of combined CSV data.
-        Each file should include Sales, Labor, and Transactions.
-      </p>
-    </section>
-
-    <!-- ================= REQUIREMENTS ================= -->
-    <section class="card">
-      <h3>CSV Requirements</h3>
-      <ul class="list">
-        <li>File type: <strong>.csv</strong></li>
-        <li>One file per month (no duplicates)</li>
-        <li>
-          Required columns:
-          <code>Date</code>,
-          <code>Location</code>,
-          <code>Sales</code>,
-          <code>Labor</code>,
-          <code>Transactions</code>
-        </li>
-        <li>
-          Optional (for daypart analysis):
-          <code>Shift</code> OR time in <code>Date</code> (HH:MM)
-        </li>
-      </ul>
-      <div class="helper">
-        Tip: Export directly from your POS or scheduling system.
-      </div>
-    </section>
-
-    <!-- ================= UPLOAD SLOTS ================= -->
-    <section class="card">
-      <h3>Upload Monthly Files</h3>
-
-      <!-- app.js injects upload cards here -->
-      <div class="grid-2" id="uploadSlots"></div>
-
-      <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn primary" id="validateBtn" type="button">
-          Validate & Submit
-        </button>
-
-        <button class="btn" id="resetBtn" type="button">
-          Reset
-        </button>
-      </div>
-    </section>
-
-    <!-- ================= STATUS ================= -->
-    <section class="card" id="statusPanel">
-      <h3>Status</h3>
-      <div id="statusText" class="meta">
-        Add files for each month, then click <strong>Validate & Submit</strong>.
-      </div>
-      <div id="issuesList" style="margin-top:10px;"></div>
-    </section>
-
-    <!-- ================= NEXT STEPS ================= -->
-    <section class="card">
-      <h3>What happens next</h3>
-      <ol class="list">
-        <li>System validates file structure and required columns.</li>
-        <li>KPIs and daypart metrics are calculated automatically.</li>
-        <li>Your submission is queued for <strong>Admin Review</strong>.</li>
-        <li>Once approved, KPIs and reports update.</li>
-      </ol>
-    </section>
-
-  </main>
-</div>
 
 </body>
 </html>
