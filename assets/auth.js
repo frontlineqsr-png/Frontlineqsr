@@ -1,80 +1,116 @@
-/* assets/auth.js
-   FrontlineQSR Role Gate (Static / GitHub Pages)
-   - Stores session in localStorage
-   - Admin can access admin.html
-   - Client can access client pages
-*/
+// assets/auth.js
+// FrontlineQSR static-site auth (pilot mode)
+// NOTE: This is NOT secure (client-side only). Good for demos until backend auth.
 
-(function () {
+(() => {
   "use strict";
 
-  const KEY = "flqsr_session_v1";
+  const CREDS_KEY = "flqsr_auth_credentials_v1";
+  const SESSION_KEY = "flqsr_auth_session_v1";
 
-  // ✅ TEMP creds (change later)
-  const USERS = {
-    admin: { password: "admin123", role: "admin" },
-    client: { password: "client123", role: "client" },
-  };
-
-  function getSession() {
-    try {
-      return JSON.parse(localStorage.getItem(KEY) || "null");
-    } catch {
-      return null;
-    }
+  function safeParse(v, fallback) {
+    try { return JSON.parse(v); } catch { return fallback; }
   }
 
-  function setSession(session) {
-    localStorage.setItem(KEY, JSON.stringify(session));
+  function getCreds() {
+    return safeParse(localStorage.getItem(CREDS_KEY), null);
+  }
+
+  function setCreds(creds) {
+    localStorage.setItem(CREDS_KEY, JSON.stringify(creds));
+  }
+
+  function getSession() {
+    return safeParse(localStorage.getItem(SESSION_KEY), null);
+  }
+
+  function setSession(sess) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
   }
 
   function clearSession() {
-    localStorage.removeItem(KEY);
+    localStorage.removeItem(SESSION_KEY);
+  }
+
+  function isConfigured() {
+    const c = getCreds();
+    return !!(c && c.admin && c.client && c.admin.username && c.client.username);
+  }
+
+  function setCredentials({ admin, client }) {
+    setCreds({ admin, client });
   }
 
   function login(username, password) {
-    const u = String(username || "").trim().toLowerCase();
-    const p = String(password || "").trim();
-    const record = USERS[u];
-    if (!record || record.password !== p) return false;
+    const creds = getCreds();
+    if (!creds) return { ok: false, message: "No credentials set yet. Click Setup to create logins." };
 
-    setSession({
-      username: u,
-      role: record.role,
-      loggedInAt: new Date().toISOString(),
-    });
-    return true;
+    const u = String(username || "").trim();
+    const p = String(password || "").trim();
+
+    const a = creds.admin || {};
+    const c = creds.client || {};
+
+    if (u === a.username && p === a.password) {
+      setSession({ role: "admin", username: u, ts: Date.now() });
+      return { ok: true, role: "admin" };
+    }
+
+    if (u === c.username && p === c.password) {
+      setSession({ role: "client", username: u, ts: Date.now() });
+      return { ok: true, role: "client" };
+    }
+
+    return { ok: false, message: "Invalid username or password." };
   }
 
   function logout() {
     clearSession();
-    window.location.href = "login.html";
   }
 
-  function requireRole(allowedRoles) {
-    const session = getSession();
-    const role = session?.role;
+  function isLoggedIn() {
+    const s = getSession();
+    return !!(s && s.role);
+  }
 
-    if (!session || !role) {
-      window.location.href = "login.html";
-      return;
+  function getRole() {
+    const s = getSession();
+    return s?.role || null;
+  }
+
+  function getUsername() {
+    const s = getSession();
+    return s?.username || null;
+  }
+
+  // Require role on a page
+  function requireRole(allowedRoles, redirectTo = "login.htm") {
+    const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+
+    if (!isLoggedIn()) {
+      window.location.href = redirectTo;
+      return false;
     }
 
-    if (!allowedRoles.includes(role)) {
-      // If client tries to open admin.html, send them to KPIs
-      window.location.href = "kpis.html";
-      return;
+    const role = getRole();
+    if (!roles.includes(role)) {
+      // Logged in but wrong role -> send home
+      window.location.href = "index.html";
+      return false;
     }
+
+    return true;
   }
 
-  function role() {
-    return getSession()?.role || null;
-  }
-
-  function username() {
-    return getSession()?.username || null;
-  }
-
-  // expose
-  window.FLQSR_AUTH = { login, logout, requireRole, role, username };
+  // Expose
+  window.FLQSR_AUTH = {
+    isConfigured,
+    setCredentials,
+    login,
+    logout,
+    isLoggedIn,
+    getRole,
+    getUsername,
+    requireRole
+  };
 })();
