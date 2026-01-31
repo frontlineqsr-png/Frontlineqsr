@@ -1,126 +1,123 @@
+/* assets/auth.js
+   FrontlineQSR role gate for static GitHub Pages
+   - Stores session in localStorage
+   - Redirects to /login.html?next=...
+   - Page can declare allowed roles via:
+       <meta name="flqsr-roles" content="admin,client">
+     OR:
+       <script>window.FLQSR_AUTH_ALLOWED=["admin","client"];</script>
+*/
+
 (() => {
   "use strict";
 
-  const ROLE_KEY  = "flqsr_role";
-  const USER_KEY  = "flqsr_user";
-  const CREDS_KEY = "flqsr_creds_v7"; // bump to kill old cached creds
+  const KEY_ROLE = "flqsr_auth_role";
+  const KEY_USER = "flqsr_auth_user";
+  const KEY_UNTIL = "flqsr_auth_until"; // epoch ms
 
-  // Admin credentials
-  const ADMIN_USER = "nrobinson@flqsr.com";
-  const ADMIN_PASS = "Ducks4life!";
+  // 12 hours default session
+  const DEFAULT_TTL_MS = 12 * 60 * 60 * 1000;
 
-  // Client credentials
-  const CLIENT_USER = "client";
-  const CLIENT_PASS = "client123";
-
-  const DEFAULT_CREDS = {
-    admin:  { username: ADMIN_USER,  password: ADMIN_PASS },
-    client: { username: CLIENT_USER, password: CLIENT_PASS }
-  };
-
-  function safeParse(v, fallback) {
-    try { return JSON.parse(v); } catch { return fallback; }
+  function getMetaRoles() {
+    const m = document.querySelector('meta[name="flqsr-roles"]');
+    if (!m || !m.content) return null;
+    return m.content
+      .split(",")
+      .map(s => s.trim().toLowerCase())
+      .filter(Boolean);
   }
 
-  function normalizeUser(s) {
-    return String(s || "").trim().toLowerCase();
-  }
+  function getAllowedRoles() {
+    // 1) meta tag wins
+    const metaRoles = getMetaRoles();
+    if (metaRoles && metaRoles.length) return metaRoles;
 
-  function loadCreds() {
-    const saved = safeParse(localStorage.getItem(CREDS_KEY), null);
-    if (saved && saved.admin && saved.client) return saved;
-    return DEFAULT_CREDS;
-  }
-
-  function setRole(role, username) {
-    localStorage.setItem(ROLE_KEY, role);
-    localStorage.setItem(USER_KEY, username || "");
-  }
-
-  function clearRole() {
-    localStorage.removeItem(ROLE_KEY);
-    localStorage.removeItem(USER_KEY);
-  }
-
-  function getRole() {
-    return localStorage.getItem(ROLE_KEY) || "";
-  }
-
-  function getUsername() {
-    return localStorage.getItem(USER_KEY) || "";
-  }
-
-  function isAuthed(role) {
-    return getRole() === role;
-  }
-
-  function getNextParam() {
-    const u = new URL(location.href);
-    const next = u.searchParams.get("next");
-    if (!next) return "";
-    if (next.includes("://") || next.startsWith("//")) return "";
-    if (next.startsWith("/")) return next.slice(1);
-    return next;
-  }
-
-  function goDefault(role) {
-    if (role === "admin") location.href = "admin.html";
-    else location.href = "kpis.html";
-  }
-
-  function login(username, password) {
-    const u = normalizeUser(username);
-    const p = String(password || "").trim();
-    const creds = loadCreds();
-
-    const aUser = normalizeUser(creds.admin.username);
-    const cUser = normalizeUser(creds.client.username);
-
-    if (u === aUser && p === creds.admin.password) {
-      setRole("admin", u);
-      return { ok: true, role: "admin" };
+    // 2) window override
+    const w = window.FLQSR_AUTH_ALLOWED;
+    if (Array.isArray(w) && w.length) {
+      return w.map(x => String(x).trim().toLowerCase()).filter(Boolean);
     }
-    if (u === cUser && p === creds.client.password) {
-      setRole("client", u);
-      return { ok: true, role: "client" };
+
+    // 3) default: allow both
+    return ["admin", "client"];
+  }
+
+  function now() { return Date.now(); }
+
+  function getSession() {
+    const role = (localStorage.getItem(KEY_ROLE) || "").toLowerCase();
+    const user = localStorage.getItem(KEY_USER) || "";
+    const until = Number(localStorage.getItem(KEY_UNTIL) || "0");
+
+    if (!role || !user) return null;
+    if (!Number.isFinite(until) || until <= now()) return null;
+
+    return { role, user, until };
+  }
+
+  function clearSession() {
+    localStorage.removeItem(KEY_ROLE);
+    localStorage.removeItem(KEY_USER);
+    localStorage.removeItem(KEY_UNTIL);
+  }
+
+  function buildLoginUrl(reason) {
+    const next = encodeURIComponent(location.pathname + location.search + location.hash);
+    const r = reason ? `&reason=${encodeURIComponent(reason)}` : "";
+    return `/login.html?next=${next}${r}`;
+  }
+
+  function hardRedirect(url) {
+    // replace() prevents “back button returns to blocked page”
+    location.replace(url);
+  }
+
+  function gate() {
+    const allowed = getAllowedRoles();
+    const session = getSession();
+
+    // Expose for debugging/use in other scripts
+    window.FLQSR_AUTH = {
+      allowedRoles: allowed,
+      session,
+      logout: () => {
+        clearSession();
+        hardRedirect("/login.html");
+      }
+    };
+
+    if (!session) {
+      clearSession();
+      return hardRedirect(buildLoginUrl("not_logged_in"));
     }
-    return { ok: false, role: "" };
-  }
 
-  function logout() {
-    clearRole();
-    location.href = "index.html";
-  }
-
-  function requireAdmin() {
-    if (!isAuthed("admin")) {
-      location.href = "login.htm?next=" + encodeURIComponent("admin.html");
+    // Role not allowed for this page
+    if (!allowed.includes(session.role)) {
+      return hardRedirect(buildLoginUrl("role_not_allowed"));
     }
+
+    // Session ok
+    return true;
   }
 
-  function requireClientOrAdmin() {
-    const role = getRole();
-    if (role !== "client" && role !== "admin") {
-      const page = location.pathname.split("/").pop() || "kpis.html";
-      location.href = "login.htm?next=" + encodeURIComponent(page);
-    }
+  // Run ASAP once DOM is available
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", gate);
+  } else {
+    gate();
   }
 
-  function hardReset() {
-    localStorage.removeItem(ROLE_KEY);
-    localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(CREDS_KEY);
-  }
+  // Helper for login page to set session
+  window.FLQSR_setSession = function ({ role, user, ttlMs } = {}) {
+    const r = String(role || "").toLowerCase();
+    const u = String(user || "").trim();
+    const ttl = Number.isFinite(ttlMs) ? ttlMs : DEFAULT_TTL_MS;
 
-  window.FLQSR_AUTH = {
-    login,
-    logout,
-    getRole,
-    getUsername,
-    getNextParam,
-    goDefault,
-    requireAdmin,
-    requireClientOrAdmin,
-    hardReset
+    if (!r || !u) return false;
+
+    localStorage.setItem(KEY_ROLE, r);
+    localStorage.setItem(KEY_USER, u);
+    localStorage.setItem(KEY_UNTIL, String(now() + ttl));
+    return true;
   };
 })();
