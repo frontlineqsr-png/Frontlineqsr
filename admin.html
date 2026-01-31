@@ -6,15 +6,14 @@
   <title>FrontlineQSR | Admin Review</title>
   <link rel="stylesheet" href="assets/styles.css" />
 
-  <!-- ✅ AUTH (Admin-only) -->
-  <script src="assets/auth.js?v=4" defer></script>
+  <!-- ✅ AUTH (admin only) -->
+  <script src="assets/auth.js?v=6" defer></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       FLQSR_AUTH.requireAdmin();
     });
   </script>
 </head>
-
 <body>
 
   <header class="brandbar">
@@ -31,22 +30,20 @@
   <div class="layout">
     <aside class="sidebar">
       <nav class="nav">
-        <a href="index.html">Overview</a>
         <a href="kpis.html">KPIs</a>
         <a href="action-plan.html">Action Plan</a>
         <a href="reports.html">Reports</a>
-        <a href="upload.html">Client Uploads</a>
+        <a href="upload.html">Upload</a>
         <a class="active" href="admin.html">Admin Review</a>
       </nav>
     </aside>
 
     <main class="main">
-
       <section class="card">
         <h1 style="margin:0 0 6px 0;">Admin Review Queue</h1>
         <div class="meta">
           Review client submissions, approve to unlock KPI updates, or reject with notes.
-          (Pilot v1 uses your browser storage — no backend yet.)
+          (Pilot uses browser storage — no backend yet.)
         </div>
 
         <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -54,15 +51,11 @@
           <button class="btn" id="addDemoBtn" type="button">Add Demo Submission</button>
           <button class="btn" id="clearQueueBtn" type="button">Clear Queue</button>
         </div>
-
-        <div class="meta" style="margin-top:10px;">
-          Tip: Use <strong>Add Demo Submission</strong> once so you can see the full workflow immediately.
-        </div>
       </section>
 
       <section class="card" style="margin-top:14px;">
         <h2 style="margin:0 0 10px 0;">Submissions</h2>
-        <div id="queueEmpty" class="meta">No submissions yet. Have a client submit from <a href="upload.html">Upload Data</a>.</div>
+        <div id="queueEmpty" class="meta">No submissions yet. Have a client submit from Upload.</div>
         <div id="queueList" class="grid-2" style="margin-top:10px;"></div>
       </section>
 
@@ -106,20 +99,12 @@
           </div>
         </div>
       </section>
-
     </main>
   </div>
 
-  <script src="assets/admin.js?v=4"></script>
-
+  <script src="assets/admin.js?v=6"></script>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      try {
-        const role = FLQSR_AUTH.getRole();
-        const pill = document.getElementById("rolePill");
-        if (pill) pill.textContent = "Role: " + (role || "admin");
-      } catch(e) {}
-
       const btn = document.getElementById("logoutBtn");
       if (btn) btn.addEventListener("click", () => FLQSR_AUTH.logout());
     });
