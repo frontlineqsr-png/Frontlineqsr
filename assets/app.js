@@ -1,366 +1,239 @@
-/* assets/app.js
-   FrontlineQSR core client app glue:
-   - Loads master client list (from masterlist-loader.js -> window.FLQSR_MASTERLIST.clients)
-   - Populates client dropdowns if present
-   - Upload page: validates 3 monthly CSVs + optional 3 weekly CSVs, submits to Admin queue (localStorage)
-   - Provides shared helpers (csv parse, status, safe DOM access)
+/* assets/app.js (multi-store)
+   - Populates client + store dropdowns from masterlist-loader.js
+   - Validates 3 monthly CSVs required, 3 weekly optional
+   - Submits to queue with clientId + storeId
 */
 
 (() => {
   "use strict";
 
-  // -----------------------------
-  // Storage keys (match your system)
-  // -----------------------------
   const QUEUE_KEY = "flqsr_submission_queue";
-  const APPROVED_KEY = "flqsr_latest_approved_submission";
-  const BASELINE_LOCK_KEY = "flqsr_baseline_locked"; // once true, baseline shouldn't be replaced
 
-  // -----------------------------
-  // DOM helpers
-  // -----------------------------
   const $ = (id) => document.getElementById(id);
-  const q = (sel) => document.querySelector(sel);
 
-  function setText(id, text, color) {
-    const el = $(id);
+  function setStatus(msg, color) {
+    const el = $("uploadStatus");
     if (!el) return;
-    el.textContent = text;
+    el.textContent = msg;
     if (color) el.style.color = color;
   }
 
-  function safeJsonParse(v, fallback) {
-    try {
-      return JSON.parse(v);
-    } catch {
-      return fallback;
-    }
-  }
-
-  function getAuthRole() {
-    // auth.js typically sets something like localStorage.auth_role = "admin" | "client"
-    return (localStorage.getItem("auth_role") || "").toLowerCase();
-  }
-
-  function getAuthClientId() {
-    // auth.js / login flow can set auth_client or auth_client_id
-    return localStorage.getItem("auth_client") ||
-           localStorage.getItem("auth_client_id") ||
-           "Client";
-  }
-
-  // -----------------------------
-  // CSV helpers (simple, stable)
-  // -----------------------------
-  function parseCsv(text) {
-    // basic CSV splitter that supports quotes
-    const lines = text.split(/\r?\n/).filter(l => l.trim().length);
-    if (!lines.length) return [];
-
-    const splitLine = (line) => {
-      const out = [];
-      let cur = "";
-      let inQuotes = false;
-
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') inQuotes = !inQuotes;
-        else if (ch === "," && !inQuotes) {
-          out.push(cur);
-          cur = "";
-        } else cur += ch;
-      }
-      out.push(cur);
-
-      return out.map(s => s.trim().replace(/^"|"$/g, ""));
-    };
-
-    const header = splitLine(lines[0]);
-    const rows = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const cols = splitLine(lines[i]);
-      const row = {};
-      header.forEach((h, idx) => row[h] = cols[idx] ?? "");
-      rows.push(row);
-    }
-
-    return rows;
-  }
-
-  async function readFileText(file) {
-    return await file.text();
-  }
-
-  // -----------------------------
-  // Masterlist / clients
-  // -----------------------------
-  function getMasterClients() {
-    const ml = window.FLQSR_MASTERLIST;
-    if (!ml || !ml.clients) return {};
-    return ml.clients;
-  }
-
-  function buildClientOptions(clientsObj) {
-    // clientsObj is keyed; each value may have client_name, locations, etc.
-    const entries = Object.entries(clientsObj);
-
-    // Sort by display name if possible
-    entries.sort((a, b) => {
-      const an = (a[1]?.client_name || a[0]).toLowerCase();
-      const bn = (b[1]?.client_name || b[0]).toLowerCase();
-      return an.localeCompare(bn);
-    });
-
-    const opts = entries.map(([id, c]) => {
-      const label = c?.client_name ? `${c.client_name}` : id;
-      return { id, label };
-    });
-
-    return opts;
-  }
-
-  function populateClientDropdown() {
-    // Support either id="clientSelect" or id="uploadClient" (common patterns)
-    const sel = $("clientSelect") || $("uploadClient");
-    if (!sel) return;
-
-    const clients = getMasterClients();
-    const opts = buildClientOptions(clients);
-
-    // If masterlist didn't load yet
-    if (!opts.length) {
-      sel.innerHTML = `<option value="">Loading clients…</option>`;
-      return;
-    }
-
-    sel.innerHTML = `<option value="">Select Client</option>`;
-    for (const o of opts) {
-      const opt = document.createElement("option");
-      opt.value = o.id;
-      opt.textContent = o.label;
-      sel.appendChild(opt);
-    }
-
-    // Default to auth client if available
-    const authClient = getAuthClientId();
-    if (authClient && clients[authClient]) {
-      sel.value = authClient;
-    }
-
-    // Save selection
-    sel.addEventListener("change", () => {
-      if (sel.value) localStorage.setItem("auth_client", sel.value);
-    });
-  }
-
-  // Wait for masterlist-loader.js to finish
-  async function waitForMasterlist(timeoutMs = 2500) {
-    const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
-      const clients = getMasterClients();
-      if (clients && Object.keys(clients).length) return true;
-      await new Promise(r => setTimeout(r, 80));
-    }
-    return false;
-  }
-
-  // -----------------------------
-  // Upload page: validate + submit
-  // -----------------------------
-  function getUploadElements() {
-    // Monthly
-    const month1 = $("month1"), month2 = $("month2"), month3 = $("month3");
-    const monthFile1 = $("monthFile1"), monthFile2 = $("monthFile2"), monthFile3 = $("monthFile3");
-
-    // Weekly (optional)
-    const weekFile1 = $("weekFile1"), weekFile2 = $("weekFile2"), weekFile3 = $("weekFile3");
-
-    // Status
-    const uploadStatus = $("uploadStatus");
-
-    // Page present?
-    const isUploadPage = !!(month1 && month2 && month3 && monthFile1 && monthFile2 && monthFile3 && uploadStatus);
-
-    return {
-      isUploadPage,
-      month1, month2, month3,
-      monthFile1, monthFile2, monthFile3,
-      weekFile1, weekFile2, weekFile3,
-      uploadStatus
-    };
+  function safeParse(v, fallback) {
+    try { return JSON.parse(v); } catch { return fallback; }
   }
 
   function getQueue() {
-    return safeJsonParse(localStorage.getItem(QUEUE_KEY) || "[]", []);
+    return safeParse(localStorage.getItem(QUEUE_KEY) || "[]", []);
   }
 
-  function saveQueue(queue) {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+  function saveQueue(q) {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
   }
 
-  function requireCsvFile(f) {
-    if (!f) return false;
-    return (f.name || "").toLowerCase().endsWith(".csv");
+  function requireCsv(file) {
+    return file && (file.name || "").toLowerCase().endsWith(".csv");
   }
 
-  async function validateMonthlyCsvShape(file) {
-    // Optional: validate required columns exist
-    // Required columns: Date, Location, Sales, Labor, Transactions
-    const text = await readFileText(file);
+  function parseCsv(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+    if (!lines.length) return [];
+    const split = (line) => {
+      const out = [];
+      let cur = "";
+      let inQ = false;
+      for (let i=0;i<line.length;i++){
+        const ch=line[i];
+        if (ch === '"') inQ = !inQ;
+        else if (ch === "," && !inQ){ out.push(cur); cur=""; }
+        else cur += ch;
+      }
+      out.push(cur);
+      return out.map(s => s.trim().replace(/^"|"$/g,""));
+    };
+    const header = split(lines[0]).map(h => h.trim());
+    const rows = [];
+    for (let i=1;i<lines.length;i++){
+      const cols = split(lines[i]);
+      const r = {};
+      header.forEach((h,idx)=> r[h]=cols[idx] ?? "");
+      rows.push(r);
+    }
+    return rows;
+  }
+
+  async function validateMonthlyShape(file) {
+    const text = await file.text();
     const rows = parseCsv(text);
-    if (!rows.length) return { ok: false, msg: "CSV looks empty." };
-
+    if (!rows.length) return { ok:false, msg:"CSV empty" };
     const cols = Object.keys(rows[0] || {}).map(c => c.trim().toLowerCase());
-    const required = ["date", "location", "sales", "labor", "transactions"];
-    const missing = required.filter(r => !cols.includes(r));
+    const required = ["date","location","sales","labor","transactions"];
+    const missing = required.filter(x => !cols.includes(x));
+    if (missing.length) return { ok:false, msg:`Missing: ${missing.join(", ")}` };
+    return { ok:true };
+  }
 
-    if (missing.length) {
-      return { ok: false, msg: `Missing columns: ${missing.join(", ")}` };
+  function getMaster() {
+    return window.FLQSR_MASTERLIST || { clients:{}, storesByClient:{} };
+  }
+
+  function populateClientAndStore() {
+    const clientSel = $("clientSelect");
+    const storeSel = $("storeSelect");
+    if (!clientSel || !storeSel) return;
+
+    const { clients } = getMaster();
+    const clientIds = Object.keys(clients || {}).sort((a,b) => {
+      const an = (clients[a]?.client_name || a).toLowerCase();
+      const bn = (clients[b]?.client_name || b).toLowerCase();
+      return an.localeCompare(bn);
+    });
+
+    clientSel.innerHTML = `<option value="">Select client</option>`;
+    for (const cid of clientIds) {
+      const opt = document.createElement("option");
+      opt.value = cid;
+      opt.textContent = clients[cid].client_name || cid;
+      clientSel.appendChild(opt);
     }
 
-    return { ok: true };
+    function loadStoresForClient(cid) {
+      storeSel.innerHTML = "";
+      if (!cid || !clients[cid]) {
+        storeSel.disabled = true;
+        storeSel.innerHTML = `<option value="">Select a client first</option>`;
+        return;
+      }
+      storeSel.disabled = false;
+      const stores = clients[cid].stores || [];
+      storeSel.innerHTML = `<option value="">Select store</option>`;
+      for (const s of stores) {
+        const opt = document.createElement("option");
+        opt.value = s.store_id;
+        opt.textContent = `${s.store_id} — ${s.store_name || ""}`.trim();
+        storeSel.appendChild(opt);
+      }
+    }
+
+    clientSel.addEventListener("change", () => {
+      localStorage.setItem("flqsr_selected_client", clientSel.value || "");
+      loadStoresForClient(clientSel.value);
+      // clear store selection when client changes
+      localStorage.setItem("flqsr_selected_store", "");
+      storeSel.value = "";
+    });
+
+    storeSel.addEventListener("change", () => {
+      localStorage.setItem("flqsr_selected_store", storeSel.value || "");
+    });
+
+    // restore last selection
+    const savedClient = localStorage.getItem("flqsr_selected_client") || "";
+    const savedStore  = localStorage.getItem("flqsr_selected_store") || "";
+
+    if (savedClient && clients[savedClient]) {
+      clientSel.value = savedClient;
+      loadStoresForClient(savedClient);
+      if (savedStore) storeSel.value = savedStore;
+    } else {
+      loadStoresForClient("");
+    }
   }
 
   async function buildSubmissionPayload() {
-    const els = getUploadElements();
-    const sel = $("clientSelect") || $("uploadClient");
-
-    const clientId = (sel && sel.value) ? sel.value : getAuthClientId();
-    const role = getAuthRole();
+    const clientId = ($("clientSelect")?.value || "").trim();
+    const storeId  = ($("storeSelect")?.value || "").trim();
 
     const months = [
-      { month: els.month1.value, file: els.monthFile1.files[0] },
-      { month: els.month2.value, file: els.monthFile2.files[0] },
-      { month: els.month3.value, file: els.monthFile3.files[0] }
+      { month: $("month1")?.value || "", file: $("monthFile1")?.files?.[0] || null },
+      { month: $("month2")?.value || "", file: $("monthFile2")?.files?.[0] || null },
+      { month: $("month3")?.value || "", file: $("monthFile3")?.files?.[0] || null },
     ];
 
     const weeks = [
-      els.weekFile1?.files?.[0] || null,
-      els.weekFile2?.files?.[0] || null,
-      els.weekFile3?.files?.[0] || null
+      $("weekFile1")?.files?.[0] || null,
+      $("weekFile2")?.files?.[0] || null,
+      $("weekFile3")?.files?.[0] || null,
     ].filter(Boolean);
 
-    // Read monthly + weekly text so Admin can approve without needing file objects
-    const monthlyText = [];
+    // file text stored so admin can approve without file objects
+    const monthly = [];
     for (const m of months) {
-      const text = await readFileText(m.file);
-      monthlyText.push({
-        month: m.month,
-        fileName: m.file.name,
-        text
-      });
+      const text = await m.file.text();
+      monthly.push({ month: m.month, fileName: m.file.name, text });
     }
 
-    const weeklyText = [];
+    const weekly = [];
     for (const f of weeks) {
-      const text = await readFileText(f);
-      weeklyText.push({
-        fileName: f.name,
-        text
-      });
+      const text = await f.text();
+      weekly.push({ fileName: f.name, text });
     }
 
     return {
       id: "sub_" + Math.random().toString(16).slice(2),
       clientId,
-      clientName: clientId, // Admin page often uses clientName || clientId
+      storeId,
       createdAt: new Date().toISOString(),
       status: "pending",
-      submittedByRole: role || "client",
-      monthly: monthlyText,
-      weekly: weeklyText
+      monthly,
+      weekly
     };
   }
 
   async function validateAndSubmitImpl() {
-    const els = getUploadElements();
-    if (!els.isUploadPage) return;
+    const clientId = ($("clientSelect")?.value || "").trim();
+    const storeId  = ($("storeSelect")?.value || "").trim();
 
-    // Require all 3 months + CSV files
+    if (!clientId) return setStatus("❌ Select a client.", "#ff6b6b");
+    if (!storeId)  return setStatus("❌ Select a store.", "#ff6b6b");
+
     const months = [
-      { label: "Month 1", month: els.month1.value, file: els.monthFile1.files[0] },
-      { label: "Month 2", month: els.month2.value, file: els.monthFile2.files[0] },
-      { label: "Month 3", month: els.month3.value, file: els.monthFile3.files[0] }
+      { label:"Month 1", month: $("month1")?.value || "", file: $("monthFile1")?.files?.[0] || null },
+      { label:"Month 2", month: $("month2")?.value || "", file: $("monthFile2")?.files?.[0] || null },
+      { label:"Month 3", month: $("month3")?.value || "", file: $("monthFile3")?.files?.[0] || null },
     ];
 
     for (const m of months) {
-      if (!m.month || !m.file) {
-        setText("uploadStatus", "❌ All 3 monthly CSVs are required (month + file).", "#ff6b6b");
-        return;
-      }
-      if (!requireCsvFile(m.file)) {
-        setText("uploadStatus", `❌ ${m.label} must be a .csv file.`, "#ff6b6b");
-        return;
-      }
+      if (!m.month || !m.file) return setStatus("❌ All 3 monthly CSVs are required (month + file).", "#ff6b6b");
+      if (!requireCsv(m.file)) return setStatus(`❌ ${m.label} must be a .csv file.`, "#ff6b6b");
+
+      const shape = await validateMonthlyShape(m.file);
+      if (!shape.ok) return setStatus(`❌ ${m.label}: ${shape.msg}`, "#ff6b6b");
     }
 
-    // Validate column shape (monthly only; weekly can vary later)
-    for (const m of months) {
-      const shape = await validateMonthlyCsvShape(m.file);
-      if (!shape.ok) {
-        setText("uploadStatus", `❌ ${m.label} (${m.file.name}): ${shape.msg}`, "#ff6b6b");
-        return;
-      }
-    }
+    setStatus("Validating…", "#b7c3d4");
 
-    // Build + enqueue
-    setText("uploadStatus", "Validating…", "#b7c3d4");
     const payload = await buildSubmissionPayload();
+    const q = getQueue();
+    q.push(payload);
+    saveQueue(q);
 
-    const queue = getQueue();
-    queue.push(payload);
-    saveQueue(queue);
-
-    setText("uploadStatus", "✅ Submitted for Admin Review.", "#7dff9b");
+    setStatus("✅ Submitted for Admin Review.", "#7dff9b");
   }
 
   function resetUploadImpl() {
-    const els = getUploadElements();
-    if (!els.isUploadPage) return;
-
-    els.month1.value = "";
-    els.month2.value = "";
-    els.month3.value = "";
-    els.monthFile1.value = "";
-    els.monthFile2.value = "";
-    els.monthFile3.value = "";
-
-    if (els.weekFile1) els.weekFile1.value = "";
-    if (els.weekFile2) els.weekFile2.value = "";
-    if (els.weekFile3) els.weekFile3.value = "";
-
-    setText("uploadStatus", "Add files, then click Validate & Submit.", "#b7c3d4");
+    ["month1","month2","month3"].forEach(id => { const el=$(id); if (el) el.value=""; });
+    ["monthFile1","monthFile2","monthFile3","weekFile1","weekFile2","weekFile3"].forEach(id => {
+      const el = $(id); if (el) el.value = "";
+    });
+    setStatus("Select client + store, add files, then click Validate & Submit.", "#b7c3d4");
   }
 
-  // Expose for your inline HTML onclick handlers
+  // expose for buttons
   window.validateAndSubmit = () => validateAndSubmitImpl().catch(err => {
     console.error(err);
-    setText("uploadStatus", "❌ Error submitting. Check console.", "#ff6b6b");
+    setStatus("❌ Submit failed — check console.", "#ff6b6b");
   });
-
   window.resetUpload = () => resetUploadImpl();
 
-  // -----------------------------
-  // Optional: baseline lock helper
-  // -----------------------------
-  window.FLQSR = window.FLQSR || {};
-  window.FLQSR.keys = { QUEUE_KEY, APPROVED_KEY, BASELINE_LOCK_KEY };
-  window.FLQSR.getApproved = () => safeJsonParse(localStorage.getItem(APPROVED_KEY) || "null", null);
-
-  // -----------------------------
-  // Boot
-  // -----------------------------
-  document.addEventListener("DOMContentLoaded", async () => {
-    // Populate clients if dropdown exists
-    await waitForMasterlist(2500);
-    populateClientDropdown();
-
-    // Upload page: set friendly initial status
-    const els = getUploadElements();
-    if (els.isUploadPage) {
-      setText("uploadStatus", "Add files, then click Validate & Submit.", "#b7c3d4");
+  // boot
+  function boot() {
+    // If masterlist is already present, populate immediately; otherwise wait for event.
+    if (window.FLQSR_MASTERLIST && Object.keys(window.FLQSR_MASTERLIST.clients || {}).length) {
+      populateClientAndStore();
+    } else {
+      window.addEventListener("FLQSR_MASTERLIST_READY", populateClientAndStore, { once:true });
     }
-  });
+  }
 
+  document.addEventListener("DOMContentLoaded", boot);
 })();
