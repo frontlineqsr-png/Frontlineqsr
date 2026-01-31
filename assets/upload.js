@@ -1,174 +1,127 @@
-/* assets/upload.js
-   Fix: Client + Store dropdowns always populate.
-   - Uses window.FLQSR_MASTERLIST if masterlist-loader worked
-   - Falls back to fetching assets/masterlist.csv directly
-*/
-
+// /assets/upload.js
 (() => {
   "use strict";
 
+  // ---- DOM ----
   const $ = (id) => document.getElementById(id);
 
-  function parseCsv(text) {
-    const lines = String(text || "").split(/\r?\n/).filter(l => l.trim().length);
-    if (!lines.length) return [];
+  const clientSel = $("clientSelect");
+  const storeSel  = $("storeSelect");
+  const errBox    = $("masterErr");
+  const statusBox = $("status");
 
-    const split = (line) => {
-      const out = [];
-      let cur = "";
-      let inQ = false;
-      for (let i = 0; i < line.length; i++) {
-        const ch = line[i];
-        if (ch === '"') inQ = !inQ;
-        else if (ch === "," && !inQ) { out.push(cur); cur = ""; }
-        else cur += ch;
-      }
-      out.push(cur);
-      return out.map(s => s.trim().replace(/^"|"$/g, ""));
-    };
-
-    const header = split(lines[0]).map(h => h.trim());
-    const rows = [];
-    for (let i = 1; i < lines.length; i++) {
-      const cols = split(lines[i]);
-      const r = {};
-      header.forEach((h, idx) => r[h] = cols[idx] ?? "");
-      rows.push(r);
-    }
-    return rows;
+  function setStatus(msg) {
+    if (statusBox) statusBox.textContent = msg;
   }
 
-  // Builds a masterlist structure compatible with the rest of the system
-  function buildMasterFromRows(rows) {
-    // Expected Format A columns (minimum):
-    // client_id, client_name, store_id, store_name, district (optional)
-    const clients = {};
-    const storesByClient = {};
-
-    for (const r of rows) {
-      const clientId = (r.client_id || r.clientId || "").trim();
-      const clientName = (r.client_name || r.clientName || clientId).trim();
-      const storeId = (r.store_id || r.storeId || "").trim();
-      const storeName = (r.store_name || r.storeName || storeId).trim();
-      const district = (r.district || "").trim();
-
-      if (!clientId || !storeId) continue;
-
-      if (!clients[clientId]) {
-        clients[clientId] = { client_id: clientId, client_name: clientName, stores: [] };
-        storesByClient[clientId] = {};
-      }
-
-      const storeObj = { store_id: storeId, store_name: storeName, district };
-      clients[clientId].stores.push(storeObj);
-      storesByClient[clientId][storeId] = storeObj;
-    }
-
-    // Sort stores for each client
-    for (const cid of Object.keys(clients)) {
-      clients[cid].stores.sort((a,b) => String(a.store_id).localeCompare(String(b.store_id)));
-    }
-
-    return { clients, storesByClient };
+  function setError(msg) {
+    if (!errBox) return;
+    errBox.textContent = msg || "";
   }
 
-  async function getMasterlist() {
-    // 1) Preferred: masterlist-loader already populated it
-    if (window.FLQSR_MASTERLIST && Object.keys(window.FLQSR_MASTERLIST.clients || {}).length) {
-      return window.FLQSR_MASTERLIST;
-    }
-
-    // 2) Fallback: fetch masterlist.csv directly
-    const res = await fetch("assets/masterlist.csv", { cache: "no-store" });
-    if (!res.ok) throw new Error("Failed to fetch assets/masterlist.csv");
-    const text = await res.text();
-    const rows = parseCsv(text);
-    const master = buildMasterFromRows(rows);
-
-    // also expose for other pages
-    window.FLQSR_MASTERLIST = master;
-    window.dispatchEvent(new CustomEvent("FLQSR_MASTERLIST_READY"));
-    return master;
+  function option(value, label) {
+    const o = document.createElement("option");
+    o.value = value;
+    o.textContent = label;
+    return o;
   }
 
-  function populateClientStore(master) {
-    const clientSel = $("clientSelect");
-    const storeSel = $("storeSelect");
-    if (!clientSel || !storeSel) return;
+  function clearSelect(sel, placeholder) {
+    sel.innerHTML = "";
+    sel.appendChild(option("", placeholder));
+  }
 
-    const clients = master.clients || {};
-    const clientIds = Object.keys(clients).sort((a,b) => {
-      const an = (clients[a]?.client_name || a).toLowerCase();
-      const bn = (clients[b]?.client_name || b).toLowerCase();
-      return an.localeCompare(bn);
+  function populateClients(master, session) {
+    const clients = master?.clients || {};
+    const idsAll = Object.keys(clients);
+
+    // Optional: if client login should only see their own client_id,
+    // store it in session.client_id and filter here.
+    let ids = idsAll.slice();
+    if (session?.role === "client" && session?.client_id) {
+      ids = ids.filter(id => id === session.client_id);
+    }
+
+    ids.sort((a,b) => (clients[a]?.name || a).localeCompare(clients[b]?.name || b));
+
+    clientSel.innerHTML = "";
+    if (!ids.length) {
+      clientSel.appendChild(option("", "(no clients found)"));
+      clientSel.disabled = true;
+      return;
+    }
+
+    clientSel.disabled = false;
+    clientSel.appendChild(option("", "Select client"));
+    ids.forEach(id => {
+      clientSel.appendChild(option(id, clients[id]?.name || id));
     });
+  }
 
-    clientSel.innerHTML = `<option value="">Select client</option>`;
-    for (const cid of clientIds) {
-      const opt = document.createElement("option");
-      opt.value = cid;
-      opt.textContent = clients[cid]?.client_name || cid;
-      clientSel.appendChild(opt);
+  function populateStores(master, clientId) {
+    const stores = master?.storesByClient?.[clientId] || [];
+
+    clearSelect(storeSel, stores.length ? "Select store" : "(no stores)");
+    storeSel.disabled = stores.length === 0;
+
+    stores.forEach(s => {
+      storeSel.appendChild(option(s.store_id, `${s.store_name} (${s.store_id})`));
+    });
+  }
+
+  async function init() {
+    // Gate page: allow admin + client
+    const session = window.FLQSR_AUTH?.requireRole(["admin","client"]) || null;
+
+    // default UI state
+    clearSelect(clientSel, "Loading…");
+    clearSelect(storeSel, "Select a client first");
+    storeSel.disabled = true;
+    setError("");
+    setStatus("Loading master client/store list…");
+
+    // WAIT for masterlist to load
+    const master = await window.FLQSR_MASTERLIST_READY;
+
+    // If loader set a global error, show it
+    if (window.FLQSR_MASTERLIST_ERROR) {
+      setError(
+        "Masterlist load failed:\n" +
+        window.FLQSR_MASTERLIST_ERROR +
+        "\n\nCheck:\n- /assets/masterlist.csv\n- /assets/masterlist-loader.js"
+      );
+      clearSelect(clientSel, "(error loading)");
+      clientSel.disabled = true;
+      setStatus("Fix masterlist.csv path first.");
+      return;
     }
 
-    const loadStores = (cid) => {
-      storeSel.innerHTML = "";
-      if (!cid || !clients[cid]) {
-        storeSel.disabled = true;
-        storeSel.innerHTML = `<option value="">Select a client first</option>`;
-        return;
-      }
-      storeSel.disabled = false;
-      storeSel.innerHTML = `<option value="">Select store</option>`;
-      const stores = clients[cid].stores || [];
-      for (const s of stores) {
-        const opt = document.createElement("option");
-        opt.value = s.store_id;
-        opt.textContent = `${s.store_id} — ${s.store_name || ""}`.trim();
-        storeSel.appendChild(opt);
-      }
-    };
+    populateClients(master, session);
+
+    // if only one client (client role filtered), auto-select it
+    if (session?.role === "client" && session?.client_id) {
+      clientSel.value = session.client_id;
+      populateStores(master, session.client_id);
+    }
 
     clientSel.addEventListener("change", () => {
-      const cid = clientSel.value || "";
-      localStorage.setItem("flqsr_selected_client", cid);
-      localStorage.removeItem("flqsr_selected_store");
-      loadStores(cid);
-    });
-
-    storeSel.addEventListener("change", () => {
-      const sid = storeSel.value || "";
-      localStorage.setItem("flqsr_selected_store", sid);
-    });
-
-    // Restore selection if saved
-    const savedClient = localStorage.getItem("flqsr_selected_client") || "";
-    const savedStore  = localStorage.getItem("flqsr_selected_store") || "";
-
-    if (savedClient && clients[savedClient]) {
-      clientSel.value = savedClient;
-      loadStores(savedClient);
-      if (savedStore) storeSel.value = savedStore;
-    } else {
-      loadStores("");
-    }
-  }
-
-  async function boot() {
-    try {
-      const master = await getMasterlist();
-      populateClientStore(master);
-    } catch (e) {
-      console.error(e);
-      const clientSel = $("clientSelect");
-      const storeSel = $("storeSelect");
-      if (clientSel) clientSel.innerHTML = `<option value="">ERROR loading clients</option>`;
-      if (storeSel) {
+      const cid = clientSel.value;
+      if (!cid) {
+        clearSelect(storeSel, "Select a client first");
         storeSel.disabled = true;
-        storeSel.innerHTML = `<option value="">ERROR</option>`;
+        return;
       }
-    }
+      populateStores(master, cid);
+    });
+
+    setStatus("Ready. Pick client + store, then upload files.");
   }
 
-  document.addEventListener("DOMContentLoaded", boot);
+  document.addEventListener("DOMContentLoaded", () => {
+    init().catch((e) => {
+      console.error(e);
+      setError("Upload page init failed:\n" + (e?.message || String(e)));
+      setStatus("Open DevTools console for the exact error.");
+    });
+  });
 })();
