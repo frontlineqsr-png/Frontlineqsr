@@ -49,12 +49,13 @@
     .nav{
       display:flex;align-items:center;justify-content:space-between;
       padding:14px 0;
+      gap:12px;
     }
     .brand{
       display:flex;align-items:center;gap:12px;font-weight:700;
     }
     .brand img{height:38px}
-    .links{display:flex;gap:14px}
+    .links{display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end}
     .links a{
       color:var(--muted);
       font-size:14px;
@@ -62,6 +63,21 @@
       border-radius:10px;
     }
     .links a:hover{color:var(--text);background:rgba(255,255,255,.06)}
+
+    .btn{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:10px 14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      font-weight:600;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .btn.primary{
+      background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(125,255,155,.12));
+      border-color:rgba(106,228,255,.45);
+    }
 
     .hero{padding:70px 0}
     .hero-grid{
@@ -92,19 +108,6 @@
       max-width:60ch;
     }
     .cta-row{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap}
-    .btn{
-      display:inline-flex;align-items:center;justify-content:center;
-      padding:12px 18px;
-      border-radius:14px;
-      border:1px solid var(--line);
-      background:rgba(255,255,255,.06);
-      font-weight:600;
-      cursor:pointer;
-    }
-    .btn.primary{
-      background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(125,255,155,.12));
-      border-color:rgba(106,228,255,.45);
-    }
 
     .panel{
       background:rgba(255,255,255,.04);
@@ -180,12 +183,13 @@
       <img src="./assets/frontlineqsr-logo.png" alt="FrontlineQSR logo">
       <span>FrontlineQSR</span>
     </div>
+
     <nav class="links">
       <a href="#about">About</a>
       <a href="#system">System</a>
       <a href="#services">Services</a>
       <a href="#contact">Contact</a>
-      <!-- Login intentionally removed during pilot -->
+      <a class="btn primary" href="./login.html">Portal Login</a>
     </nav>
   </div>
 </header>
@@ -202,6 +206,7 @@
       <div class="cta-row">
         <a class="btn primary" href="#contact">Start a Conversation</a>
         <a class="btn" href="#system">How the System Works</a>
+        <a class="btn" href="./login.html">Open Portal</a>
       </div>
     </div>
 
