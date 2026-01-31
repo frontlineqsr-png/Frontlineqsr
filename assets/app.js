@@ -1,6 +1,14 @@
-/* assets/app.js (v8)
-   Upload -> Validate -> Submit to Queue (localStorage)
-   Adds: daypartSummary (Breakfast/Lunch/Dinner/Late Night) computed from rows
+/* assets/app.js (v9)
+   Upload -> Validate -> Compute Metrics -> Submit to Queue (localStorage)
+
+   Computes KPI metrics from CSV rows:
+   - Sales, Labor, Transactions
+   - Labor %, Avg Ticket, Sales per Labor $, Tx per Labor $
+   - By-month metrics + overall
+   - Daypart summary (Breakfast/Lunch/Dinner/Late Night) if time/shift exists
+
+   Storage:
+   - Queue: flqsr_submission_queue_v1
 */
 
 (() => {
@@ -28,6 +36,14 @@
     if (el) el.textContent = text || "";
   }
 
+  function escapeHtml(s) {
+    return String(s || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;");
+  }
+
   function showIssues(issues) {
     const host = $("issuesList");
     if (!host) return;
@@ -39,12 +55,9 @@
     `;
   }
 
-  function escapeHtml(s) {
-    return String(s || "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;");
+  function toNum(x) {
+    const n = Number(String(x ?? "").replace(/[$,%\s]/g, ""));
+    return Number.isFinite(n) ? n : 0;
   }
 
   function parseCsv(csvText) {
@@ -74,6 +87,56 @@
     });
   }
 
+  function monthFromDate(d) {
+    const s = String(d || "").trim();
+    if (!s) return "";
+    // Accept: YYYY-MM, YYYY-MM-DD, MM/DD/YYYY, etc.
+    // Try ISO
+    const iso = s.match(/^(\d{4})-(\d{2})/);
+    if (iso) return `${iso[1]}-${iso[2]}`;
+
+    // Try US mm/dd/yyyy
+    const us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (us) {
+      const mm = String(us[1]).padStart(2, "0");
+      return `${us[3]}-${mm}`;
+    }
+
+    // fallback: none
+    return "";
+  }
+
+  function computeMetrics(rows) {
+    let sales = 0;
+    let labor = 0;
+    let tx = 0;
+
+    for (const r of rows) {
+      sales += toNum(r.Sales);
+      labor += toNum(r.Labor);
+      tx += toNum(r.Transactions);
+    }
+
+    const laborPct = sales > 0 ? (labor / sales) * 100 : 0;
+    const avgTicket = tx > 0 ? (sales / tx) : 0;
+    const salesPerLabor = labor > 0 ? (sales / labor) : 0;
+    const txPerLabor = labor > 0 ? (tx / labor) : 0;
+
+    return {
+      Sales: round2(sales),
+      Labor: round2(labor),
+      Transactions: round2(tx),
+      "Labor %": round2(laborPct),
+      "Average Ticket": round2(avgTicket),
+      "Sales per Labor $": round2(salesPerLabor),
+      "Transactions per Labor $": round2(txPerLabor)
+    };
+  }
+
+  function round2(n) {
+    return Math.round((Number(n) || 0) * 100) / 100;
+  }
+
   function makeSlot(i) {
     return `
       <div class="card">
@@ -96,13 +159,12 @@
   async function validateAndSubmit() {
     const issues = [];
     const picks = [];
-    const allRows = [];
 
     for (let i = 0; i < 5; i++) {
       const month = $("m_" + i)?.value || "";
       const file = $("f_" + i)?.files?.[0] || null;
 
-      if (!month && !file) continue; // allow fewer than 5
+      if (!month && !file) continue;
       if (!month) issues.push(`Slot ${i + 1}: month is missing.`);
       if (!file) issues.push(`Slot ${i + 1}: CSV file is missing.`);
       if (month && file) picks.push({ month, file });
@@ -110,12 +172,14 @@
 
     if (picks.length < 3) issues.push("Upload at least 3 months to submit.");
 
-    // unique months
     const months = picks.map(p => p.month);
     const dup = months.filter((m, idx) => months.indexOf(m) !== idx);
     if (dup.length) issues.push("Duplicate months detected. Each month must be unique.");
 
-    // validate headers and collect rows
+    // Read + validate each file; collect rows
+    const allRows = [];
+    const rowsByMonth = {}; // month -> rows
+
     for (const p of picks) {
       const text = await readFileText(p.file);
       const parsed = parseCsv(text);
@@ -123,17 +187,35 @@
       const missing = REQUIRED_COLS.filter(c => !parsed.header.includes(c));
       if (missing.length) {
         issues.push(`${p.file.name}: missing required columns: ${missing.join(", ")}`);
-      } else {
-        allRows.push(...parsed.rows);
+        continue;
       }
+
+      // Optional sanity: warn if CSV date month doesn't match selected month (we won't block)
+      const firstMonth = monthFromDate(parsed.rows[0]?.Date);
+      if (firstMonth && firstMonth !== p.month) {
+        issues.push(`Note: ${p.file.name} dates look like ${firstMonth} but you selected ${p.month}. (Not blocked)`);
+      }
+
+      // Store rows
+      rowsByMonth[p.month] = parsed.rows;
+      allRows.push(...parsed.rows);
     }
 
+    // Only block on actual missing required columns / structure errors
+    const blockingIssues = issues.filter(x => !x.startsWith("Note:"));
     showIssues(issues);
 
-    if (issues.length) {
+    if (blockingIssues.length) {
       setStatus("Fix issues above and try again.");
       return;
     }
+
+    // ✅ Compute KPI metrics
+    const byMonth = {};
+    for (const m of Object.keys(rowsByMonth)) {
+      byMonth[m] = computeMetrics(rowsByMonth[m]);
+    }
+    const overall = computeMetrics(allRows);
 
     // ✅ Daypart analysis (optional)
     let daypartSummary = null;
@@ -145,6 +227,7 @@
       console.warn("Daypart summary failed:", e);
     }
 
+    // ✅ Build submission
     const sub = {
       id: "sub_" + Math.random().toString(16).slice(2),
       clientId: "example-location",
@@ -154,7 +237,12 @@
       months: picks.map(p => p.month),
       files: picks.map(p => ({ name: p.file.name, size: p.file.size })),
       adminNotes: "",
-      // ✅ attach daypart summary so KPIs dashboard can show it after approval
+
+      // ✅ Computed metrics for dashboard + reports
+      metrics: overall,
+      metricsByMonth: byMonth,
+
+      // ✅ Daypart data for KPI dashboard
       daypartSummary
     };
 
@@ -163,7 +251,6 @@
     saveQueue(q);
 
     setStatus("Submitted ✅ Now wait for Admin approval in Admin Review.");
-    showIssues([]);
   }
 
   function resetForm() {
