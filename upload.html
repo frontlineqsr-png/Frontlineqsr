@@ -5,42 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Upload Data</title>
 
-  <!-- Shared styles -->
+  <!-- ✅ Allow BOTH admin + client on this page -->
+  <meta name="flqsr-roles" content="admin,client">
+
   <link rel="stylesheet" href="assets/styles.css?v=1" />
 
-  <!-- Auth gate (client/admin allowed) -->
-  <script src="assets/auth.js?v=1" defer></script>
+  <!-- ✅ Auth gate runs on page load -->
+  <script src="assets/auth.js?v=3" defer></script>
 
-  <!-- Client list loader + app glue -->
+  <!-- Optional: master list / clients -->
   <script src="assets/masterlist-loader.js?v=1" defer></script>
+
+  <!-- Upload logic -->
   <script src="assets/app.js?v=1" defer></script>
 
   <style>
-    /* Fallback styling in case styles.css changes */
-    .page {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 18px;
-    }
-    .topbar {
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-      margin-bottom:14px;
-    }
-    .brand {
-      display:flex;
-      align-items:center;
-      gap:10px;
-      font-weight:700;
-    }
+    /* fallback layout if styles.css changes */
+    .page { max-width: 1100px; margin: 0 auto; padding: 18px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:800; }
     .brand img { height:34px; }
-    .navlinks {
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-    }
+    .navlinks { display:flex; gap:10px; flex-wrap:wrap; }
     .navlinks a, .navlinks button {
       border:1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.06);
@@ -48,7 +33,7 @@
       padding:10px 12px;
       border-radius:12px;
       text-decoration:none;
-      font-weight:600;
+      font-weight:700;
       cursor:pointer;
     }
     .navlinks a.primary {
@@ -56,22 +41,16 @@
       background: rgba(125,255,155,.10);
     }
     .card {
-      border: 1px solid rgba(255,255,255,.14);
+      border:1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.05);
-      border-radius: 16px;
-      padding: 16px;
-      margin-bottom: 14px;
+      border-radius:16px;
+      padding:16px;
+      margin-bottom:14px;
     }
-    .meta { opacity:.85; font-size: 13px; }
-    .grid2 {
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
-    }
-    @media (max-width: 900px) {
-      .grid2 { grid-template-columns: 1fr; }
-    }
-    label { display:block; font-size: 13px; opacity: .9; margin-bottom: 6px; }
+    .meta { opacity:.85; font-size:13px; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media(max-width:900px){ .grid2{grid-template-columns:1fr;} }
+    label { display:block; font-size:13px; opacity:.9; margin: 10px 0 6px; }
     select, input[type="month"], input[type="file"]{
       width:100%;
       padding:12px;
@@ -81,50 +60,22 @@
       color:#e9eef5;
       outline:none;
     }
-    .sectionTitle{
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap:12px;
-      margin: 0 0 10px 0;
-    }
-    .sectionTitle h2 { margin: 0; }
-    .actions {
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      margin-top: 10px;
-    }
+    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
     .btn {
       border:1px solid rgba(255,255,255,.14);
       background: rgba(255,255,255,.06);
       color:#e9eef5;
       padding:10px 12px;
       border-radius:12px;
-      text-decoration:none;
-      font-weight:700;
+      font-weight:800;
       cursor:pointer;
     }
-    .btn.primary {
-      border-color: rgba(125,255,155,.4);
-      background: rgba(125,255,155,.10);
-    }
-    .statusBox {
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.04);
-      border-radius: 14px;
-      padding: 12px;
-    }
+    .btn.primary { border-color: rgba(125,255,155,.4); background: rgba(125,255,155,.10); }
+    .statusBox { border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.04); border-radius:14px; padding:12px; }
   </style>
 </head>
 
 <body>
-  <!-- If auth.js supports it, allow only client/admin -->
-  <script>
-    // Safe: if auth.js doesn't expose this, nothing breaks.
-    window.FLQSR_AUTH_ALLOWED = ["admin", "client"];
-  </script>
-
   <div class="page">
 
     <!-- Top bar -->
@@ -132,7 +83,7 @@
       <div class="brand">
         <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR" />
         <div>
-          <div style="font-size:16px;">FrontlineQSR</div>
+          <div>FrontlineQSR</div>
           <div class="meta">Upload Data</div>
         </div>
       </div>
@@ -141,129 +92,113 @@
         <a class="primary" href="kpis.html">KPIs</a>
         <a href="action-plan.html">Action Plan</a>
         <a href="reports.html">Reports</a>
-        <a href="admin.html">Admin Review</a>
-        <a href="login.html">Login</a>
+        <a href="upload.html">Upload</a>
+        <a href="admin.html">Admin</a>
+        <button type="button" onclick="FLQSR_AUTH.logout()">Logout</button>
       </div>
     </div>
 
-    <!-- Instructions -->
     <div class="card">
-      <div class="sectionTitle">
-        <h2 style="margin:0;">Upload Files</h2>
-        <div class="meta">Upload 3 monthly CSVs (required) + 3 weekly CSVs (optional).</div>
-      </div>
-      <div class="meta">
-        After Admin approval, KPIs + Action Plan will update automatically for the selected client.
+      <h2 style="margin:0;">Upload Files</h2>
+      <div class="meta" style="margin-top:8px;">
+        Upload <strong>3 monthly CSVs</strong> (required) and <strong>3 weekly CSVs</strong> (optional).
+        After Admin approval, KPIs + Action Plan + Reports update automatically.
       </div>
     </div>
 
     <!-- Client selection -->
     <div class="card">
-      <div class="sectionTitle">
-        <h2 style="margin:0;">Select Client</h2>
-        <div class="meta">Choose which location these uploads belong to.</div>
-      </div>
+      <h3 style="margin:0 0 8px;">Select Client</h3>
+      <div class="meta">Choose which client/location these uploads belong to.</div>
+
       <label for="clientSelect">Client</label>
       <select id="clientSelect">
         <option value="">Loading clients…</option>
       </select>
+
       <div class="meta" style="margin-top:8px;">
-        If you don’t see clients, confirm <code>assets/masterlist.csv</code> exists and <code>assets/masterlist-loader.js</code> is loading.
+        If this stays on “Loading…”, confirm <code>assets/masterlist.csv</code> exists and is committed.
       </div>
     </div>
 
-    <!-- Monthly uploads (required) -->
+    <!-- Monthly uploads -->
     <div class="card">
-      <div class="sectionTitle">
-        <h2 style="margin:0;">3 Monthly CSVs (Required)</h2>
-        <div class="meta">Required columns: Date, Location, Sales, Labor, Transactions</div>
-      </div>
+      <h3 style="margin:0 0 8px;">3 Monthly CSVs (Required)</h3>
+      <div class="meta">Required columns: Date, Location, Sales, Labor, Transactions</div>
 
-      <div class="grid2">
-        <!-- Month 1 -->
+      <div class="grid2" style="margin-top:10px;">
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Month 1</h3>
-          <label for="month1">Pick month</label>
+          <strong>Month 1</strong>
+          <label for="month1">Month</label>
           <input id="month1" type="month" />
-          <div style="height:10px;"></div>
-          <label for="monthFile1">CSV File</label>
+          <label for="monthFile1">CSV</label>
           <input id="monthFile1" type="file" accept=".csv" />
         </div>
 
-        <!-- Month 2 -->
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Month 2</h3>
-          <label for="month2">Pick month</label>
+          <strong>Month 2</strong>
+          <label for="month2">Month</label>
           <input id="month2" type="month" />
-          <div style="height:10px;"></div>
-          <label for="monthFile2">CSV File</label>
+          <label for="monthFile2">CSV</label>
           <input id="monthFile2" type="file" accept=".csv" />
         </div>
 
-        <!-- Month 3 -->
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Month 3</h3>
-          <label for="month3">Pick month</label>
+          <strong>Month 3</strong>
+          <label for="month3">Month</label>
           <input id="month3" type="month" />
-          <div style="height:10px;"></div>
-          <label for="monthFile3">CSV File</label>
+          <label for="monthFile3">CSV</label>
           <input id="monthFile3" type="file" accept=".csv" />
         </div>
 
-        <!-- Monthly notes -->
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Monthly Tips</h3>
-          <div class="meta">
-            • Export directly from your POS / scheduling tool (don’t screenshot).<br/>
-            • Keep one file per month (no duplicates).<br/>
-            • Labor can be hours or cost — standardized during Admin Review.
+          <strong>Monthly Tips</strong>
+          <div class="meta" style="margin-top:8px;">
+            • Export directly from POS / scheduling system<br/>
+            • Keep one file per month (no duplicates)<br/>
+            • Labor can be hours or cost — standardized during Admin Review
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Weekly uploads (optional) -->
+    <!-- Weekly uploads -->
     <div class="card">
-      <div class="sectionTitle">
-        <h2 style="margin:0;">3 Weekly CSVs (Optional)</h2>
-        <div class="meta">Use this for faster “in-month” progress tracking.</div>
-      </div>
+      <h3 style="margin:0 0 8px;">3 Weekly CSVs (Optional)</h3>
+      <div class="meta">Used for “in-month” progress tracking in Reports.</div>
 
-      <div class="grid2">
+      <div class="grid2" style="margin-top:10px;">
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Week 1</h3>
-          <label for="weekFile1">CSV File</label>
+          <strong>Week 1</strong>
+          <label for="weekFile1">CSV</label>
           <input id="weekFile1" type="file" accept=".csv" />
         </div>
 
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Week 2</h3>
-          <label for="weekFile2">CSV File</label>
+          <strong>Week 2</strong>
+          <label for="weekFile2">CSV</label>
           <input id="weekFile2" type="file" accept=".csv" />
         </div>
 
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Week 3</h3>
-          <label for="weekFile3">CSV File</label>
+          <strong>Week 3</strong>
+          <label for="weekFile3">CSV</label>
           <input id="weekFile3" type="file" accept=".csv" />
         </div>
 
         <div class="card">
-          <h3 style="margin:0 0 10px 0;">Weekly Tips</h3>
-          <div class="meta">
-            • Weekly is optional, but helps show real progress in Reports.<br/>
-            • We’ll tie weekly deltas into KPI trends + Action Plan completion next.
+          <strong>Weekly Tips</strong>
+          <div class="meta" style="margin-top:8px;">
+            • Weekly files are optional<br/>
+            • Next step: weekly trend → KPI progress + action plan completion
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Actions + status -->
+    <!-- Actions -->
     <div class="card">
-      <div class="sectionTitle">
-        <h2 style="margin:0;">Submit for Review</h2>
-        <div class="meta">Admin will approve / reject in the Admin Review tab.</div>
-      </div>
+      <h3 style="margin:0 0 8px;">Submit for Admin Review</h3>
 
       <div class="actions">
         <button class="btn primary" type="button" onclick="validateAndSubmit()">Validate & Submit</button>
@@ -273,12 +208,13 @@
       <div style="height:10px;"></div>
 
       <div class="statusBox">
-        <div style="font-weight:700; margin-bottom:6px;">Status</div>
-        <div id="uploadStatus" class="meta">Add files, then click Validate & Submit.</div>
+        <div style="font-weight:800;">Status</div>
+        <div id="uploadStatus" class="meta" style="margin-top:6px;">
+          Add files, then click Validate & Submit.
+        </div>
       </div>
     </div>
 
   </div>
-
 </body>
 </html>
