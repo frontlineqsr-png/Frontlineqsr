@@ -1,10 +1,6 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FrontlineQSR | QSR Operations & Franchise Performance</title>
-
   <!-- Google Analytics -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNM91NHH34"></script>
   <script>
@@ -14,8 +10,12 @@
     gtag('config', 'G-FNM91NHH34');
   </script>
 
-  <!-- SEO -->
-  <meta name="description" content="FrontlineQSR helps QSR brands fix frontline execution, leadership gaps, and operational inconsistency." />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <title>FrontlineQSR | Execution Systems for QSR & Multi-Unit Brands</title>
+  <meta name="description" content="FrontlineQSR helps QSR and multi-unit brands translate KPIs into clear weekly execution. From on-track / off-track visibility to actionable leadership cadence." />
+  <meta name="robots" content="index,follow" />
 
   <style>
     :root{
@@ -23,126 +23,301 @@
       --panel:#0f1620;
       --text:#e9eef5;
       --muted:#b7c3d4;
-      --line:rgba(255,255,255,.10);
+      --line:rgba(255,255,255,.12);
       --accent:#6ae4ff;
-      --accent2:#a8ff6a;
+      --accent2:#7dff9b;
       --radius:16px;
       --max:1120px;
     }
-
     *{box-sizing:border-box}
     body{
       margin:0;
-      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
-      background:
-        radial-gradient(1200px 800px at 10% -10%, rgba(106,228,255,.18), transparent 55%),
-        radial-gradient(900px 700px at 90% 10%, rgba(168,255,106,.12), transparent 50%),
-        radial-gradient(900px 700px at 40% 120%, rgba(106,228,255,.10), transparent 55%),
-        var(--bg);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      background: var(--bg);
       color:var(--text);
       line-height:1.45;
     }
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:var(--max);margin:0 auto;padding:0 20px}
 
-    a{text-decoration:none;color:inherit}
-    img{max-width:100%;border-radius:var(--radius)}
+    /* Header */
+    header{
+      position:sticky;top:0;z-index:10;
+      backdrop-filter:blur(10px);
+      background:rgba(11,15,20,.85);
+      border-bottom:1px solid var(--line);
+    }
+    .nav{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 0;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;font-weight:700;
+    }
+    .brand img{height:38px}
+    .links{display:flex;gap:14px}
+    .links a{
+      color:var(--muted);
+      font-size:14px;
+      padding:8px 10px;
+      border-radius:10px;
+    }
+    .links a:hover{color:var(--text);background:rgba(255,255,255,.06)}
 
-    .wrap{max-width:var(--max);margin:0 auto;padding:20px}
-    .panel{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
-
-    header{padding:30px 0}
-    h1{font-size:clamp(32px,4vw,48px);margin-bottom:10px}
-    h2{margin-top:0}
-    p{color:var(--muted)}
-
+    /* Hero */
+    .hero{padding:70px 0}
+    .hero-grid{
+      display:grid;
+      grid-template-columns:1.1fr .9fr;
+      gap:28px;
+    }
+    @media(max-width:900px){.hero-grid{grid-template-columns:1fr}}
+    .pill{
+      display:inline-flex;
+      gap:8px;
+      align-items:center;
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      color:var(--muted);
+      font-size:13px;
+    }
+    h1{
+      font-size:clamp(36px,4vw,56px);
+      margin:18px 0 14px;
+      line-height:1.05;
+    }
+    .lead{
+      font-size:18px;
+      color:var(--muted);
+      max-width:60ch;
+    }
+    .cta-row{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap}
     .btn{
-      display:inline-block;
+      display:inline-flex;align-items:center;justify-content:center;
       padding:12px 18px;
-      border-radius:12px;
-      background:linear-gradient(135deg,rgba(106,228,255,.25),rgba(168,255,106,.18));
-      border:1px solid rgba(255,255,255,.2);
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
       font-weight:600;
-      margin-top:10px;
+      cursor:pointer;
+    }
+    .btn.primary{
+      background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(125,255,155,.12));
+      border-color:rgba(106,228,255,.45);
     }
 
-    footer{border-top:1px solid var(--line);margin-top:40px;padding:20px 0;text-align:center;color:var(--muted)}
+    /* Panels */
+    .panel{
+      background:rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:20px;
+    }
+    .stat-grid{
+      display:grid;
+      grid-template-columns:repeat(2,1fr);
+      gap:12px;
+      margin-top:14px;
+    }
+    .stat{
+      padding:14px;
+      border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+    }
+    .stat strong{font-size:18px}
+    .stat span{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+
+    section{padding:60px 0}
+    .section-title{margin-bottom:20px}
+    .section-title h2{margin:0 0 6px}
+    .section-title p{margin:0;color:var(--muted)}
+
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(12,1fr);
+      gap:14px;
+    }
+    .card{
+      grid-column:span 4;
+      padding:18px;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+    }
+    @media(max-width:900px){.card{grid-column:span 6}}
+    @media(max-width:600px){.card{grid-column:span 12}}
+
+    /* Contact */
+    form{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin-top:16px;
+    }
+    form .full{grid-column:1 / -1}
+    input,textarea{
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--text);
+    }
+    textarea{min-height:120px}
+    footer{
+      border-top:1px solid var(--line);
+      padding:30px 0 40px;
+      color:var(--muted);
+      font-size:13px;
+    }
   </style>
 </head>
 
 <body>
 
-<header class="wrap">
-  <h1>It’s not a sales problem.<br>It’s a frontline problem.</h1>
-  <p>FrontlineQSR helps QSR brands fix execution where it actually breaks — on shift.</p>
+<header>
+  <div class="wrap nav">
+    <div class="brand">
+      <img src="./assets/frontlineqsr-logo.png" alt="FrontlineQSR logo">
+      <span>FrontlineQSR</span>
+    </div>
+    <nav class="links">
+      <a href="#about">About</a>
+      <a href="#system">System</a>
+      <a href="#services">Services</a>
+      <a href="#contact">Contact</a>
+    </nav>
+  </div>
 </header>
 
-<section class="wrap">
-  <img src="./assets/insights-frontline-problem.jpg" alt="Frontline problem image">
+<main class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="pill">QSR • Multi-Unit • Frontline Execution</div>
+      <h1>Turn KPIs Into Clear Weekly Action.</h1>
+      <p class="lead">
+        FrontlineQSR helps operators see what’s <strong>on track</strong>, what’s <strong>off track</strong>,
+        and what to act on now — without adding complexity or noise.
+      </p>
+      <div class="cta-row">
+        <a class="btn primary" href="#contact">Start a Conversation</a>
+        <a class="btn" href="#system">How the System Works</a>
+      </div>
+    </div>
+
+    <aside class="panel">
+      <h3>What This Solves</h3>
+      <div class="stat-grid">
+        <div class="stat">
+          <strong>Clarity</strong>
+          <span>Immediate on-track / off-track visibility</span>
+        </div>
+        <div class="stat">
+          <strong>Cadence</strong>
+          <span>Weekly rhythm leaders can run</span>
+        </div>
+        <div class="stat">
+          <strong>Focus</strong>
+          <span>Fewer KPIs, clearer decisions</span>
+        </div>
+        <div class="stat">
+          <strong>Repeatability</strong>
+          <span>Execution that scales across stores</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<section id="about">
+  <div class="wrap">
+    <div class="section-title">
+      <h2>About FrontlineQSR</h2>
+      <p>Built by operators, for operators.</p>
+    </div>
+    <div class="panel">
+      <p>
+        FrontlineQSR was created to solve a common problem in multi-unit operations:
+        leaders have data, but not a consistent way to translate it into action during real shifts.
+      </p>
+    </div>
+  </div>
 </section>
 
-<section class="wrap panel">
-  <h2>About FrontlineQSR</h2>
-  <p>
-    FrontlineQSR is led by <strong>Nathaniel O. Robinson</strong>, a frontline operator and leader with
-    experience building performance systems that hold up during real shifts — not just on paper.
-  </p>
-  <p>
-    The focus is simple: fix frontline execution, strengthen leadership cadence, and create
-    standards that scale across locations.
-  </p>
+<section id="system">
+  <div class="wrap">
+    <div class="section-title">
+      <h2>The Execution System</h2>
+      <p>Simple structure. Disciplined cadence. Clear action.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <h3>Signal</h3>
+        <p>Core KPIs with targets and status — no clutter.</p>
+      </div>
+      <div class="card">
+        <h3>Clarity</h3>
+        <p>On-track vs off-track visibility at a glance.</p>
+      </div>
+      <div class="card">
+        <h3>Action</h3>
+        <p>Recommendations tied directly to execution.</p>
+      </div>
+    </div>
+  </div>
 </section>
 
-<section class="wrap panel">
-  <h2>Work With FrontlineQSR</h2>
-  <p>
-    If your brand is dealing with inconsistent execution, leadership gaps, labor pressure,
-    or declining guest experience, the next step is a focused strategy conversation.
-  </p>
+<section id="services">
+  <div class="wrap">
+    <div class="section-title">
+      <h2>Services</h2>
+      <p>Remote-first engagements with optional store visits after the first six weeks.</p>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <h3>Pilot Engagements</h3>
+        <p>6–8 week pilots designed to prove execution impact.</p>
+      </div>
+      <div class="card">
+        <h3>Multi-Unit Advisory</h3>
+        <p>Support for regional and franchise leadership teams.</p>
+      </div>
+      <div class="card">
+        <h3>Execution Systems</h3>
+        <p>Repeatable cadence leaders can own and scale.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-  <a class="btn" href="mailto:nrobinson@flqsr.com">Email to Start</a>
-
-  <button class="btn" id="copyEmailTemplate">Copy Intake Template (Recommended)</button>
+<section id="contact">
+  <div class="wrap panel">
+    <h2>Contact</h2>
+    <p>
+      Interested in learning more or exploring a pilot?
+      Reach out to start the conversation.
+    </p>
+    <form action="mailto:nrobinson@flqsr.com" method="post" enctype="text/plain">
+      <input type="text" name="name" placeholder="Name" required>
+      <input type="email" name="email" placeholder="Email" required>
+      <input class="full" type="text" name="company" placeholder="Company / Brand">
+      <textarea class="full" name="message" placeholder="What are you trying to solve?"></textarea>
+      <button class="btn primary full" type="submit">Send Message</button>
+    </form>
+  </div>
 </section>
 
 <footer>
-  © <span id="year"></span> FrontlineQSR
+  <div class="wrap">
+    © <span id="year"></span> FrontlineQSR
+  </div>
 </footer>
 
 <script>
   document.getElementById("year").textContent = new Date().getFullYear();
-</script>
-
-<script>
-  const templateText =
-`Hi Nate,
-
-I’d like to request a FrontlineQSR strategy call.
-
-Company / Brand:
-Number of Locations:
-Markets / States:
-Your Role (Owner / Operator / Corporate):
-
-Primary issues on the frontline:
-
-KPIs you want to improve (speed, labor, consistency, etc.):
-
-Timeline / urgency:
-
-Best times for a 20–30 min call:
-- 
-- 
--
-
-Thanks,`;
-
-  document.getElementById('copyEmailTemplate').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(templateText);
-      alert('Copied. Open Gmail and paste into the email.');
-    } catch (e) {
-      prompt('Copy this text:', templateText);
-    }
-  });
 </script>
 
 </body>
