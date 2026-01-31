@@ -1,23 +1,24 @@
 /* assets/action-plan.js
-   FrontlineQSR Action Plan
-   - Builds tasks from approvedSnapshot.recommendations
-   - Stores plans per approval cycle (reviewedAt/createdAt)
+   Auto-fill Action Plan from approved KPI snapshot + targets/recs pack
+   Static demo (localStorage)
 */
 (() => {
   "use strict";
 
   const APPROVED_KEY = "flqsr_latest_approved_submission";
-  const PLAN_KEY = "flqsr_action_plan_v1";
+  const PLAN_KEY = "flqsr_action_plan_v2";
 
   const $ = (id) => document.getElementById(id);
 
-  function safeParse(v, fallback) { try { return JSON.parse(v); } catch { return fallback; } }
+  function safeParse(v, fallback) {
+    try { return JSON.parse(v); } catch { return fallback; }
+  }
 
   function getApproved() {
     return safeParse(localStorage.getItem(APPROVED_KEY), null);
   }
 
-  function getPlans() {
+  function loadPlans() {
     return safeParse(localStorage.getItem(PLAN_KEY), {});
   }
 
@@ -25,52 +26,153 @@
     localStorage.setItem(PLAN_KEY, JSON.stringify(plans));
   }
 
-  function cycleIdFromApproved(approved) {
-    if (!approved) return "no-approval";
-    return approved.reviewedAt || approved.createdAt || "unknown-cycle";
+  function cycleIdFromApproved(a) {
+    // stable id: prefer reviewedAt, then createdAt
+    const t = a?.reviewedAt || a?.createdAt || "unknown";
+    return String(t);
   }
 
-  function escapeHtml(s) {
-    return String(s || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;");
+  function normalizeKpiLabel(s) {
+    return String(s || "").trim();
   }
 
-  function normalizeRecToTask(recText) {
-    const text = String(recText || "").replace(/^🔴\s*/g, "").trim();
+  function toNumber(v) {
+    const n = Number(String(v ?? "").replace(/[$,%]/g, "").trim());
+    return Number.isFinite(n) ? n : NaN;
+  }
 
-    // Tiny mapping for better titles (expand later)
-    const map = [
-      { key: "Sales", title: "Boost sales growth (promo + upsell execution)" },
-      { key: "Transactions", title: "Increase transactions (speed + guest count drivers)" },
-      { key: "Labor", title: "Reduce labor % (daypart scheduling + overtime control)" },
-      { key: "Ticket", title: "Raise average ticket (add-ons + suggestive sell)" }
+  // Build “opportunities” if they aren’t saved yet
+  function computeOpportunitiesFallback(approved) {
+    // If targets.js already saved opportunities, use those.
+    if (approved?.opportunities?.rows?.length) return approved.opportunities;
+
+    // Fallback: try to infer from approvedSnapshot (if you store it)
+    const opp = { generatedAt: new Date().toISOString(), rows: [], recs: [] };
+    const snap = approved?.approvedSnapshot || approved?.snapshot || null;
+    if (!snap) return opp;
+
+    // Try common keys (depends on your existing objects)
+    // We'll attempt: snap.kpis, snap.targets, snap.recommendations
+    const rows = [];
+    const recs = [];
+
+    const kpis = snap.kpis || {};
+    const targets = snap.targets || {};
+
+    // Example keys — adjust later if needed:
+    // SalesMoM, LaborPct, TransactionsMoM, AvgTicket
+    const mapping = [
+      { key: "SalesMoM", label: "Sales MoM", fmt: "pct" },
+      { key: "LaborPct", label: "Labor %", fmt: "pct" },
+      { key: "TransactionsMoM", label: "Transactions MoM", fmt: "pct" },
+      { key: "AvgTicket", label: "Avg Ticket", fmt: "money" },
     ];
 
-    let title = "Operational Improvement Task";
-    for (const m of map) {
-      if (text.toLowerCase().includes(m.key.toLowerCase())) { title = m.title; break; }
-    }
+    mapping.forEach(m => {
+      const actual = kpis[m.key];
+      const target = targets[m.key];
+      if (actual == null || target == null) return;
 
+      const a = toNumber(actual);
+      const t = toNumber(target);
+      if (!Number.isFinite(a) || !Number.isFinite(t)) return;
+
+      // For Labor %, lower is better. For others, higher is better.
+      const lowerBetter = /labor/i.test(m.label);
+      const variance = lowerBetter ? (t - a) : (a - t);
+      const onTrack = variance >= 0;
+
+      rows.push({
+        kpiKey: m.key,
+        label: m.label,
+        actual: actual,
+        target: target,
+        variance: variance,
+        status: onTrack ? "On Track" : "Off Track"
+      });
+    });
+
+    (snap.recommendations || []).forEach(r => recs.push(String(r)));
+
+    opp.rows = rows;
+    opp.recs = recs;
+    return opp;
+  }
+
+  // Convert rows+recs into tasks
+  function buildTasksFromOpportunities(approved, opportunities) {
+    const tasks = [];
+    const clientName = approved?.clientName || approved?.clientId || "Client";
+
+    const rows = opportunities?.rows || [];
+    const recs = opportunities?.recs || [];
+
+    // Rule: only generate tasks for Off Track items
+    rows.forEach(r => {
+      if (String(r.status || "").toLowerCase().includes("off")) {
+        const title = `Improve ${normalizeKpiLabel(r.label)}`;
+        const notes = [
+          `Client: ${clientName}`,
+          `KPI: ${r.label}`,
+          `Actual: ${r.actual}`,
+          `Target: ${r.target}`,
+          `Focus: close variance and return to target.`,
+        ].join("\n");
+
+        tasks.push(makeTask(title, notes, r.label));
+      }
+    });
+
+    // Also map recommendations into tasks (if any)
+    recs.forEach((rec) => {
+      const text = String(rec || "").trim();
+      if (!text) return;
+      const title = shortTitleFromRec(text);
+      tasks.push(makeTask(title, text, "Recommendation"));
+    });
+
+    // De-dupe by normalized title
+    const seen = new Set();
+    return tasks.filter(t => {
+      const k = t.title.toLowerCase().trim();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }
+
+  function shortTitleFromRec(text) {
+    // Make a compact task title
+    const s = text.replace(/\s+/g, " ").trim();
+    // If it contains ">" or ":" split
+    const parts = s.split(/>|:/);
+    const first = parts[0].trim();
+    // keep it short
+    return first.length > 48 ? first.slice(0, 48) + "…" : first || "Recommendation Task";
+  }
+
+  function makeTask(title, notes, tag) {
     return {
       id: "t_" + Math.random().toString(16).slice(2),
-      title,
-      notes: text,
-      status: "open",
+      title: String(title || "").trim(),
+      tag: tag || "",
+      owner: "",
+      due: "",
+      status: "open", // open | done
+      notes: String(notes || ""),
       createdAt: new Date().toISOString()
     };
   }
 
   function ensurePlanForCycle(approved) {
-    const plans = getPlans();
+    const plans = loadPlans();
     const cycleId = cycleIdFromApproved(approved);
 
     if (!plans[cycleId]) {
       plans[cycleId] = {
         cycleId,
-        clientId: approved?.approvedSnapshot?.clientId || approved?.clientId || "client",
+        clientId: approved?.clientId || "",
+        clientName: approved?.clientName || "",
         createdAt: new Date().toISOString(),
         tasks: []
       };
@@ -80,154 +182,207 @@
     return { plans, cycleId, plan: plans[cycleId] };
   }
 
-  function generateFromApproved() {
-    const approved = getApproved();
-    if (!approved || !approved.approvedSnapshot) return null;
-
-    const recs = approved.approvedSnapshot.recommendations || [];
-    const recTasks = recs.map(normalizeRecToTask);
-
-    const { plans, cycleId, plan } = ensurePlanForCycle(approved);
-
-    // Merge: add new tasks only if note text not already present
-    const existingNotes = new Set((plan.tasks || []).map(t => String(t.notes || "").toLowerCase()));
-    for (const t of recTasks) {
-      if (!existingNotes.has(String(t.notes || "").toLowerCase())) {
+  function mergeTasks(plan, newTasks) {
+    const existingTitles = new Set((plan.tasks || []).map(t => t.title.toLowerCase().trim()));
+    newTasks.forEach(t => {
+      const k = t.title.toLowerCase().trim();
+      if (!existingTitles.has(k)) {
         plan.tasks.unshift(t);
+        existingTitles.add(k);
       }
-    }
-
-    plans[cycleId] = plan;
-    savePlans(plans);
-    return plan;
+    });
   }
 
-  function renderPlan(plan) {
+  function render(plan, approved, opportunities) {
     const host = $("apPlan");
     if (!host) return;
 
-    if (!plan || !Array.isArray(plan.tasks) || plan.tasks.length === 0) {
-      host.innerHTML = "No tasks yet. Click <strong>Generate / Refresh</strong> to create tasks from the approved review.";
-      return;
-    }
+    const tasks = plan?.tasks || [];
+    const open = tasks.filter(t => t.status !== "done");
+    const done = tasks.filter(t => t.status === "done");
 
-    const open = plan.tasks.filter(t => t.status !== "done");
-    const done = plan.tasks.filter(t => t.status === "done");
-
-    const taskCard = (t) => {
-      const isDone = t.status === "done";
-      const pill = isDone ? "✅ Done" : "🟡 Open";
-      const btn = isDone ? "Mark Open" : "Mark Done";
-
-      return `
-        <div class="card" style="margin-top:10px;">
-          <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start;">
-            <div>
-              <div style="font-weight:700;">${escapeHtml(t.title)}</div>
-              <div class="meta" style="margin-top:6px;">${escapeHtml(t.notes)}</div>
-            </div>
-            <div class="pill">${pill}</div>
-          </div>
-
-          <div class="actions" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn" data-act="toggle" data-id="${escapeHtml(t.id)}">${btn}</button>
-            <button class="btn" data-act="delete" data-id="${escapeHtml(t.id)}">Delete</button>
-          </div>
-        </div>
-      `;
-    };
-
-    host.innerHTML = `
-      <div class="meta">Open Tasks (${open.length})</div>
-      ${open.length ? open.map(taskCard).join("") : `<div class="meta" style="margin-top:8px;">No open tasks ✅</div>`}
-
-      <div class="meta" style="margin-top:14px;">Completed (${done.length})</div>
-      ${done.length ? done.map(taskCard).join("") : `<div class="meta" style="margin-top:8px;">No completed tasks yet.</div>`}
+    const header = `
+      <div class="meta" style="margin-bottom:10px;">
+        <div><strong>Client:</strong> ${escapeHtml(approved?.clientName || approved?.clientId || "—")}</div>
+        <div><strong>Approved:</strong> ${escapeHtml(formatTime(approved?.reviewedAt || approved?.createdAt))}</div>
+        <div><strong>Opportunities:</strong> ${(opportunities?.rows || []).length} KPIs, ${(opportunities?.recs || []).length} recs</div>
+      </div>
     `;
 
-    host.querySelectorAll("button[data-act]").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const act = btn.getAttribute("data-act");
-        const id = btn.getAttribute("data-id");
-        mutateTask(act, id);
-      });
+    host.innerHTML = `
+      ${header}
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px;">
+        <button class="btn primary" id="apGenerate">Generate / Refresh from KPIs</button>
+        <button class="btn" id="apAdd">Add Task</button>
+        <button class="btn" id="apClearCycle">Clear This Cycle</button>
+      </div>
+
+      <div class="card" style="margin-top:10px;">
+        <h3 style="margin:0 0 8px;">Open Tasks (${open.length})</h3>
+        ${open.length ? open.map(taskCard).join("") : `<div class="meta">No open tasks ✅</div>`}
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <h3 style="margin:0 0 8px;">Completed (${done.length})</h3>
+        ${done.length ? done.map(taskCard).join("") : `<div class="meta">No completed tasks yet.</div>`}
+      </div>
+    `;
+
+    // bind buttons
+    $("apGenerate")?.addEventListener("click", () => {
+      const approved2 = getApproved();
+      if (!approved2) return alert("No approved submission found.");
+      const opp2 = computeOpportunitiesFallback(approved2);
+      const { plans, cycleId, plan } = ensurePlanForCycle(approved2);
+      const newTasks = buildTasksFromOpportunities(approved2, opp2);
+      mergeTasks(plan, newTasks);
+      plans[cycleId] = plan;
+      savePlans(plans);
+      render(plan, approved2, opp2);
+    });
+
+    $("apAdd")?.addEventListener("click", () => {
+      const title = prompt("Task title?");
+      if (!title) return;
+      plan.tasks.unshift(makeTask(title, "", "Manual"));
+      const plans = loadPlans();
+      plans[plan.cycleId] = plan;
+      savePlans(plans);
+      render(plan, approved, opportunities);
+    });
+
+    $("apClearCycle")?.addEventListener("click", () => {
+      if (!confirm("Clear tasks for this approval cycle?")) return;
+      plan.tasks = [];
+      const plans = loadPlans();
+      plans[plan.cycleId] = plan;
+      savePlans(plans);
+      render(plan, approved, opportunities);
+    });
+
+    // bind per-task actions
+    tasks.forEach(t => {
+      $("done_" + t.id)?.addEventListener("click", () => setStatus(plan, t.id, "done", approved, opportunities));
+      $("open_" + t.id)?.addEventListener("click", () => setStatus(plan, t.id, "open", approved, opportunities));
+      $("del_" + t.id)?.addEventListener("click", () => delTask(plan, t.id, approved, opportunities));
+      $("save_" + t.id)?.addEventListener("click", () => saveTaskEdits(plan, t.id, approved, opportunities));
     });
   }
 
-  function mutateTask(act, id) {
-    const approved = getApproved();
-    const { plans, cycleId, plan } = ensurePlanForCycle(approved || {});
-    plan.tasks = plan.tasks || [];
-
-    const idx = plan.tasks.findIndex(t => t.id === id);
-    if (idx < 0) return;
-
-    if (act === "toggle") {
-      plan.tasks[idx].status = (plan.tasks[idx].status === "done" ? "open" : "done");
-    } else if (act === "delete") {
-      plan.tasks.splice(idx, 1);
-    }
-
-    plans[cycleId] = plan;
-    savePlans(plans);
-    renderPlan(plan);
+  function setStatus(plan, id, status, approved, opportunities) {
+    const t = plan.tasks.find(x => x.id === id);
+    if (!t) return;
+    t.status = status;
+    persist(plan);
+    render(plan, approved, opportunities);
   }
 
-  function clearPlan() {
-    const approved = getApproved();
-    const plans = getPlans();
-    const cycleId = cycleIdFromApproved(approved);
-
-    delete plans[cycleId];
-    savePlans(plans);
-    renderPlan(null);
+  function delTask(plan, id, approved, opportunities) {
+    plan.tasks = plan.tasks.filter(x => x.id !== id);
+    persist(plan);
+    render(plan, approved, opportunities);
   }
 
-  function addCustomTask() {
-    const title = String($("apTaskTitle")?.value || "").trim();
-    const notes = String($("apTaskNotes")?.value || "").trim();
-    if (!title) { alert("Enter a task title."); return; }
+  function saveTaskEdits(plan, id, approved, opportunities) {
+    const t = plan.tasks.find(x => x.id === id);
+    if (!t) return;
 
-    const approved = getApproved();
-    const { plans, cycleId, plan } = ensurePlanForCycle(approved || {});
+    const owner = $("owner_" + id)?.value || "";
+    const due = $("due_" + id)?.value || "";
+    const notes = $("notes_" + id)?.value || "";
 
-    plan.tasks = plan.tasks || [];
-    plan.tasks.unshift({
-      id: "c_" + Math.random().toString(16).slice(2),
-      title,
-      notes,
-      status: "open",
-      createdAt: new Date().toISOString()
-    });
+    t.owner = owner;
+    t.due = due;
+    t.notes = notes;
 
-    plans[cycleId] = plan;
+    persist(plan);
+    render(plan, approved, opportunities);
+  }
+
+  function persist(plan) {
+    const plans = loadPlans();
+    plans[plan.cycleId] = plan;
     savePlans(plans);
+  }
 
-    if ($("apTaskTitle")) $("apTaskTitle").value = "";
-    if ($("apTaskNotes")) $("apTaskNotes").value = "";
+  function taskCard(t) {
+    const isDone = t.status === "done";
+    const pill = isDone ? "✅ Done" : "🟡 Open";
 
-    renderPlan(plan);
+    return `
+      <div class="card" style="margin-top:10px;">
+        <div style="display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <div>
+            <div style="font-weight:800;">${escapeHtml(t.title)}</div>
+            <div class="meta">${escapeHtml(t.tag || "")} • ${escapeHtml(pill)}</div>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            ${isDone
+              ? `<button class="btn" id="open_${t.id}">Mark Open</button>`
+              : `<button class="btn primary" id="done_${t.id}">Mark Done</button>`
+            }
+            <button class="btn" id="del_${t.id}">Delete</button>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+          <div>
+            <div class="meta">Owner</div>
+            <input id="owner_${t.id}" value="${escapeAttr(t.owner || "")}" />
+          </div>
+          <div>
+            <div class="meta">Due</div>
+            <input id="due_${t.id}" placeholder="YYYY-MM-DD" value="${escapeAttr(t.due || "")}" />
+          </div>
+          <div style="grid-column:1 / -1;">
+            <div class="meta">Notes</div>
+            <textarea id="notes_${t.id}" style="width:100%; min-height:90px;">${escapeHtml(t.notes || "")}</textarea>
+          </div>
+        </div>
+
+        <div style="margin-top:10px;">
+          <button class="btn" id="save_${t.id}">Save</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function escapeHtml(s) {
+    return String(s || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;");
+  }
+
+  function escapeAttr(s) {
+    return escapeHtml(s).replaceAll("'","&#39;");
+  }
+
+  function formatTime(v) {
+    if (!v) return "—";
+    try { return new Date(v).toLocaleString(); } catch { return String(v); }
   }
 
   document.addEventListener("DOMContentLoaded", () => {
     const approved = getApproved();
-    const cycleId = cycleIdFromApproved(approved);
-    const plans = getPlans();
-    const plan = plans[cycleId] || null;
+    if (!approved) {
+      const host = $("apPlan");
+      if (host) host.innerHTML = `<div class="card"><h3>No approved KPI submission found</h3><div class="meta">Approve an upload in Admin Review first.</div></div>`;
+      return;
+    }
 
-    // Wire buttons
-    $("apGenerateBtn")?.addEventListener("click", () => {
-      const p = generateFromApproved();
-      if (!p) {
-        alert("No approved submission found yet. Upload data -> Admin approves -> then refresh here.");
-        return;
-      }
-      renderPlan(p);
-    });
+    const opportunities = computeOpportunitiesFallback(approved);
+    const { plan } = ensurePlanForCycle(approved);
 
-    $("apClearBtn")?.addEventListener("click", clearPlan);
-    $("apAddBtn")?.addEventListener("click", addCustomTask);
+    // Auto-generate on first load if empty
+    if (!plan.tasks || plan.tasks.length === 0) {
+      const newTasks = buildTasksFromOpportunities(approved, opportunities);
+      mergeTasks(plan, newTasks);
+      persist(plan);
+    }
 
-    renderPlan(plan);
+    render(plan, approved, opportunities);
   });
 })();
