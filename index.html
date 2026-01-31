@@ -1,95 +1,149 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FrontlineQSR | Home</title>
+  <title>FrontlineQSR | QSR Operations & Franchise Performance</title>
 
-  <link rel="stylesheet" href="assets/styles.css" />
-
-  <!-- Auth gate -->
-  <script src="assets/auth.js?v=1" defer></script>
-  <script defer>
-    document.addEventListener("DOMContentLoaded", () => {
-      // If not logged in -> go to login
-      if (!window.FLQSR_AUTH || !FLQSR_AUTH.isLoggedIn()) {
-        window.location.href = "login.htm";
-        return;
-      }
-
-      const role = FLQSR_AUTH.getRole(); // "admin" | "client"
-      const who = FLQSR_AUTH.getUsername() || "User";
-
-      const roleLabel = document.getElementById("roleLabel");
-      const welcome = document.getElementById("welcomeText");
-      const adminOnly = document.querySelectorAll("[data-role='admin']");
-      const clientOnly = document.querySelectorAll("[data-role='client']");
-
-      roleLabel.textContent = role === "admin" ? "Admin" : "Client";
-      welcome.textContent = `Welcome, ${who}.`;
-
-      adminOnly.forEach(el => el.style.display = (role === "admin" ? "" : "none"));
-      clientOnly.forEach(el => el.style.display = (role === "client" ? "" : "none"));
-
-      document.getElementById("logoutBtn").addEventListener("click", () => {
-        FLQSR_AUTH.logout();
-        window.location.href = "login.htm";
-      });
-    });
+  <!-- Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-FNM91NHH34"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-FNM91NHH34');
   </script>
+
+  <!-- SEO -->
+  <meta name="description" content="FrontlineQSR helps QSR brands fix frontline execution, leadership gaps, and operational inconsistency." />
+
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --panel:#0f1620;
+      --text:#e9eef5;
+      --muted:#b7c3d4;
+      --line:rgba(255,255,255,.10);
+      --accent:#6ae4ff;
+      --accent2:#a8ff6a;
+      --radius:16px;
+      --max:1120px;
+    }
+
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      background:
+        radial-gradient(1200px 800px at 10% -10%, rgba(106,228,255,.18), transparent 55%),
+        radial-gradient(900px 700px at 90% 10%, rgba(168,255,106,.12), transparent 50%),
+        radial-gradient(900px 700px at 40% 120%, rgba(106,228,255,.10), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      line-height:1.45;
+    }
+
+    a{text-decoration:none;color:inherit}
+    img{max-width:100%;border-radius:var(--radius)}
+
+    .wrap{max-width:var(--max);margin:0 auto;padding:20px}
+    .panel{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:var(--radius);padding:20px}
+
+    header{padding:30px 0}
+    h1{font-size:clamp(32px,4vw,48px);margin-bottom:10px}
+    h2{margin-top:0}
+    p{color:var(--muted)}
+
+    .btn{
+      display:inline-block;
+      padding:12px 18px;
+      border-radius:12px;
+      background:linear-gradient(135deg,rgba(106,228,255,.25),rgba(168,255,106,.18));
+      border:1px solid rgba(255,255,255,.2);
+      font-weight:600;
+      margin-top:10px;
+    }
+
+    footer{border-top:1px solid var(--line);margin-top:40px;padding:20px 0;text-align:center;color:var(--muted)}
+  </style>
 </head>
 
 <body>
 
-<header class="brandbar">
-  <div class="left">
-    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
-    <div class="title">Dashboard Home</div>
-  </div>
-  <div class="right">
-    <div class="pill">Role: <span id="roleLabel">...</span></div>
-  </div>
+<header class="wrap">
+  <h1>It’s not a sales problem.<br>It’s a frontline problem.</h1>
+  <p>FrontlineQSR helps QSR brands fix execution where it actually breaks — on shift.</p>
 </header>
 
-<div class="layout">
-  <aside class="sidebar">
-    <nav class="nav">
-      <a class="active" href="index.html">Overview</a>
-      <a href="kpis.html">KPIs</a>
-      <a href="action-plan.html">Action Plan</a>
-      <a href="reports.html">Reports</a>
-      <a href="upload.html">Client Uploads</a>
-      <a href="payments.html">Payments</a>
-      <a href="contracts.html">Contracts</a>
+<section class="wrap">
+  <img src="./assets/insights-frontline-problem.jpg" alt="Frontline problem image">
+</section>
 
-      <!-- admin-only link -->
-      <a data-role="admin" href="admin.html">Admin Review</a>
-    </nav>
-  </aside>
+<section class="wrap panel">
+  <h2>About FrontlineQSR</h2>
+  <p>
+    FrontlineQSR is led by <strong>Nathaniel O. Robinson</strong>, a frontline operator and leader with
+    experience building performance systems that hold up during real shifts — not just on paper.
+  </p>
+  <p>
+    The focus is simple: fix frontline execution, strengthen leadership cadence, and create
+    standards that scale across locations.
+  </p>
+</section>
 
-  <main class="main">
-    <section class="card">
-      <h1>FrontlineQSR</h1>
-      <p class="muted" id="welcomeText">Welcome...</p>
+<section class="wrap panel">
+  <h2>Work With FrontlineQSR</h2>
+  <p>
+    If your brand is dealing with inconsistent execution, leadership gaps, labor pressure,
+    or declining guest experience, the next step is a focused strategy conversation.
+  </p>
 
-      <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-        <a class="btn primary" href="kpis.html">Go to KPIs</a>
-        <a class="btn" href="upload.html" data-role="client">Upload Data</a>
-        <a class="btn" href="admin.html" data-role="admin">Admin Review</a>
-        <button class="btn" id="logoutBtn" type="button">Logout</button>
-      </div>
-    </section>
+  <a class="btn" href="mailto:nrobinson@flqsr.com">Email to Start</a>
 
-    <section class="card">
-      <h3>Quick Notes</h3>
-      <ul class="list">
-        <li>Clients can upload data + view KPIs + Action Plan.</li>
-        <li>Admins can review/approve submissions and unlock KPI updates.</li>
-        <li>This is still “static-site auth” (browser storage). Real security comes when we add a backend later.</li>
-      </ul>
-    </section>
-  </main>
-</div>
+  <button class="btn" id="copyEmailTemplate">Copy Intake Template (Recommended)</button>
+</section>
+
+<footer>
+  © <span id="year"></span> FrontlineQSR
+</footer>
+
+<script>
+  document.getElementById("year").textContent = new Date().getFullYear();
+</script>
+
+<script>
+  const templateText =
+`Hi Nate,
+
+I’d like to request a FrontlineQSR strategy call.
+
+Company / Brand:
+Number of Locations:
+Markets / States:
+Your Role (Owner / Operator / Corporate):
+
+Primary issues on the frontline:
+
+KPIs you want to improve (speed, labor, consistency, etc.):
+
+Timeline / urgency:
+
+Best times for a 20–30 min call:
+- 
+- 
+-
+
+Thanks,`;
+
+  document.getElementById('copyEmailTemplate').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(templateText);
+      alert('Copied. Open Gmail and paste into the email.');
+    } catch (e) {
+      prompt('Copy this text:', templateText);
+    }
+  });
+</script>
 
 </body>
 </html>
