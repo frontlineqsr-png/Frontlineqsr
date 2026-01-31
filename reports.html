@@ -1,1 +1,71 @@
-<!doctype html><html><head><title>Reports</title></head><body><h1>Reports</h1></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FrontlineQSR | Reports</title>
+
+  <link rel="stylesheet" href="assets/styles.css" />
+
+  <!-- ✅ AUTH (Client-only) -->
+  <script src="assets/auth.js?v=4" defer></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      FLQSR_AUTH.requireClient();
+    });
+  </script>
+</head>
+
+<body>
+
+<header class="brandbar">
+  <div class="left">
+    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
+    <div class="title">Reports</div>
+  </div>
+  <div class="right">
+    <div class="pill" id="rolePill">Role: Client</div>
+    <button class="btn" id="logoutBtn" type="button">Logout</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <nav class="nav">
+      <a href="kpis.html">KPIs</a>
+      <a href="action-plan.html">Action Plan</a>
+      <a class="active" href="reports.html">Reports</a>
+      <a href="upload.html">Upload Data</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <section class="card">
+      <h1 style="margin:0 0 6px 0;">Reports</h1>
+      <div class="meta">
+        Monthly and weekly rollups will appear here once KPI snapshots are approved.
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:14px;">
+      <h2 style="margin:0 0 10px 0;">Report Output</h2>
+      <div id="reportsRoot" class="meta">Coming soon…</div>
+    </section>
+  </main>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    try {
+      const role = FLQSR_AUTH.getRole();
+      const pill = document.getElementById("rolePill");
+      if (pill) pill.textContent = "Role: " + (role || "client");
+    } catch(e) {}
+
+    const btn = document.getElementById("logoutBtn");
+    if (btn) btn.addEventListener("click", () => FLQSR_AUTH.logout());
+  });
+</script>
+
+</body>
+</html>
