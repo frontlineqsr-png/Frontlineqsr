@@ -1,19 +1,22 @@
-/* assets/auth.js
-   FrontlineQSR role-gate auth (static demo)
-   NOTE: Static-site gating only (localStorage). Not real security without backend.
+/* assets/auth.js (v6)
+   FrontlineQSR role-gate auth (static demo; localStorage)
+   Fixes:
+   - admin can view client pages (client OR admin guard)
+   - stable redirects with ?next=
 */
+
 (() => {
   "use strict";
 
-  const ROLE_KEY  = "flqsr_role";      // "admin" | "client"
-  const USER_KEY  = "flqsr_user";      // username/email
-  const CREDS_KEY = "flqsr_creds_v3";  // optional overrides
+  const ROLE_KEY  = "flqsr_role";     // "admin" | "client"
+  const USER_KEY  = "flqsr_user";
+  const CREDS_KEY = "flqsr_creds_v6"; // bump to avoid old cached creds
 
-  // ✅ ADMIN LOGIN (YOU)
+  // ✅ Admin login (you)
   const ADMIN_USER = "nrobinson@flqsr.com";
-  const ADMIN_PASS = "Ducks4Life!"; // <-- change this to your preferred password
+  const ADMIN_PASS = "ChangeMeNow123!"; // change whenever you want
 
-  // ✅ CLIENT LOGIN (PILOT TEST)
+  // ✅ Client login (pilot)
   const CLIENT_USER = "client";
   const CLIENT_PASS = "client123";
 
@@ -24,6 +27,10 @@
 
   function safeParse(v, fallback) {
     try { return JSON.parse(v); } catch { return fallback; }
+  }
+
+  function normalizeUser(s) {
+    return String(s || "").trim().toLowerCase();
   }
 
   function loadCreds() {
@@ -58,7 +65,6 @@
     return getRole() === role;
   }
 
-  // Supports ?next=somepage.html (prevents external redirects)
   function getNextParam() {
     const u = new URL(location.href);
     const next = u.searchParams.get("next");
@@ -68,14 +74,9 @@
     return next;
   }
 
-  // ✅ Default dashboards per role
   function goDefault(role) {
     if (role === "admin") location.href = "admin.html";
-    else location.href = "kpis.html"; // ✅ clients go to KPIs (then can navigate)
-  }
-
-  function normalizeUser(s) {
-    return String(s || "").trim().toLowerCase();
+    else location.href = "kpis.html";
   }
 
   function login(username, password) {
@@ -90,12 +91,10 @@
       setRole("admin", u);
       return { ok: true, role: "admin" };
     }
-
     if (u === cUser && p === creds.client.password) {
       setRole("client", u);
       return { ok: true, role: "client" };
     }
-
     return { ok: false, role: "" };
   }
 
@@ -104,24 +103,35 @@
     location.href = "index.html";
   }
 
-  // Guards
   function requireAdmin() {
     if (!isAuthed("admin")) {
-      location.href = "login.htm?next=admin.html";
+      location.href = "login.htm?next=" + encodeURIComponent("admin.html");
+    }
+  }
+
+  // ✅ This is the key fix: allow "client OR admin"
+  function requireClientOrAdmin() {
+    const role = getRole();
+    if (role !== "client" && role !== "admin") {
+      const page = location.pathname.split("/").pop() || "kpis.html";
+      location.href = "login.htm?next=" + encodeURIComponent(page);
     }
   }
 
   function requireClient() {
     if (!isAuthed("client")) {
-      location.href = "login.htm?next=kpis.html";
+      location.href = "login.htm?next=" + encodeURIComponent("kpis.html");
     }
   }
 
-  function requireAny() {
-    if (!getRole()) location.href = "login.htm";
+  // Optional: reset storage quickly (useful on phone)
+  function hardReset() {
+    localStorage.removeItem(ROLE_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(CREDS_KEY);
   }
 
-  // Optional: update creds later without showing them on the login page
+  // Optional: update creds later without showing them on UI
   function setCredentials(newAdminUser, newAdminPass, newClientUser, newClientPass) {
     const creds = loadCreds();
     if (newAdminUser) creds.admin.username = String(newAdminUser).trim();
@@ -136,11 +146,12 @@
     logout,
     getRole,
     getUsername,
-    requireAdmin,
-    requireClient,
-    requireAny,
     getNextParam,
     goDefault,
+    requireAdmin,
+    requireClient,
+    requireClientOrAdmin,
+    hardReset,
     setCredentials
   };
 })();
