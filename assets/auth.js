@@ -1,116 +1,129 @@
-// assets/auth.js
-// FrontlineQSR static-site auth (pilot mode)
-// NOTE: This is NOT secure (client-side only). Good for demos until backend auth.
-
+/* assets/assets/auth.js
+   FrontlineQSR role-gate auth (static demo)
+   NOTE: Not real security (static site). Use backend later for production.
+*/
 (() => {
   "use strict";
 
-  const CREDS_KEY = "flqsr_auth_credentials_v1";
-  const SESSION_KEY = "flqsr_auth_session_v1";
+  const ROLE_KEY = "flqsr_role";              // "admin" | "client"
+  const USER_KEY = "flqsr_user";              // username
+  const CREDS_KEY = "flqsr_creds_v1";         // stored creds override
 
-  function safeParse(v, fallback) {
-    try { return JSON.parse(v); } catch { return fallback; }
+  // Defaults (can be overridden via localStorage using setCredentials)
+  const DEFAULT_CREDS = {
+    admin: { username: "admin",  password: "admin123" },
+    client:{ username: "client", password: "client123" }
+  };
+
+  function loadCreds() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(CREDS_KEY) || "null");
+      if (saved && saved.admin && saved.client) return saved;
+    } catch (_) {}
+    return DEFAULT_CREDS;
   }
 
-  function getCreds() {
-    return safeParse(localStorage.getItem(CREDS_KEY), null);
-  }
-
-  function setCreds(creds) {
+  function saveCreds(creds) {
     localStorage.setItem(CREDS_KEY, JSON.stringify(creds));
   }
 
-  function getSession() {
-    return safeParse(localStorage.getItem(SESSION_KEY), null);
+  function setRole(role, username) {
+    localStorage.setItem(ROLE_KEY, role);
+    localStorage.setItem(USER_KEY, username || "");
   }
 
-  function setSession(sess) {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
-  }
-
-  function clearSession() {
-    localStorage.removeItem(SESSION_KEY);
-  }
-
-  function isConfigured() {
-    const c = getCreds();
-    return !!(c && c.admin && c.client && c.admin.username && c.client.username);
-  }
-
-  function setCredentials({ admin, client }) {
-    setCreds({ admin, client });
-  }
-
-  function login(username, password) {
-    const creds = getCreds();
-    if (!creds) return { ok: false, message: "No credentials set yet. Click Setup to create logins." };
-
-    const u = String(username || "").trim();
-    const p = String(password || "").trim();
-
-    const a = creds.admin || {};
-    const c = creds.client || {};
-
-    if (u === a.username && p === a.password) {
-      setSession({ role: "admin", username: u, ts: Date.now() });
-      return { ok: true, role: "admin" };
-    }
-
-    if (u === c.username && p === c.password) {
-      setSession({ role: "client", username: u, ts: Date.now() });
-      return { ok: true, role: "client" };
-    }
-
-    return { ok: false, message: "Invalid username or password." };
-  }
-
-  function logout() {
-    clearSession();
-  }
-
-  function isLoggedIn() {
-    const s = getSession();
-    return !!(s && s.role);
+  function clearRole() {
+    localStorage.removeItem(ROLE_KEY);
+    localStorage.removeItem(USER_KEY);
   }
 
   function getRole() {
-    const s = getSession();
-    return s?.role || null;
+    return localStorage.getItem(ROLE_KEY) || "";
   }
 
-  function getUsername() {
-    const s = getSession();
-    return s?.username || null;
+  function isAuthed(role) {
+    return getRole() === role;
   }
 
-  // Require role on a page
-  function requireRole(allowedRoles, redirectTo = "login.htm") {
-    const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+  // Supports ?next=somepage.html
+  function getNextParam() {
+    const u = new URL(location.href);
+    const next = u.searchParams.get("next");
+    if (!next) return "";
+    // basic safety: only allow relative links
+    if (next.includes("://") || next.startsWith("//")) return "";
+    return next;
+  }
 
-    if (!isLoggedIn()) {
-      window.location.href = redirectTo;
-      return false;
+  function goDefault(role) {
+    // pick your dashboards here
+    if (role === "admin") location.href = "../admin.html";
+    else location.href = "../kpis.html";
+  }
+
+  function login(username, password) {
+    username = String(username || "").trim();
+    password = String(password || "").trim();
+    const creds = loadCreds();
+
+    // admin
+    if (username === creds.admin.username && password === creds.admin.password) {
+      setRole("admin", username);
+      return { ok: true, role: "admin" };
     }
 
+    // client
+    if (username === creds.client.username && password === creds.client.password) {
+      setRole("client", username);
+      return { ok: true, role: "client" };
+    }
+
+    return { ok: false, role: "" };
+  }
+
+  function logout() {
+    clearRole();
+    location.href = "../index.html";
+  }
+
+  // Guards
+  function requireAdmin() {
+    if (!isAuthed("admin")) {
+      location.href = "../assets/login.htm?next=admin.html";
+    }
+  }
+
+  function requireClient() {
+    if (!isAuthed("client")) {
+      location.href = "../assets/login.htm?next=kpis.html";
+    }
+  }
+
+  function requireAny() {
     const role = getRole();
-    if (!roles.includes(role)) {
-      // Logged in but wrong role -> send home
-      window.location.href = "index.html";
-      return false;
-    }
-
-    return true;
+    if (!role) location.href = "../assets/login.htm";
   }
 
-  // Expose
+  // Allows you (admin) to change creds later without printing them on the login page
+  function setCredentials(newAdminUser, newAdminPass, newClientUser, newClientPass) {
+    const creds = loadCreds();
+    if (newAdminUser) creds.admin.username = String(newAdminUser).trim();
+    if (newAdminPass) creds.admin.password = String(newAdminPass).trim();
+    if (newClientUser) creds.client.username = String(newClientUser).trim();
+    if (newClientPass) creds.client.password = String(newClientPass).trim();
+    saveCreds(creds);
+  }
+
+  // Expose API
   window.FLQSR_AUTH = {
-    isConfigured,
-    setCredentials,
     login,
     logout,
-    isLoggedIn,
     getRole,
-    getUsername,
-    requireRole
+    requireAdmin,
+    requireClient,
+    requireAny,
+    getNextParam,
+    goDefault,
+    setCredentials
   };
 })();
