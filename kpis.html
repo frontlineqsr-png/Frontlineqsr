@@ -7,93 +7,81 @@
 
   <link rel="stylesheet" href="assets/styles.css" />
 
-  <!-- 1) Master list (clients / brands / targets) -->
-  <script src="assets/masterlist-loader.js?v=2" defer></script>
+  <!-- ✅ AUTH (Client-only) -->
+  <script src="assets/auth.js?v=4" defer></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      FLQSR_AUTH.requireClient();
+    });
+  </script>
 
-  <!-- 2) KPI cards (summary numbers) -->
-  <script src="assets/kpis.js?v=3" defer></script>
-
-  <!-- 3) Targets + recommendations -->
-  <script src="assets/targets.js?v=3" defer></script>
+  <!-- ✅ KPI logic (keep these filenames if you already use them) -->
+  <!-- If you already have targets.js + masterlist-loader.js, leave these on -->
+  <script src="assets/masterlist-loader.js?v=4" defer></script>
+  <script src="assets/targets.js?v=4" defer></script>
 </head>
 
 <body>
 
-<header class="brandbar">
-  <div class="left">
-    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
-    <div class="title">Client Dashboard</div>
-  </div>
-  <div class="right">
-    <div class="pill">KPIs</div>
-  </div>
-</header>
-
-<div class="layout">
-
-  <!-- SIDEBAR -->
-  <aside class="sidebar">
-    <nav class="nav">
-      <a href="index.html">Overview</a>
-      <a class="active" href="kpis.html">KPIs</a>
-      <a href="action-plan.html">Action Plan</a>
-      <a href="reports.html">Reports</a>
-      <a href="upload.html">Upload Data</a>
-      <a href="payments.html">Payments</a>
-      <a href="contracts.html">Contracts</a>
-    </nav>
-  </aside>
-
-  <!-- MAIN -->
-  <main class="main">
-
-    <!-- HEADER -->
-    <section class="card">
-      <h1 style="margin:0 0 6px 0;">KPIs</h1>
-      <div class="meta">
-        KPI updates are unlocked when Admin approves your latest upload.
-      </div>
-    </section>
-
-    <!-- STATUS -->
-    <section class="card" style="margin-top:14px;">
-      <h3>Status</h3>
-      <div id="kpiStatus" class="meta">Loading KPI status…</div>
-
-      <div class="actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-        <a class="btn primary" href="upload.html">Upload Data</a>
-        <a class="btn" href="admin.html">Admin Review</a>
-        <button class="btn" type="button" onclick="location.reload()">Refresh</button>
-      </div>
-    </section>
-
-    <!-- LATEST APPROVED -->
-    <section class="card" style="margin-top:14px;">
-      <h2 style="margin:0 0 10px 0;">Latest Approved Submission</h2>
-      <div id="latestApproved" class="meta">Loading…</div>
-    </section>
-
-    <!-- KPI CARDS -->
-    <section class="card" style="margin-top:14px;">
-      <h2 style="margin:0 0 10px 0;">KPI Cards</h2>
-      <div id="kpiCards" class="meta">Loading KPI cards…</div>
-    </section>
-
-    <!-- ================= TARGETS + RECOMMENDATIONS (BLOCKS) ================= -->
-<section class="card" style="margin-top:14px;">
-  <h2 style="margin:0 0 10px 0;">Targets & Recommendations</h2>
-
-  <div class="grid-2" style="margin-top:10px;">
-    <!-- Targets table -->
-    <div class="card">
-      <div class="meta" style="margin-bottom:8px;">Targets vs Actual</div>
-      <div id="targetsTable" class="meta">Loading targets…</div>
+  <header class="brandbar">
+    <div class="left">
+      <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
+      <div class="title">Client Dashboard</div>
     </div>
-
-    <!-- Recommendations -->
-    <div class="card">
-      <div class="meta" style="margin-bottom:8px;">Recommendations</div>
-      <div id="targetsRecs" class="meta">Loading recommendations…</div>
+    <div class="right">
+      <div class="pill" id="rolePill">Role: Client</div>
+      <button class="btn" id="logoutBtn" type="button">Logout</button>
     </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="nav">
+        <a class="active" href="kpis.html">KPIs</a>
+        <a href="action-plan.html">Action Plan</a>
+        <a href="reports.html">Reports</a>
+        <a href="upload.html">Upload Data</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+      <section class="card">
+        <h1 style="margin:0 0 6px 0;">KPIs</h1>
+        <div class="meta">
+          Your KPI status updates after Admin approves your latest upload.
+        </div>
+      </section>
+
+      <!-- ✅ KPI CONTENT CONTAINER (targets.js can render into this) -->
+      <section class="card" style="margin-top:14px;">
+        <h2 style="margin:0 0 10px 0;">Store Health</h2>
+        <div id="kpiCards" class="grid-2"></div>
+        <div id="kpiEmpty" class="meta" style="margin-top:10px;">
+          No approved KPI snapshot found yet. Upload your files and have Admin approve.
+        </div>
+      </section>
+
+      <!-- ✅ Recommendations -->
+      <section class="card" style="margin-top:14px;">
+        <h2 style="margin:0 0 10px 0;">Recommendations</h2>
+        <div id="recommendations" class="meta">Loading…</div>
+      </section>
+    </main>
   </div>
-</section>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Role pill + logout
+      try {
+        const role = FLQSR_AUTH.getRole();
+        const pill = document.getElementById("rolePill");
+        if (pill) pill.textContent = "Role: " + (role || "client");
+      } catch(e) {}
+
+      const btn = document.getElementById("logoutBtn");
+      if (btn) btn.addEventListener("click", () => FLQSR_AUTH.logout());
+    });
+  </script>
+
+</body>
+</html>
