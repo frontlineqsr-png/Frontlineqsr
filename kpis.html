@@ -7,11 +7,14 @@
 
   <link rel="stylesheet" href="assets/styles.css" />
 
-  <!-- Master List Loader (must load first) -->
-  <script src="assets/masterlist-loader.js?v=1" defer></script>
+  <!-- 1) Master list (clients / brands / targets) -->
+  <script src="assets/masterlist-loader.js?v=2" defer></script>
 
-  <!-- KPI logic -->
-  <script src="assets/kpis.js?v=1" defer></script>
+  <!-- 2) KPI cards (summary numbers) -->
+  <script src="assets/kpis.js?v=3" defer></script>
+
+  <!-- 3) Targets + recommendations -->
+  <script src="assets/targets.js?v=3" defer></script>
 </head>
 
 <body>
@@ -28,6 +31,7 @@
 
 <div class="layout">
 
+  <!-- SIDEBAR -->
   <aside class="sidebar">
     <nav class="nav">
       <a href="index.html">Overview</a>
@@ -40,8 +44,10 @@
     </nav>
   </aside>
 
+  <!-- MAIN -->
   <main class="main">
 
+    <!-- HEADER -->
     <section class="card">
       <h1 style="margin:0 0 6px 0;">KPIs</h1>
       <div class="meta">
@@ -49,11 +55,10 @@
       </div>
     </section>
 
+    <!-- STATUS -->
     <section class="card" style="margin-top:14px;">
       <h3>Status</h3>
-      <div id="kpiStatus" class="meta">
-        Loading KPI status…
-      </div>
+      <div id="kpiStatus" class="meta">Loading KPI status…</div>
 
       <div class="actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
         <a class="btn primary" href="upload.html">Upload Data</a>
@@ -62,15 +67,23 @@
       </div>
     </section>
 
+    <!-- LATEST APPROVED -->
     <section class="card" style="margin-top:14px;">
       <h2 style="margin:0 0 10px 0;">Latest Approved Submission</h2>
       <div id="latestApproved" class="meta">Loading…</div>
     </section>
 
+    <!-- KPI CARDS -->
     <section class="card" style="margin-top:14px;">
       <h2 style="margin:0 0 10px 0;">KPI Cards</h2>
-      <div id="kpiCards" class="meta">
-        KPI calculations will appear here once the upload pipeline stores parsed rows per month.
+      <div id="kpiCards" class="meta">Loading KPI cards…</div>
+    </section>
+
+    <!-- ✅ TARGETS + RECOMMENDATIONS (THIS WAS MISSING) -->
+    <section class="card" style="margin-top:14px;">
+      <h2 style="margin:0 0 10px 0;">Targets & Recommendations</h2>
+      <div id="targetsBlock" class="meta">
+        Loading targets…
       </div>
     </section>
 
