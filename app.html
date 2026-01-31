@@ -1,1 +1,80 @@
-app
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FrontlineQSR | App</title>
+
+  <link rel="stylesheet" href="assets/styles.css" />
+
+  <script src="assets/auth.js?v=2" defer></script>
+  <script defer>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (!window.FLQSR_AUTH || !FLQSR_AUTH.isLoggedIn()) {
+        window.location.href = "login.htm";
+        return;
+      }
+
+      const role = FLQSR_AUTH.getRole(); // admin | client
+      const who = FLQSR_AUTH.getUsername() || "User";
+
+      document.getElementById("who").textContent = who;
+      document.getElementById("role").textContent = role;
+
+      // Hide admin-only links for clients
+      document.querySelectorAll("[data-role='admin']").forEach(el => {
+        el.style.display = (role === "admin" ? "" : "none");
+      });
+
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        FLQSR_AUTH.logout();
+        window.location.href = "login.htm";
+      });
+    });
+  </script>
+</head>
+
+<body>
+<header class="brandbar">
+  <div class="left">
+    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
+    <div class="title">Client Dashboard</div>
+  </div>
+  <div class="right">
+    <div class="pill">Signed in: <span id="who">...</span> (<span id="role">...</span>)</div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <nav class="nav">
+      <a class="active" href="app.html">Dashboard</a>
+      <a href="kpis.html">KPIs</a>
+      <a href="action-plan.html">Action Plan</a>
+      <a href="upload.html">Upload Data</a>
+      <a href="reports.html">Reports</a>
+      <a href="contracts.html">Contracts</a>
+      <a href="payments.html">Payments</a>
+      <a data-role="admin" href="admin.html">Admin Review</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <section class="card">
+      <h1>Welcome</h1>
+      <p class="muted">
+        Use the left navigation to view KPIs, upload data, and manage action plans.
+      </p>
+
+      <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn primary" href="kpis.html">Go to KPIs</a>
+        <a class="btn" href="upload.html">Upload Data</a>
+        <a class="btn" href="action-plan.html">Action Plan</a>
+        <a class="btn" data-role="admin" href="admin.html">Admin Review</a>
+        <button class="btn" id="logoutBtn" type="button">Logout</button>
+      </div>
+    </section>
+  </main>
+</div>
+</body>
+</html>
