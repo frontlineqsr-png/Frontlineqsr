@@ -55,7 +55,7 @@
       display:flex;align-items:center;gap:12px;font-weight:700;
     }
     .brand img{height:38px}
-    .links{display:flex;gap:14px}
+    .links{display:flex;gap:14px;align-items:center}
     .links a{
       color:var(--muted);
       font-size:14px;
@@ -63,6 +63,11 @@
       border-radius:10px;
     }
     .links a:hover{color:var(--text);background:rgba(255,255,255,.06)}
+    .links a.login{
+      border:1px solid rgba(106,228,255,.45);
+      background:rgba(255,255,255,.05);
+      color:var(--text);
+    }
 
     /* Hero */
     .hero{padding:70px 0}
@@ -181,7 +186,7 @@
 <header>
   <div class="wrap nav">
     <div class="brand">
-      <img src="./assets/frontlineqsr-logo.png" alt="FrontlineQSR logo">
+      <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR logo">
       <span>FrontlineQSR</span>
     </div>
     <nav class="links">
@@ -189,6 +194,7 @@
       <a href="#system">System</a>
       <a href="#services">Services</a>
       <a href="#contact">Contact</a>
+      <a class="login" href="login.htm">Login</a>
     </nav>
   </div>
 </header>
@@ -205,6 +211,7 @@
       <div class="cta-row">
         <a class="btn primary" href="#contact">Start a Conversation</a>
         <a class="btn" href="#system">How the System Works</a>
+        <a class="btn" href="login.htm">Client Portal / Login</a>
       </div>
     </div>
 
