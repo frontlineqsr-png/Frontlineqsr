@@ -2,70 +2,245 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>FrontlineQSR | Reports</title>
 
-  <link rel="stylesheet" href="assets/styles.css" />
+  <!-- allow admin + client -->
+  <meta name="flqsr-roles" content="admin,client">
 
-  <!-- ✅ AUTH (Client-only) -->
-  <script src="assets/auth.js?v=4" defer></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      FLQSR_AUTH.requireClient();
-    });
-  </script>
+  <link rel="stylesheet" href="assets/styles.css?v=1" />
+  <script src="assets/auth.js?v=3" defer></script>
+
+  <script src="assets/masterlist-loader.js?v=2" defer></script>
+  <script src="assets/reports.js?v=1" defer></script>
+
+  <style>
+    /* fallback styles (works even if styles.css changes) */
+    .meta { opacity:.85; font-size:13px; }
+    .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+    @media(max-width:1000px){ .grid-3{grid-template-columns:1fr;} }
+    @media(max-width:900px){ .grid-2{grid-template-columns:1fr;} }
+    .tableWrap { overflow:auto; border-radius:12px; border:1px solid rgba(255,255,255,.12); }
+    table { width:100%; border-collapse:collapse; min-width: 980px; }
+    th, td { padding:10px 10px; border-bottom:1px solid rgba(255,255,255,.10); text-align:left; font-size:13px; }
+    th { position:sticky; top:0; background:rgba(15,22,32,.92); z-index:1; }
+    tr:hover td { background:rgba(255,255,255,.03); }
+    .pill { display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); font-size:12px; }
+    .pill.ok { border-color: rgba(125,255,155,.45); background: rgba(125,255,155,.10); }
+    .pill.warn { border-color: rgba(255,184,107,.45); background: rgba(255,184,107,.10); }
+    .pill.bad { border-color: rgba(255,107,107,.45); background: rgba(255,107,107,.10); }
+    .btnRow { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px; }
+    select, input {
+      width:100%;
+      padding:12px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.04);
+      color:#e9eef5;
+      outline:none;
+    }
+    .kpiBox { border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); border-radius:16px; padding:14px; }
+    .kpiBox strong { font-size:18px; display:block; }
+    .kpiBox span { font-size:12px; opacity:.85; display:block; margin-top:6px; }
+    .twoCol { display:grid; grid-template-columns: 1.2fr .8fr; gap:12px; }
+    @media(max-width:900px){ .twoCol{grid-template-columns:1fr;} }
+    .small { font-size:12px; opacity:.85; white-space:pre-wrap; }
+  </style>
 </head>
 
 <body>
+  <header class="brandbar">
+    <div class="left">
+      <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR" />
+      <div class="title">Reports</div>
+    </div>
+    <div class="right">
+      <button class="btn" type="button" onclick="FLQSR_AUTH.logout()">Logout</button>
+    </div>
+  </header>
 
-<header class="brandbar">
-  <div class="left">
-    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
-    <div class="title">Reports</div>
+  <div class="layout">
+    <aside class="sidebar">
+      <nav class="nav">
+        <a href="index.html">Overview</a>
+        <a href="kpis.html">KPIs</a>
+        <a href="action-plan.html">Action Plan</a>
+        <a class="active" href="reports.html">Reports</a>
+        <a href="upload.html">Upload</a>
+        <a href="admin.html">Admin Review</a>
+      </nav>
+    </aside>
+
+    <main class="main">
+
+      <section class="card">
+        <h1 style="margin:0 0 6px;">Multi-Store Reports</h1>
+        <div class="meta">
+          Baseline (locked per store) vs Latest Approved + Weekly progress. Built to scale from 10 stores → 200+ stores.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 10px;">Select Client + Store</h2>
+
+        <div class="grid-2">
+          <div>
+            <div class="meta">Client</div>
+            <select id="clientSelect">
+              <option value="">Loading…</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="meta">Store</div>
+            <select id="storeSelect" disabled>
+              <option value="">Select a client first</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btnRow">
+          <button class="btn primary" type="button" onclick="Reports.refresh()">Refresh</button>
+          <button class="btn" type="button" onclick="Reports.clearLocalCache()">Clear Local Cache (reports only)</button>
+          <div class="meta" id="roleHint" style="margin-left:auto;"></div>
+        </div>
+
+        <div class="meta" style="margin-top:10px;">
+          Tip: Store baseline is created automatically on the first admin approval for that store.
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 10px;">District Rollup</h2>
+        <div class="meta">Totals/averages across all stores in the selected client.</div>
+
+        <div class="grid-3" style="margin-top:10px;">
+          <div class="kpiBox">
+            <strong id="districtSales">—</strong>
+            <span>District Sales (Latest Approved)</span>
+          </div>
+          <div class="kpiBox">
+            <strong id="districtLaborPct">—</strong>
+            <span>Avg Labor % (Latest Approved)</span>
+          </div>
+          <div class="kpiBox">
+            <strong id="districtAvgTicket">—</strong>
+            <span>Avg Ticket (Latest Approved)</span>
+          </div>
+        </div>
+
+        <div style="margin-top:12px;" class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>District</th>
+                <th># Stores</th>
+                <th>Sales</th>
+                <th>Labor %</th>
+                <th>Avg Ticket</th>
+                <th>Weekly Files</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="districtTableBody">
+              <tr><td colspan="7" class="meta">Select a client to load rollups.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 10px;">Store List</h2>
+        <div class="meta">Click a store row to load its baseline vs latest vs weekly detail.</div>
+
+        <div style="margin-top:12px;" class="tableWrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Store</th>
+                <th>District</th>
+                <th>Baseline?</th>
+                <th>Latest Approved?</th>
+                <th>Sales</th>
+                <th>Labor %</th>
+                <th>Avg Ticket</th>
+                <th>Weekly Files</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="storeTableBody">
+              <tr><td colspan="9" class="meta">Select a client to load stores.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2 style="margin:0 0 10px;">Store Detail</h2>
+        <div class="meta">Baseline vs latest approved snapshot + weekly counts.</div>
+
+        <div id="detailEmpty" class="meta">Select a store to view details.</div>
+
+        <div id="detailPanel" style="display:none;">
+          <div class="twoCol">
+            <div class="card">
+              <div class="meta">Store</div>
+              <div style="font-weight:900; margin-top:6px;" id="dStoreTitle">—</div>
+              <div class="meta" style="margin-top:10px;">Baseline Created</div>
+              <div id="dBaselineAt">—</div>
+              <div class="meta" style="margin-top:10px;">Latest Approved</div>
+              <div id="dApprovedAt">—</div>
+              <div class="meta" style="margin-top:10px;">Weekly Files Stored</div>
+              <div id="dWeeklyCount">—</div>
+            </div>
+
+            <div class="card">
+              <div class="meta">Status</div>
+              <div id="dStatus" class="pill" style="margin-top:8px;">—</div>
+              <div class="meta" style="margin-top:10px;">Notes</div>
+              <div id="dNotes" class="small" style="margin-top:6px;">—</div>
+            </div>
+          </div>
+
+          <div class="grid-3" style="margin-top:12px;">
+            <div class="kpiBox">
+              <strong id="dSales">—</strong>
+              <span>Sales (Latest Approved)</span>
+            </div>
+            <div class="kpiBox">
+              <strong id="dLaborPct">—</strong>
+              <span>Labor % (Latest Approved)</span>
+            </div>
+            <div class="kpiBox">
+              <strong id="dAvgTicket">—</strong>
+              <span>Avg Ticket (Latest Approved)</span>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px;">
+            <h3 style="margin:0 0 10px;">Baseline vs Latest (KPI Delta)</h3>
+            <div class="meta">This is the core “progress” signal DM/Exec will use.</div>
+            <div class="grid-3" style="margin-top:12px;">
+              <div class="kpiBox">
+                <strong id="deltaSales">—</strong>
+                <span>Sales Δ (Latest - Baseline)</span>
+              </div>
+              <div class="kpiBox">
+                <strong id="deltaLaborPct">—</strong>
+                <span>Labor % Δ (Latest - Baseline)</span>
+              </div>
+              <div class="kpiBox">
+                <strong id="deltaAvgTicket">—</strong>
+                <span>Avg Ticket Δ (Latest - Baseline)</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
   </div>
-  <div class="right">
-    <div class="pill" id="rolePill">Role: Client</div>
-    <button class="btn" id="logoutBtn" type="button">Logout</button>
-  </div>
-</header>
-
-<div class="layout">
-  <aside class="sidebar">
-    <nav class="nav">
-      <a href="kpis.html">KPIs</a>
-      <a href="action-plan.html">Action Plan</a>
-      <a class="active" href="reports.html">Reports</a>
-      <a href="upload.html">Upload Data</a>
-    </nav>
-  </aside>
-
-  <main class="main">
-    <section class="card">
-      <h1 style="margin:0 0 6px 0;">Reports</h1>
-      <div class="meta">
-        Monthly and weekly rollups will appear here once KPI snapshots are approved.
-      </div>
-    </section>
-
-    <section class="card" style="margin-top:14px;">
-      <h2 style="margin:0 0 10px 0;">Report Output</h2>
-      <div id="reportsRoot" class="meta">Coming soon…</div>
-    </section>
-  </main>
-</div>
-
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    try {
-      const role = FLQSR_AUTH.getRole();
-      const pill = document.getElementById("rolePill");
-      if (pill) pill.textContent = "Role: " + (role || "client");
-    } catch(e) {}
-
-    const btn = document.getElementById("logoutBtn");
-    if (btn) btn.addEventListener("click", () => FLQSR_AUTH.logout());
-  });
-</script>
-
 </body>
 </html>
