@@ -1,22 +1,17 @@
 /* assets/targets.js
-   Targets & Recommendations
-   Safe render (never blocks if masterlist is missing)
+   Renders Targets + Recommendations into two blocks:
+   - #targetsTable
+   - #targetsRecs
 */
 
 (() => {
   "use strict";
 
   const APPROVED_KEY = "flqsr_latest_approved_submission";
-
   const $ = (id) => document.getElementById(id);
 
-  function safeParse(v) {
-    try { return JSON.parse(v); } catch { return null; }
-  }
-
-  function getApproved() {
-    return safeParse(localStorage.getItem(APPROVED_KEY));
-  }
+  function safeParse(v) { try { return JSON.parse(v); } catch { return null; } }
+  function getApproved() { return safeParse(localStorage.getItem(APPROVED_KEY)); }
 
   function pct(n) {
     if (!Number.isFinite(n)) return "—";
@@ -25,96 +20,119 @@
 
   function money(n) {
     if (!Number.isFinite(n)) return "—";
-    return n.toLocaleString(undefined, {
-      style: "currency",
-      currency: "USD"
-    });
+    return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
   }
 
-  function pill(ok) {
-    const bg = ok ? "rgba(46,204,113,.2)" : "rgba(231,76,60,.2)";
-    const br = ok ? "rgba(46,204,113,.6)" : "rgba(231,76,60,.6)";
-    return `<span class="pill" style="background:${bg};border-color:${br}">${ok ? "On Track" : "Off Track"}</span>`;
+  function statusPill(ok) {
+    const bg = ok ? "rgba(46,204,113,.18)" : "rgba(231,76,60,.18)";
+    const br = ok ? "rgba(46,204,113,.55)" : "rgba(231,76,60,.55)";
+    const dot = ok ? "🟢" : "🔴";
+    const label = ok ? "On Track" : "Off Track";
+    return `<span class="pill" style="background:${bg};border-color:${br};display:inline-block;">${dot} ${label}</span>`;
   }
 
   function render() {
-    const host = $("targetsBlock");
-    if (!host) return;
+    const tableHost = $("targetsTable");
+    const recHost = $("targetsRecs");
+    if (!tableHost || !recHost) return;
 
     const sub = getApproved();
-    if (!sub || !sub.monthlyTotals) {
-      host.innerHTML = `<div class="meta">No approved data available.</div>`;
+    if (!sub || !sub.monthlyTotals?.m0 || !sub.monthlyTotals?.m1) {
+      tableHost.innerHTML = `<div class="meta">No approved data yet.</div>`;
+      recHost.innerHTML = `<div class="meta">Upload data and get Admin approval.</div>`;
       return;
     }
 
     const m0 = sub.monthlyTotals.m0;
     const m1 = sub.monthlyTotals.m1;
-    if (!m0 || !m1) {
-      host.innerHTML = `<div class="meta">Missing comparison months.</div>`;
-      return;
-    }
 
+    // Actuals
     const salesMoM = (m0.sales - m1.sales) / m1.sales;
     const txMoM = (m0.transactions - m1.transactions) / m1.transactions;
     const laborPct = m0.labor / m0.sales;
     const avgTicket = m0.sales / m0.transactions;
 
-    // Default targets (v1)
+    // Targets (v1 defaults — we can pull from masterlist.csv next)
     const TARGETS = {
-      salesMoM: 0.05,
-      txMoM: 0.04,
-      laborPctMax: 0.27,
-      avgTicket: 14.0
+      salesMoM: 0.05,      // +5%
+      txMoM: 0.04,         // +4%
+      laborPctMax: 0.27,   // <= 27%
+      avgTicket: 14.00     // $14.00
     };
 
-    host.innerHTML = `
-      <table style="width:100%;border-collapse:collapse">
-        <thead>
-          <tr>
-            <th style="text-align:left">KPI</th>
-            <th>Actual</th>
-            <th>Target</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Sales MoM</td>
-            <td>${pct(salesMoM)}</td>
-            <td>${pct(TARGETS.salesMoM)}</td>
-            <td>${pill(salesMoM >= TARGETS.salesMoM)}</td>
-          </tr>
-          <tr>
-            <td>Transactions MoM</td>
-            <td>${pct(txMoM)}</td>
-            <td>${pct(TARGETS.txMoM)}</td>
-            <td>${pill(txMoM >= TARGETS.txMoM)}</td>
-          </tr>
-          <tr>
-            <td>Labor %</td>
-            <td>${pct(laborPct)}</td>
-            <td>≤ ${pct(TARGETS.laborPctMax)}</td>
-            <td>${pill(laborPct <= TARGETS.laborPctMax)}</td>
-          </tr>
-          <tr>
-            <td>Avg Ticket</td>
-            <td>${money(avgTicket)}</td>
-            <td>${money(TARGETS.avgTicket)}</td>
-            <td>${pill(avgTicket >= TARGETS.avgTicket)}</td>
-          </tr>
-        </tbody>
-      </table>
+    const rows = [
+      {
+        name: "Sales MoM",
+        actual: pct(salesMoM),
+        target: pct(TARGETS.salesMoM),
+        variance: pct(salesMoM - TARGETS.salesMoM),
+        ok: salesMoM >= TARGETS.salesMoM
+      },
+      {
+        name: "Labor %",
+        actual: pct(laborPct),
+        target: "≤ " + pct(TARGETS.laborPctMax),
+        variance: pct(laborPct - TARGETS.laborPctMax),
+        ok: laborPct <= TARGETS.laborPctMax
+      },
+      {
+        name: "Transactions MoM",
+        actual: pct(txMoM),
+        target: pct(TARGETS.txMoM),
+        variance: pct(txMoM - TARGETS.txMoM),
+        ok: txMoM >= TARGETS.txMoM
+      },
+      {
+        name: "Avg Ticket",
+        actual: money(avgTicket),
+        target: money(TARGETS.avgTicket),
+        variance: money(avgTicket - TARGETS.avgTicket),
+        ok: avgTicket >= TARGETS.avgTicket
+      }
+    ];
 
-      <div style="margin-top:14px">
-        <strong>Recommendations</strong>
-        <ul class="list">
-          ${salesMoM < TARGETS.salesMoM ? "<li>Increase promo visibility and upsell execution.</li>" : ""}
-          ${txMoM < TARGETS.txMoM ? "<li>Focus on speed-of-service and guest count drivers.</li>" : ""}
-          ${laborPct > TARGETS.laborPctMax ? "<li>Audit schedules and overtime usage.</li>" : ""}
-          ${avgTicket < TARGETS.avgTicket ? "<li>Coach suggestive selling and add-ons.</li>" : ""}
-        </ul>
+    tableHost.innerHTML = `
+      <div style="overflow:auto;">
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.12);">KPI</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.12);">Actual</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.12);">Target</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.12);">Variance</th>
+              <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,.12);">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td style="padding:8px;">${r.name}</td>
+                <td style="padding:8px;">${r.actual}</td>
+                <td style="padding:8px;">${r.target}</td>
+                <td style="padding:8px;">${r.variance}</td>
+                <td style="padding:8px;">${statusPill(r.ok)}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
       </div>
     `;
+
+    const recs = [];
+
+    if (salesMoM < TARGETS.salesMoM) recs.push("🔴 Sales growth below target → tighten promo execution + upsell routines.");
+    else recs.push("🟢 Sales growth on track → document what’s working (daypart/channel/item mix).");
+
+    if (txMoM < TARGETS.txMoM) recs.push("🔴 Transactions below target → focus on speed-of-service + guest count drivers.");
+    else recs.push("🟢 Transactions on track → keep throughput consistent and protect peak times.");
+
+    if (laborPct > TARGETS.laborPctMax) recs.push("🔴 Labor above target → audit schedules by daypart + reduce overtime.");
+    else recs.push("🟢 Labor on track → maintain staffing plan while controlling slow periods.");
+
+    if (avgTicket < TARGETS.avgTicket) recs.push("🔴 Avg ticket below target → coach add-ons + ensure suggestive sell is consistent.");
+    else recs.push("🟢 Avg ticket on track → keep upsell coaching and tracking.");
+
+    recHost.innerHTML = `<ul class="list">${recs.map(x => `<li>${x}</li>`).join("")}</ul>`;
   }
 
   document.addEventListener("DOMContentLoaded", render);
