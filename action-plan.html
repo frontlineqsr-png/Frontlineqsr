@@ -7,16 +7,16 @@
 
   <link rel="stylesheet" href="assets/styles.css" />
 
-  <script src="assets/auth.js?v=1" defer></script>
-  <script defer>
+  <!-- ✅ AUTH (Client-only) -->
+  <script src="assets/auth.js?v=4" defer></script>
+  <script>
     document.addEventListener("DOMContentLoaded", () => {
-      // Client + Admin can view Action Plan (change if you want client-only)
-      if (!window.FLQSR_AUTH || !FLQSR_AUTH.requireRole(["client","admin"])) return;
+      FLQSR_AUTH.requireClient();
     });
   </script>
 
-  <!-- actual action plan logic -->
-  <script src="assets/action-plan.js?v=1" defer></script>
+  <!-- Action Plan logic -->
+  <script src="assets/action-plan.js?v=4" defer></script>
 </head>
 
 <body>
@@ -27,63 +27,46 @@
     <div class="title">Action Plan</div>
   </div>
   <div class="right">
-    <div class="pill">FrontlineQSR</div>
+    <div class="pill" id="rolePill">Role: Client</div>
+    <button class="btn" id="logoutBtn" type="button">Logout</button>
   </div>
 </header>
 
 <div class="layout">
   <aside class="sidebar">
     <nav class="nav">
-      <a href="index.html">Overview</a>
       <a href="kpis.html">KPIs</a>
       <a class="active" href="action-plan.html">Action Plan</a>
       <a href="reports.html">Reports</a>
-      <a href="upload.html">Client Uploads</a>
-      <a href="payments.html">Payments</a>
-      <a href="contracts.html">Contracts</a>
-      <a href="admin.html" data-role="admin">Admin Review</a>
+      <a href="upload.html">Upload Data</a>
     </nav>
   </aside>
 
   <main class="main">
     <section class="card">
-      <h1>Action Plan</h1>
-      <p class="muted">
-        Tasks are generated from the latest approved KPI recommendations. You can also add custom tasks.
-      </p>
-
-      <div class="actions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn primary" id="apGenerateBtn" type="button">Generate / Refresh</button>
-        <button class="btn" id="apClearBtn" type="button">Clear Plan</button>
+      <h1 style="margin:0 0 6px 0;">Action Plan</h1>
+      <div class="meta">
+        Auto-generated from approved KPI opportunities. Assign owners, due dates, and track completion.
       </div>
     </section>
 
-    <section class="card">
-      <h3>Add a custom task</h3>
-      <div class="grid-2" style="margin-top:10px;">
-        <div>
-          <div class="meta" style="margin-bottom:6px;">Title</div>
-          <input id="apTaskTitle" type="text"
-            style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
-        </div>
-        <div>
-          <div class="meta" style="margin-bottom:6px;">Notes</div>
-          <input id="apTaskNotes" type="text"
-            style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
-        </div>
-      </div>
-
-      <div class="actions" style="margin-top:12px;">
-        <button class="btn" id="apAddBtn" type="button">Add Task</button>
-      </div>
-    </section>
-
-    <section class="card">
-      <h3>Plan</h3>
-      <div id="apPlan" class="meta">Loading...</div>
-    </section>
+    <!-- ✅ REQUIRED CONTAINER (action-plan.js fills this) -->
+    <div id="apPlan" class="meta" style="margin-top:14px;">Loading action plan…</div>
   </main>
 </div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    try {
+      const role = FLQSR_AUTH.getRole();
+      const pill = document.getElementById("rolePill");
+      if (pill) pill.textContent = "Role: " + (role || "client");
+    } catch(e) {}
+
+    const btn = document.getElementById("logoutBtn");
+    if (btn) btn.addEventListener("click", () => FLQSR_AUTH.logout());
+  });
+</script>
 
 </body>
 </html>
