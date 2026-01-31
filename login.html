@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>FrontlineQSR | Login</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script src="assets/auth.js?v=1" defer></script>
+</head>
+
+<body>
+  <header class="brandbar">
+    <div class="left">
+      <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
+      <div class="title">Login</div>
+    </div>
+    <div class="right">
+      <div class="pill">FrontlineQSR Pilot</div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <main class="main" style="max-width:760px; margin:0 auto;">
+
+      <section class="card">
+        <h1 style="margin:0 0 10px 0;">Sign in</h1>
+        <div class="meta">
+          Choose your role and enter the access code.
+        </div>
+
+        <div style="margin-top:16px; display:grid; gap:12px;">
+          <div>
+            <div class="meta">Role</div>
+            <select id="roleSelect" style="width:100%; margin-top:6px;">
+              <option value="client">Client</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div>
+            <div class="meta">Access Code</div>
+            <input id="codeInput" type="password" placeholder="Enter code" style="width:100%; margin-top:6px;" />
+            <div class="meta" style="margin-top:6px;">
+              Tip: for the pilot you can keep this simple (ex: 1234 / 9999) and change anytime.
+            </div>
+          </div>
+
+          <div class="actions" style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn primary" id="loginBtn" type="button">Login</button>
+            <button class="btn" id="logoutBtn" type="button">Clear Session</button>
+          </div>
+
+          <div id="loginStatus" class="meta"></div>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:14px;">
+        <h3 style="margin:0 0 10px 0;">Where you go after login</h3>
+        <ul class="list">
+          <li><strong>Client</strong> → KPIs, Upload, Reports</li>
+          <li><strong>Admin</strong> → Admin Review + everything</li>
+        </ul>
+      </section>
+
+    </main>
+  </div>
+</body>
+</html>
