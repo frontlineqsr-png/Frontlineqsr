@@ -1,123 +1,143 @@
-/* assets/auth.js
-   FrontlineQSR role gate for static GitHub Pages
-   - Stores session in localStorage
-   - Redirects to /login.html?next=...
-   - Page can declare allowed roles via:
-       <meta name="flqsr-roles" content="admin,client">
-     OR:
-       <script>window.FLQSR_AUTH_ALLOWED=["admin","client"];</script>
+/* assets/auth.js (v2)
+   FrontlineQSR static auth (demo/pilot)
+   - Role-based gate using <meta name="flqsr-roles" content="admin,client">
+   - Session stored in localStorage
+   - Redirect with ?next=...
 */
-
 (() => {
   "use strict";
 
-  const KEY_ROLE = "flqsr_auth_role";
-  const KEY_USER = "flqsr_auth_user";
-  const KEY_UNTIL = "flqsr_auth_until"; // epoch ms
+  const SESSION_KEY = "flqsr_session_v2";
+  const USERS_KEY   = "flqsr_users_v2";
 
-  // 12 hours default session
-  const DEFAULT_TTL_MS = 12 * 60 * 60 * 1000;
+  // ✅ Set YOUR admin login here (change anytime)
+  // Username is your flqsr email, password you choose.
+  const DEFAULT_USERS = [
+    { username: "nrobinson@flqsr.com", password: "ChangeMe123!", role: "admin" },
+    { username: "client",             password: "client123",      role: "client" },
+  ];
 
-  function getMetaRoles() {
-    const m = document.querySelector('meta[name="flqsr-roles"]');
-    if (!m || !m.content) return null;
-    return m.content
-      .split(",")
-      .map(s => s.trim().toLowerCase())
-      .filter(Boolean);
+  // Pages by role
+  const DEFAULT_ADMIN_LANDING  = "admin.html";
+  const DEFAULT_CLIENT_LANDING = "kpis.html";
+
+  function safeParse(v, fallback) {
+    try { return JSON.parse(v); } catch { return fallback; }
   }
 
-  function getAllowedRoles() {
-    // 1) meta tag wins
-    const metaRoles = getMetaRoles();
-    if (metaRoles && metaRoles.length) return metaRoles;
+  function getUsers() {
+    const stored = safeParse(localStorage.getItem(USERS_KEY), null);
+    if (stored && Array.isArray(stored) && stored.length) return stored;
 
-    // 2) window override
-    const w = window.FLQSR_AUTH_ALLOWED;
-    if (Array.isArray(w) && w.length) {
-      return w.map(x => String(x).trim().toLowerCase()).filter(Boolean);
-    }
-
-    // 3) default: allow both
-    return ["admin", "client"];
+    // First run → seed users
+    localStorage.setItem(USERS_KEY, JSON.stringify(DEFAULT_USERS));
+    return DEFAULT_USERS;
   }
 
-  function now() { return Date.now(); }
+  function setUsers(users) {
+    localStorage.setItem(USERS_KEY, JSON.stringify(users));
+  }
 
   function getSession() {
-    const role = (localStorage.getItem(KEY_ROLE) || "").toLowerCase();
-    const user = localStorage.getItem(KEY_USER) || "";
-    const until = Number(localStorage.getItem(KEY_UNTIL) || "0");
-
-    if (!role || !user) return null;
-    if (!Number.isFinite(until) || until <= now()) return null;
-
-    return { role, user, until };
+    return safeParse(localStorage.getItem(SESSION_KEY), null);
   }
 
-  function clearSession() {
-    localStorage.removeItem(KEY_ROLE);
-    localStorage.removeItem(KEY_USER);
-    localStorage.removeItem(KEY_UNTIL);
+  function setSession(session) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   }
 
-  function buildLoginUrl(reason) {
-    const next = encodeURIComponent(location.pathname + location.search + location.hash);
-    const r = reason ? `&reason=${encodeURIComponent(reason)}` : "";
-    return `/login.html?next=${next}${r}`;
+  function logout() {
+    localStorage.removeItem(SESSION_KEY);
   }
 
-  function hardRedirect(url) {
-    // replace() prevents “back button returns to blocked page”
-    location.replace(url);
+  function normalizeUsername(u) {
+    return String(u || "").trim().toLowerCase();
   }
 
-  function gate() {
-    const allowed = getAllowedRoles();
-    const session = getSession();
+  function login(username, password) {
+    const u = normalizeUsername(username);
+    const users = getUsers();
+    const match = users.find(x => normalizeUsername(x.username) === u && String(x.password) === String(password));
 
-    // Expose for debugging/use in other scripts
-    window.FLQSR_AUTH = {
-      allowedRoles: allowed,
-      session,
-      logout: () => {
-        clearSession();
-        hardRedirect("/login.html");
+    if (!match) return { ok:false };
+
+    setSession({
+      username: match.username,
+      role: match.role,
+      loggedInAt: new Date().toISOString()
+    });
+
+    return { ok:true, role: match.role };
+  }
+
+  function requiredRolesFromMeta() {
+    const tag = document.querySelector('meta[name="flqsr-roles"]');
+    if (!tag) return null; // no gate
+    const content = (tag.getAttribute("content") || "").trim();
+    if (!content) return null;
+    return content.split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+  }
+
+  function pageName() {
+    // "admin.html"
+    const p = window.location.pathname.split("/").pop();
+    return p || "index.html";
+  }
+
+  function buildLoginUrl(next, reason) {
+    const n = encodeURIComponent(next || "index.html");
+    const r = encodeURIComponent(reason || "not_logged_in");
+    return `login.html?next=${n}&reason=${r}`;
+  }
+
+  function getPostLoginRedirect(nextParam) {
+    const s = getSession();
+    const next = (nextParam ? decodeURIComponent(nextParam) : "").trim();
+
+    // If next exists, honor it (but don’t send client to admin pages)
+    if (next) {
+      if (s && s.role === "client" && /admin\.html/i.test(next)) {
+        return DEFAULT_CLIENT_LANDING;
       }
-    };
-
-    if (!session) {
-      clearSession();
-      return hardRedirect(buildLoginUrl("not_logged_in"));
+      return next;
     }
 
-    // Role not allowed for this page
-    if (!allowed.includes(session.role)) {
-      return hardRedirect(buildLoginUrl("role_not_allowed"));
+    // Otherwise route by role
+    if (s && s.role === "admin") return DEFAULT_ADMIN_LANDING;
+    return DEFAULT_CLIENT_LANDING;
+  }
+
+  function gatePage() {
+    const required = requiredRolesFromMeta();
+    if (!required) return; // not gated
+
+    const s = getSession();
+    const here = pageName();
+
+    // No session → login
+    if (!s || !s.role) {
+      window.location.replace(buildLoginUrl(here, "not_logged_in"));
+      return;
     }
 
-    // Session ok
-    return true;
+    // Wrong role → login (or could route)
+    if (!required.includes(String(s.role).toLowerCase())) {
+      window.location.replace(buildLoginUrl(here, "wrong_role"));
+      return;
+    }
   }
 
-  // Run ASAP once DOM is available
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", gate);
-  } else {
-    gate();
-  }
-
-  // Helper for login page to set session
-  window.FLQSR_setSession = function ({ role, user, ttlMs } = {}) {
-    const r = String(role || "").toLowerCase();
-    const u = String(user || "").trim();
-    const ttl = Number.isFinite(ttlMs) ? ttlMs : DEFAULT_TTL_MS;
-
-    if (!r || !u) return false;
-
-    localStorage.setItem(KEY_ROLE, r);
-    localStorage.setItem(KEY_USER, u);
-    localStorage.setItem(KEY_UNTIL, String(now() + ttl));
-    return true;
+  // Public API so pages can use it
+  window.FLQSR_AUTH = {
+    login,
+    logout,
+    getSession,
+    getUsers,
+    setUsers, // admin can update later via admin UI
+    getPostLoginRedirect,
+    gatePage,
   };
+
+  // Run gate on every page load
+  document.addEventListener("DOMContentLoaded", gatePage);
 })();
