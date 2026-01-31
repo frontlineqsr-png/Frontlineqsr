@@ -1,6 +1,6 @@
-/* assets/app.js (v6)
+/* assets/app.js (v8)
    Upload -> Validate -> Submit to Queue (localStorage)
-   Writes to flqsr_submission_queue_v1 so admin.js can read it
+   Adds: daypartSummary (Breakfast/Lunch/Dinner/Late Night) computed from rows
 */
 
 (() => {
@@ -47,9 +47,22 @@
       .replaceAll('"',"&quot;");
   }
 
-  function parseHeader(csvText) {
-    const firstLine = (csvText || "").split(/\r?\n/)[0] || "";
-    return firstLine.split(",").map(s => s.trim());
+  function parseCsv(csvText) {
+    const lines = String(csvText || "").split(/\r?\n/).filter(Boolean);
+    if (!lines.length) return { header: [], rows: [] };
+
+    const header = lines[0].split(",").map(s => s.trim());
+    const rows = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const parts = lines[i].split(",");
+      const row = {};
+      for (let c = 0; c < header.length; c++) {
+        row[header[c]] = (parts[c] ?? "").trim();
+      }
+      rows.push(row);
+    }
+    return { header, rows };
   }
 
   function readFileText(file) {
@@ -83,6 +96,7 @@
   async function validateAndSubmit() {
     const issues = [];
     const picks = [];
+    const allRows = [];
 
     for (let i = 0; i < 5; i++) {
       const month = $("m_" + i)?.value || "";
@@ -94,20 +108,23 @@
       if (month && file) picks.push({ month, file });
     }
 
-    if (picks.length < 3) issues.push("Upload at least 3 months to submit (recommended 3 current + 2 previous).");
+    if (picks.length < 3) issues.push("Upload at least 3 months to submit.");
 
     // unique months
     const months = picks.map(p => p.month);
     const dup = months.filter((m, idx) => months.indexOf(m) !== idx);
     if (dup.length) issues.push("Duplicate months detected. Each month must be unique.");
 
-    // validate headers
+    // validate headers and collect rows
     for (const p of picks) {
       const text = await readFileText(p.file);
-      const header = parseHeader(text);
-      const missing = REQUIRED_COLS.filter(c => !header.includes(c));
+      const parsed = parseCsv(text);
+
+      const missing = REQUIRED_COLS.filter(c => !parsed.header.includes(c));
       if (missing.length) {
         issues.push(`${p.file.name}: missing required columns: ${missing.join(", ")}`);
+      } else {
+        allRows.push(...parsed.rows);
       }
     }
 
@@ -118,7 +135,16 @@
       return;
     }
 
-    // Build submission object
+    // ✅ Daypart analysis (optional)
+    let daypartSummary = null;
+    try {
+      if (window.FLQSR_SHIFT && FLQSR_SHIFT.buildDaypartSummary) {
+        daypartSummary = FLQSR_SHIFT.buildDaypartSummary(allRows);
+      }
+    } catch (e) {
+      console.warn("Daypart summary failed:", e);
+    }
+
     const sub = {
       id: "sub_" + Math.random().toString(16).slice(2),
       clientId: "example-location",
@@ -127,7 +153,9 @@
       status: "pending",
       months: picks.map(p => p.month),
       files: picks.map(p => ({ name: p.file.name, size: p.file.size })),
-      adminNotes: ""
+      adminNotes: "",
+      // ✅ attach daypart summary so KPIs dashboard can show it after approval
+      daypartSummary
     };
 
     const q = loadQueue();
@@ -155,7 +183,7 @@
       setStatus("Validating…");
       validateAndSubmit().catch(err => {
         console.error(err);
-        setStatus("Validation error. Check console / try again.");
+        setStatus("Validation error. Try again.");
       });
     });
 
