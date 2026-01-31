@@ -1,279 +1,366 @@
-/* assets/app.js (v9)
-   Upload -> Validate -> Compute Metrics -> Submit to Queue (localStorage)
-
-   Computes KPI metrics from CSV rows:
-   - Sales, Labor, Transactions
-   - Labor %, Avg Ticket, Sales per Labor $, Tx per Labor $
-   - By-month metrics + overall
-   - Daypart summary (Breakfast/Lunch/Dinner/Late Night) if time/shift exists
-
-   Storage:
-   - Queue: flqsr_submission_queue_v1
+/* assets/app.js
+   FrontlineQSR core client app glue:
+   - Loads master client list (from masterlist-loader.js -> window.FLQSR_MASTERLIST.clients)
+   - Populates client dropdowns if present
+   - Upload page: validates 3 monthly CSVs + optional 3 weekly CSVs, submits to Admin queue (localStorage)
+   - Provides shared helpers (csv parse, status, safe DOM access)
 */
 
 (() => {
   "use strict";
 
-  const QUEUE_KEY = "flqsr_submission_queue_v1";
-  const REQUIRED_COLS = ["Date", "Location", "Sales", "Labor", "Transactions"];
+  // -----------------------------
+  // Storage keys (match your system)
+  // -----------------------------
+  const QUEUE_KEY = "flqsr_submission_queue";
+  const APPROVED_KEY = "flqsr_latest_approved_submission";
+  const BASELINE_LOCK_KEY = "flqsr_baseline_locked"; // once true, baseline shouldn't be replaced
 
+  // -----------------------------
+  // DOM helpers
+  // -----------------------------
   const $ = (id) => document.getElementById(id);
+  const q = (sel) => document.querySelector(sel);
 
-  function safeParse(v, fallback) {
-    try { return JSON.parse(v); } catch { return fallback; }
+  function setText(id, text, color) {
+    const el = $(id);
+    if (!el) return;
+    el.textContent = text;
+    if (color) el.style.color = color;
   }
 
-  function loadQueue() {
-    return safeParse(localStorage.getItem(QUEUE_KEY), []);
+  function safeJsonParse(v, fallback) {
+    try {
+      return JSON.parse(v);
+    } catch {
+      return fallback;
+    }
   }
 
-  function saveQueue(q) {
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+  function getAuthRole() {
+    // auth.js typically sets something like localStorage.auth_role = "admin" | "client"
+    return (localStorage.getItem("auth_role") || "").toLowerCase();
   }
 
-  function setStatus(text) {
-    const el = $("statusText");
-    if (el) el.textContent = text || "";
+  function getAuthClientId() {
+    // auth.js / login flow can set auth_client or auth_client_id
+    return localStorage.getItem("auth_client") ||
+           localStorage.getItem("auth_client_id") ||
+           "Client";
   }
 
-  function escapeHtml(s) {
-    return String(s || "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;");
-  }
+  // -----------------------------
+  // CSV helpers (simple, stable)
+  // -----------------------------
+  function parseCsv(text) {
+    // basic CSV splitter that supports quotes
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length);
+    if (!lines.length) return [];
 
-  function showIssues(issues) {
-    const host = $("issuesList");
-    if (!host) return;
-    if (!issues.length) { host.innerHTML = ""; return; }
-    host.innerHTML = `
-      <ul class="list">
-        ${issues.map(i => `<li>${escapeHtml(i)}</li>`).join("")}
-      </ul>
-    `;
-  }
+    const splitLine = (line) => {
+      const out = [];
+      let cur = "";
+      let inQuotes = false;
 
-  function toNum(x) {
-    const n = Number(String(x ?? "").replace(/[$,%\s]/g, ""));
-    return Number.isFinite(n) ? n : 0;
-  }
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') inQuotes = !inQuotes;
+        else if (ch === "," && !inQuotes) {
+          out.push(cur);
+          cur = "";
+        } else cur += ch;
+      }
+      out.push(cur);
 
-  function parseCsv(csvText) {
-    const lines = String(csvText || "").split(/\r?\n/).filter(Boolean);
-    if (!lines.length) return { header: [], rows: [] };
+      return out.map(s => s.trim().replace(/^"|"$/g, ""));
+    };
 
-    const header = lines[0].split(",").map(s => s.trim());
+    const header = splitLine(lines[0]);
     const rows = [];
 
     for (let i = 1; i < lines.length; i++) {
-      const parts = lines[i].split(",");
+      const cols = splitLine(lines[i]);
       const row = {};
-      for (let c = 0; c < header.length; c++) {
-        row[header[c]] = (parts[c] ?? "").trim();
-      }
+      header.forEach((h, idx) => row[h] = cols[idx] ?? "");
       rows.push(row);
     }
-    return { header, rows };
+
+    return rows;
   }
 
-  function readFileText(file) {
-    return new Promise((resolve, reject) => {
-      const fr = new FileReader();
-      fr.onload = () => resolve(String(fr.result || ""));
-      fr.onerror = reject;
-      fr.readAsText(file);
+  async function readFileText(file) {
+    return await file.text();
+  }
+
+  // -----------------------------
+  // Masterlist / clients
+  // -----------------------------
+  function getMasterClients() {
+    const ml = window.FLQSR_MASTERLIST;
+    if (!ml || !ml.clients) return {};
+    return ml.clients;
+  }
+
+  function buildClientOptions(clientsObj) {
+    // clientsObj is keyed; each value may have client_name, locations, etc.
+    const entries = Object.entries(clientsObj);
+
+    // Sort by display name if possible
+    entries.sort((a, b) => {
+      const an = (a[1]?.client_name || a[0]).toLowerCase();
+      const bn = (b[1]?.client_name || b[0]).toLowerCase();
+      return an.localeCompare(bn);
     });
+
+    const opts = entries.map(([id, c]) => {
+      const label = c?.client_name ? `${c.client_name}` : id;
+      return { id, label };
+    });
+
+    return opts;
   }
 
-  function monthFromDate(d) {
-    const s = String(d || "").trim();
-    if (!s) return "";
-    // Accept: YYYY-MM, YYYY-MM-DD, MM/DD/YYYY, etc.
-    // Try ISO
-    const iso = s.match(/^(\d{4})-(\d{2})/);
-    if (iso) return `${iso[1]}-${iso[2]}`;
+  function populateClientDropdown() {
+    // Support either id="clientSelect" or id="uploadClient" (common patterns)
+    const sel = $("clientSelect") || $("uploadClient");
+    if (!sel) return;
 
-    // Try US mm/dd/yyyy
-    const us = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-    if (us) {
-      const mm = String(us[1]).padStart(2, "0");
-      return `${us[3]}-${mm}`;
-    }
+    const clients = getMasterClients();
+    const opts = buildClientOptions(clients);
 
-    // fallback: none
-    return "";
-  }
-
-  function computeMetrics(rows) {
-    let sales = 0;
-    let labor = 0;
-    let tx = 0;
-
-    for (const r of rows) {
-      sales += toNum(r.Sales);
-      labor += toNum(r.Labor);
-      tx += toNum(r.Transactions);
-    }
-
-    const laborPct = sales > 0 ? (labor / sales) * 100 : 0;
-    const avgTicket = tx > 0 ? (sales / tx) : 0;
-    const salesPerLabor = labor > 0 ? (sales / labor) : 0;
-    const txPerLabor = labor > 0 ? (tx / labor) : 0;
-
-    return {
-      Sales: round2(sales),
-      Labor: round2(labor),
-      Transactions: round2(tx),
-      "Labor %": round2(laborPct),
-      "Average Ticket": round2(avgTicket),
-      "Sales per Labor $": round2(salesPerLabor),
-      "Transactions per Labor $": round2(txPerLabor)
-    };
-  }
-
-  function round2(n) {
-    return Math.round((Number(n) || 0) * 100) / 100;
-  }
-
-  function makeSlot(i) {
-    return `
-      <div class="card">
-        <div style="font-weight:800;">Month ${i + 1}</div>
-        <div class="meta" style="margin-top:6px;">Pick month + CSV</div>
-
-        <div style="margin-top:10px;">
-          <div class="meta">Month</div>
-          <input type="month" id="m_${i}" />
-        </div>
-
-        <div style="margin-top:10px;">
-          <div class="meta">CSV File</div>
-          <input type="file" id="f_${i}" accept=".csv,text/csv" />
-        </div>
-      </div>
-    `;
-  }
-
-  async function validateAndSubmit() {
-    const issues = [];
-    const picks = [];
-
-    for (let i = 0; i < 5; i++) {
-      const month = $("m_" + i)?.value || "";
-      const file = $("f_" + i)?.files?.[0] || null;
-
-      if (!month && !file) continue;
-      if (!month) issues.push(`Slot ${i + 1}: month is missing.`);
-      if (!file) issues.push(`Slot ${i + 1}: CSV file is missing.`);
-      if (month && file) picks.push({ month, file });
-    }
-
-    if (picks.length < 3) issues.push("Upload at least 3 months to submit.");
-
-    const months = picks.map(p => p.month);
-    const dup = months.filter((m, idx) => months.indexOf(m) !== idx);
-    if (dup.length) issues.push("Duplicate months detected. Each month must be unique.");
-
-    // Read + validate each file; collect rows
-    const allRows = [];
-    const rowsByMonth = {}; // month -> rows
-
-    for (const p of picks) {
-      const text = await readFileText(p.file);
-      const parsed = parseCsv(text);
-
-      const missing = REQUIRED_COLS.filter(c => !parsed.header.includes(c));
-      if (missing.length) {
-        issues.push(`${p.file.name}: missing required columns: ${missing.join(", ")}`);
-        continue;
-      }
-
-      // Optional sanity: warn if CSV date month doesn't match selected month (we won't block)
-      const firstMonth = monthFromDate(parsed.rows[0]?.Date);
-      if (firstMonth && firstMonth !== p.month) {
-        issues.push(`Note: ${p.file.name} dates look like ${firstMonth} but you selected ${p.month}. (Not blocked)`);
-      }
-
-      // Store rows
-      rowsByMonth[p.month] = parsed.rows;
-      allRows.push(...parsed.rows);
-    }
-
-    // Only block on actual missing required columns / structure errors
-    const blockingIssues = issues.filter(x => !x.startsWith("Note:"));
-    showIssues(issues);
-
-    if (blockingIssues.length) {
-      setStatus("Fix issues above and try again.");
+    // If masterlist didn't load yet
+    if (!opts.length) {
+      sel.innerHTML = `<option value="">Loading clients…</option>`;
       return;
     }
 
-    // ✅ Compute KPI metrics
-    const byMonth = {};
-    for (const m of Object.keys(rowsByMonth)) {
-      byMonth[m] = computeMetrics(rowsByMonth[m]);
-    }
-    const overall = computeMetrics(allRows);
-
-    // ✅ Daypart analysis (optional)
-    let daypartSummary = null;
-    try {
-      if (window.FLQSR_SHIFT && FLQSR_SHIFT.buildDaypartSummary) {
-        daypartSummary = FLQSR_SHIFT.buildDaypartSummary(allRows);
-      }
-    } catch (e) {
-      console.warn("Daypart summary failed:", e);
+    sel.innerHTML = `<option value="">Select Client</option>`;
+    for (const o of opts) {
+      const opt = document.createElement("option");
+      opt.value = o.id;
+      opt.textContent = o.label;
+      sel.appendChild(opt);
     }
 
-    // ✅ Build submission
-    const sub = {
+    // Default to auth client if available
+    const authClient = getAuthClientId();
+    if (authClient && clients[authClient]) {
+      sel.value = authClient;
+    }
+
+    // Save selection
+    sel.addEventListener("change", () => {
+      if (sel.value) localStorage.setItem("auth_client", sel.value);
+    });
+  }
+
+  // Wait for masterlist-loader.js to finish
+  async function waitForMasterlist(timeoutMs = 2500) {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const clients = getMasterClients();
+      if (clients && Object.keys(clients).length) return true;
+      await new Promise(r => setTimeout(r, 80));
+    }
+    return false;
+  }
+
+  // -----------------------------
+  // Upload page: validate + submit
+  // -----------------------------
+  function getUploadElements() {
+    // Monthly
+    const month1 = $("month1"), month2 = $("month2"), month3 = $("month3");
+    const monthFile1 = $("monthFile1"), monthFile2 = $("monthFile2"), monthFile3 = $("monthFile3");
+
+    // Weekly (optional)
+    const weekFile1 = $("weekFile1"), weekFile2 = $("weekFile2"), weekFile3 = $("weekFile3");
+
+    // Status
+    const uploadStatus = $("uploadStatus");
+
+    // Page present?
+    const isUploadPage = !!(month1 && month2 && month3 && monthFile1 && monthFile2 && monthFile3 && uploadStatus);
+
+    return {
+      isUploadPage,
+      month1, month2, month3,
+      monthFile1, monthFile2, monthFile3,
+      weekFile1, weekFile2, weekFile3,
+      uploadStatus
+    };
+  }
+
+  function getQueue() {
+    return safeJsonParse(localStorage.getItem(QUEUE_KEY) || "[]", []);
+  }
+
+  function saveQueue(queue) {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+  }
+
+  function requireCsvFile(f) {
+    if (!f) return false;
+    return (f.name || "").toLowerCase().endsWith(".csv");
+  }
+
+  async function validateMonthlyCsvShape(file) {
+    // Optional: validate required columns exist
+    // Required columns: Date, Location, Sales, Labor, Transactions
+    const text = await readFileText(file);
+    const rows = parseCsv(text);
+    if (!rows.length) return { ok: false, msg: "CSV looks empty." };
+
+    const cols = Object.keys(rows[0] || {}).map(c => c.trim().toLowerCase());
+    const required = ["date", "location", "sales", "labor", "transactions"];
+    const missing = required.filter(r => !cols.includes(r));
+
+    if (missing.length) {
+      return { ok: false, msg: `Missing columns: ${missing.join(", ")}` };
+    }
+
+    return { ok: true };
+  }
+
+  async function buildSubmissionPayload() {
+    const els = getUploadElements();
+    const sel = $("clientSelect") || $("uploadClient");
+
+    const clientId = (sel && sel.value) ? sel.value : getAuthClientId();
+    const role = getAuthRole();
+
+    const months = [
+      { month: els.month1.value, file: els.monthFile1.files[0] },
+      { month: els.month2.value, file: els.monthFile2.files[0] },
+      { month: els.month3.value, file: els.monthFile3.files[0] }
+    ];
+
+    const weeks = [
+      els.weekFile1?.files?.[0] || null,
+      els.weekFile2?.files?.[0] || null,
+      els.weekFile3?.files?.[0] || null
+    ].filter(Boolean);
+
+    // Read monthly + weekly text so Admin can approve without needing file objects
+    const monthlyText = [];
+    for (const m of months) {
+      const text = await readFileText(m.file);
+      monthlyText.push({
+        month: m.month,
+        fileName: m.file.name,
+        text
+      });
+    }
+
+    const weeklyText = [];
+    for (const f of weeks) {
+      const text = await readFileText(f);
+      weeklyText.push({
+        fileName: f.name,
+        text
+      });
+    }
+
+    return {
       id: "sub_" + Math.random().toString(16).slice(2),
-      clientId: "example-location",
-      clientName: "Example Location",
+      clientId,
+      clientName: clientId, // Admin page often uses clientName || clientId
       createdAt: new Date().toISOString(),
       status: "pending",
-      months: picks.map(p => p.month),
-      files: picks.map(p => ({ name: p.file.name, size: p.file.size })),
-      adminNotes: "",
-
-      // ✅ Computed metrics for dashboard + reports
-      metrics: overall,
-      metricsByMonth: byMonth,
-
-      // ✅ Daypart data for KPI dashboard
-      daypartSummary
+      submittedByRole: role || "client",
+      monthly: monthlyText,
+      weekly: weeklyText
     };
-
-    const q = loadQueue();
-    q.unshift(sub);
-    saveQueue(q);
-
-    setStatus("Submitted ✅ Now wait for Admin approval in Admin Review.");
   }
 
-  function resetForm() {
-    for (let i = 0; i < 5; i++) {
-      const m = $("m_" + i); if (m) m.value = "";
-      const f = $("f_" + i); if (f) f.value = "";
+  async function validateAndSubmitImpl() {
+    const els = getUploadElements();
+    if (!els.isUploadPage) return;
+
+    // Require all 3 months + CSV files
+    const months = [
+      { label: "Month 1", month: els.month1.value, file: els.monthFile1.files[0] },
+      { label: "Month 2", month: els.month2.value, file: els.monthFile2.files[0] },
+      { label: "Month 3", month: els.month3.value, file: els.monthFile3.files[0] }
+    ];
+
+    for (const m of months) {
+      if (!m.month || !m.file) {
+        setText("uploadStatus", "❌ All 3 monthly CSVs are required (month + file).", "#ff6b6b");
+        return;
+      }
+      if (!requireCsvFile(m.file)) {
+        setText("uploadStatus", `❌ ${m.label} must be a .csv file.`, "#ff6b6b");
+        return;
+      }
     }
-    setStatus("Reset complete.");
-    showIssues([]);
+
+    // Validate column shape (monthly only; weekly can vary later)
+    for (const m of months) {
+      const shape = await validateMonthlyCsvShape(m.file);
+      if (!shape.ok) {
+        setText("uploadStatus", `❌ ${m.label} (${m.file.name}): ${shape.msg}`, "#ff6b6b");
+        return;
+      }
+    }
+
+    // Build + enqueue
+    setText("uploadStatus", "Validating…", "#b7c3d4");
+    const payload = await buildSubmissionPayload();
+
+    const queue = getQueue();
+    queue.push(payload);
+    saveQueue(queue);
+
+    setText("uploadStatus", "✅ Submitted for Admin Review.", "#7dff9b");
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    const host = $("uploadSlots");
-    if (host) host.innerHTML = Array.from({ length: 5 }).map((_, i) => makeSlot(i)).join("");
+  function resetUploadImpl() {
+    const els = getUploadElements();
+    if (!els.isUploadPage) return;
 
-    $("validateBtn")?.addEventListener("click", () => {
-      setStatus("Validating…");
-      validateAndSubmit().catch(err => {
-        console.error(err);
-        setStatus("Validation error. Try again.");
-      });
-    });
+    els.month1.value = "";
+    els.month2.value = "";
+    els.month3.value = "";
+    els.monthFile1.value = "";
+    els.monthFile2.value = "";
+    els.monthFile3.value = "";
 
-    $("resetBtn")?.addEventListener("click", resetForm);
+    if (els.weekFile1) els.weekFile1.value = "";
+    if (els.weekFile2) els.weekFile2.value = "";
+    if (els.weekFile3) els.weekFile3.value = "";
+
+    setText("uploadStatus", "Add files, then click Validate & Submit.", "#b7c3d4");
+  }
+
+  // Expose for your inline HTML onclick handlers
+  window.validateAndSubmit = () => validateAndSubmitImpl().catch(err => {
+    console.error(err);
+    setText("uploadStatus", "❌ Error submitting. Check console.", "#ff6b6b");
   });
+
+  window.resetUpload = () => resetUploadImpl();
+
+  // -----------------------------
+  // Optional: baseline lock helper
+  // -----------------------------
+  window.FLQSR = window.FLQSR || {};
+  window.FLQSR.keys = { QUEUE_KEY, APPROVED_KEY, BASELINE_LOCK_KEY };
+  window.FLQSR.getApproved = () => safeJsonParse(localStorage.getItem(APPROVED_KEY) || "null", null);
+
+  // -----------------------------
+  // Boot
+  // -----------------------------
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Populate clients if dropdown exists
+    await waitForMasterlist(2500);
+    populateClientDropdown();
+
+    // Upload page: set friendly initial status
+    const els = getUploadElements();
+    if (els.isUploadPage) {
+      setText("uploadStatus", "Add files, then click Validate & Submit.", "#b7c3d4");
+    }
+  });
+
 })();
