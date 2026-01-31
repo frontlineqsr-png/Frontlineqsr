@@ -4,137 +4,68 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Login</title>
-
-  <link rel="stylesheet" href="assets/styles.css" />
+  <link rel="stylesheet" href="styles.css" />
   <script src="assets/auth.js?v=1" defer></script>
 
-  <script defer>
-    document.addEventListener("DOMContentLoaded", () => {
-      // If already logged in, go home
-      if (window.FLQSR_AUTH && FLQSR_AUTH.isLoggedIn()) {
-        window.location.href = "index.html";
-        return;
-      }
-
-      const msg = document.getElementById("loginMsg");
-      const form = document.getElementById("loginForm");
-
-      // Setup panel
-      const setupWrap = document.getElementById("setupWrap");
-      const setupBtn = document.getElementById("toggleSetupBtn");
-      const saveSetupBtn = document.getElementById("saveSetupBtn");
-
-      // show setup panel only if not configured yet
-      if (!FLQSR_AUTH.isConfigured()) {
-        setupWrap.style.display = "block";
-        msg.textContent = "First-time setup: create your Admin + Client logins below.";
-        msg.style.color = "#d2f7da";
-      }
-
-      setupBtn.addEventListener("click", () => {
-        setupWrap.style.display = (setupWrap.style.display === "none" ? "block" : "none");
-      });
-
-      saveSetupBtn.addEventListener("click", () => {
-        const aUser = document.getElementById("aUser").value.trim();
-        const aPass = document.getElementById("aPass").value.trim();
-        const cUser = document.getElementById("cUser").value.trim();
-        const cPass = document.getElementById("cPass").value.trim();
-
-        if (!aUser || !aPass || !cUser || !cPass) {
-          alert("Fill in all 4 fields to save credentials.");
-          return;
-        }
-
-        FLQSR_AUTH.setCredentials({
-          admin: { username: aUser, password: aPass },
-          client: { username: cUser, password: cPass }
-        });
-
-        alert("Saved. Now log in using the credentials you set.");
-      });
-
-      form.addEventListener("submit", (e) => {
-        e.preventDefault();
-
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value.trim();
-
-        const res = FLQSR_AUTH.login(username, password);
-
-        if (!res.ok) {
-          msg.textContent = res.message || "Login failed.";
-          msg.style.color = "#ffb3b3";
-          return;
-        }
-
-        window.location.href = "index.html";
-      });
-    });
-  </script>
+  <style>
+    /* small safety styling if needed */
+    .login-wrap{max-width:520px;margin:40px auto;padding:0 16px}
+    .login-card{padding:18px;border-radius:16px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04)}
+    .row{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+    input{padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#e9eef5}
+    button{padding:12px 16px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e9eef5;font-weight:600;cursor:pointer}
+    .err{color:#ffb3b3;margin-top:10px;display:none}
+    .meta{opacity:.8;font-size:13px;margin-top:10px}
+  </style>
 </head>
 
 <body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1 style="margin:0 0 6px;">Sign in</h1>
+      <div class="meta">Admin and Client logins are separate.</div>
 
-<header class="brandbar">
-  <div class="left">
-    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
-    <div class="title">Login</div>
-  </div>
-  <div class="right">
-    <div class="pill">FrontlineQSR</div>
-  </div>
-</header>
-
-<div class="layout">
-  <main class="main" style="max-width:740px; margin:0 auto;">
-    <section class="card">
-      <h1>Sign in</h1>
-      <p class="muted">Admin and Client logins are separate.</p>
-
-      <form id="loginForm" class="list" style="margin-top:12px;">
-        <label class="muted" for="username" style="display:block; margin-top:10px;">Username</label>
-        <input id="username" type="text" autocomplete="username" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
-
-        <label class="muted" for="password" style="display:block; margin-top:10px;">Password</label>
-        <input id="password" type="password" autocomplete="current-password" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
-
-        <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn primary" type="submit">Login</button>
-          <button class="btn" type="button" id="toggleSetupBtn">Setup / Change Credentials</button>
-        </div>
-
-        <div id="loginMsg" class="meta" style="margin-top:10px;"></div>
-      </form>
-    </section>
-
-    <!-- Setup panel (hidden unless first run, or you toggle it) -->
-    <section class="card" id="setupWrap" style="display:none;">
-      <h3>Credential Setup</h3>
-      <p class="muted">These are stored in your browser (pilot mode). You can change them anytime.</p>
-
-      <div class="grid-2" style="margin-top:10px;">
-        <div>
-          <div class="meta" style="margin-bottom:6px;">Admin Username</div>
-          <input id="aUser" type="text" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
-          <div class="meta" style="margin:12px 0 6px;">Admin Password</div>
-          <input id="aPass" type="password" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
-        </div>
-
-        <div>
-          <div class="meta" style="margin-bottom:6px;">Client Username</div>
-          <input id="cUser" type="text" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
-          <div class="meta" style="margin:12px 0 6px;">Client Password</div>
-          <input id="cPass" type="password" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
-        </div>
+      <div class="row">
+        <label for="u">Username</label>
+        <input id="u" autocomplete="username" />
       </div>
 
-      <div class="actions" style="margin-top:14px;">
-        <button class="btn primary" type="button" id="saveSetupBtn">Save Credentials</button>
+      <div class="row">
+        <label for="p">Password</label>
+        <input id="p" type="password" autocomplete="current-password" />
       </div>
-    </section>
-  </main>
-</div>
 
+      <div class="row">
+        <button id="btnLogin">Login</button>
+        <div id="err" class="err">Invalid username or password.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const $ = (id) => document.getElementById(id);
+
+      $("btnLogin").addEventListener("click", () => {
+        const res = window.FLQSR_AUTH.login($("u").value, $("p").value);
+        if (!res.ok) {
+          $("err").style.display = "block";
+          return;
+        }
+
+        const next = window.FLQSR_AUTH.getNextParam();
+
+        // If a next page is provided, go there (relative to site root)
+        if (next) {
+          // login.htm is in /assets/, so go up one level:
+          location.href = "../" + next;
+          return;
+        }
+
+        // Default dashboards
+        window.FLQSR_AUTH.goDefault(res.role);
+      });
+    });
+  </script>
 </body>
 </html>
