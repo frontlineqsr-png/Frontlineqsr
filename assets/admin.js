@@ -1,8 +1,8 @@
-/* assets/admin.js (v6)
-   Admin Review Queue (localStorage)
-   Fixes communication:
-   - reads from flqsr_submission_queue_v1
-   - on Approve writes flqsr_latest_approved_submission (source of truth)
+/* assets/admin.js (v7)
+   Admin Review Queue — LocalStorage (pilot)
+   Fixes:
+   - standard keys for queue + latest approved
+   - approve writes flqsr_latest_approved_submission so KPIs/Action Plan can render
 */
 
 (() => {
@@ -12,6 +12,8 @@
   const LATEST_APPROVED_KEY = "flqsr_latest_approved_submission";
 
   const $ = (id) => document.getElementById(id);
+
+  let selectedId = null;
 
   function safeParse(v, fallback) {
     try { return JSON.parse(v); } catch { return fallback; }
@@ -30,41 +32,25 @@
     try { return new Date(iso).toLocaleString(); } catch { return String(iso); }
   }
 
+  function escapeHtml(s) {
+    return String(s || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;");
+  }
+
   function setStatus(msg) {
     const el = $("adminStatus");
     if (el) el.textContent = msg || "";
-  }
-
-  let selectedId = null;
-
-  function renderQueue() {
-    const q = loadQueue();
-    const list = $("queueList");
-    const empty = $("queueEmpty");
-    if (!list || !empty) return;
-
-    if (!q.length) {
-      empty.style.display = "";
-      list.innerHTML = "";
-      clearDetails();
-      return;
-    }
-
-    empty.style.display = "none";
-    list.innerHTML = q.map(item => cardHtml(item)).join("");
-
-    q.forEach(item => {
-      const btn = document.getElementById("open_" + item.id);
-      if (btn) btn.addEventListener("click", () => openDetails(item.id));
-    });
   }
 
   function cardHtml(item) {
     const status = item.status || "pending";
     const pill = status === "approved" ? "✅ Approved" :
                  status === "rejected" ? "❌ Rejected" : "🕒 Pending";
-
     const months = (item.months || []).join(", ");
+
     return `
       <div class="card">
         <div style="display:flex; justify-content:space-between; gap:10px;">
@@ -80,6 +66,13 @@
     `;
   }
 
+  function clearDetails() {
+    selectedId = null;
+    $("detailsEmpty")?.classList.remove("hidden");
+    $("detailsPanel")?.classList.add("hidden");
+    setStatus("");
+  }
+
   function openDetails(id) {
     const q = loadQueue();
     const item = q.find(x => x.id === id);
@@ -93,22 +86,37 @@
     $("dClient").textContent = item.clientName || item.clientId || "Client";
     $("dSubmitted").textContent = fmtTime(item.createdAt);
 
-    const status = item.status || "pending";
-    const dStatus = $("dStatus");
-    if (dStatus) dStatus.textContent = status.toUpperCase();
+    const status = (item.status || "pending").toUpperCase();
+    const st = $("dStatus");
+    if (st) st.textContent = status;
 
     $("dFiles").textContent = (item.files || []).map(f => f.name).join(", ") || "—";
     $("dMonths").textContent = (item.months || []).join(", ") || "—";
-
     $("adminNotes").value = item.adminNotes || "";
+
     setStatus("");
   }
 
-  function clearDetails() {
-    selectedId = null;
-    $("detailsEmpty")?.classList.remove("hidden");
-    $("detailsPanel")?.classList.add("hidden");
-    setStatus("");
+  function renderQueue() {
+    const q = loadQueue();
+    const list = $("queueList");
+    const empty = $("queueEmpty");
+    if (!list || !empty) return;
+
+    if (!q.length) {
+      empty.style.display = "";
+      list.innerHTML = "";
+      clearDetails();
+      return;
+    }
+
+    empty.style.display = "none";
+    list.innerHTML = q.map(cardHtml).join("");
+
+    q.forEach(item => {
+      const btn = document.getElementById("open_" + item.id);
+      if (btn) btn.addEventListener("click", () => openDetails(item.id));
+    });
   }
 
   function approveSelected() {
@@ -120,11 +128,12 @@
     item.reviewedAt = new Date().toISOString();
     item.adminNotes = $("adminNotes").value || "";
 
-    // ✅ Source of truth for KPI + Action Plan pages
+    // ✅ This is the key for KPI + Action Plan pages:
     localStorage.setItem(LATEST_APPROVED_KEY, JSON.stringify(item));
 
     saveQueue(q);
-    setStatus("Approved ✅ KPI + Action Plan should now update (same browser/device).");
+    setStatus("Approved ✅ KPI + Action Plan should now update (same device/browser).");
+
     renderQueue();
     openDetails(item.id);
   }
@@ -140,6 +149,7 @@
 
     saveQueue(q);
     setStatus("Rejected ❌");
+
     renderQueue();
     openDetails(item.id);
   }
@@ -168,14 +178,6 @@
     saveQueue(q);
     renderQueue();
     setStatus("Demo added.");
-  }
-
-  function escapeHtml(s) {
-    return String(s || "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;");
   }
 
   document.addEventListener("DOMContentLoaded", () => {
