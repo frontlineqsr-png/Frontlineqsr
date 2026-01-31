@@ -2,144 +2,81 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Login</title>
-
-  <link rel="stylesheet" href="assets/styles.css" />
-
-  <!-- Auth helper -->
-  <script src="assets/auth.js?v=2" defer></script>
+  <link rel="stylesheet" href="./assets/styles.css" />
+  <script defer src="./assets/auth.js"></script>
 
   <style>
-    /* fallback styling if styles.css doesn’t load */
-    body { margin:0; font-family: system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; background:#0b0f14; color:#e9eef5; }
-    .wrap { max-width: 980px; margin: 0 auto; padding: 18px; }
-    .brandbar { display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid rgba(255,255,255,.10); }
-    .brand { display:flex; align-items:center; gap:12px; }
-    .brand img { height:34px; }
-    .pill { border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.05); padding:8px 12px; border-radius:999px; color:#b7c3d4; font-size:13px; }
-    .card { margin-top:20px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); border-radius:16px; padding:18px; }
-    label { display:block; margin:10px 0 6px; color:#b7c3d4; }
-    input { width:100%; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.03); color:#e9eef5; }
-    .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; align-items:center; }
-    .btn { padding:12px 16px; border-radius:14px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:#e9eef5; font-weight:700; cursor:pointer; }
-    .btn.primary { border-color: rgba(106,228,255,.45); background: linear-gradient(135deg, rgba(106,228,255,.18), rgba(125,255,155,.12)); }
-    .meta { color:#b7c3d4; font-size:13px; }
-    .error { color:#ff8f8f; font-weight:700; margin-top:10px; display:none; }
-    .ok { color:#7dff9b; font-weight:700; margin-top:10px; display:none; }
-    .tiny { font-size:12px; color:#b7c3d4; margin-top:10px; }
-    .divider { height:1px; background:rgba(255,255,255,.10); margin:16px 0; }
+    body{background:#0b0f14;color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0}
+    .wrap{max-width:420px;margin:0 auto;padding:22px}
+    .card{margin-top:22px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px}
+    label{display:block;margin:12px 0 6px;color:#b7c3d4}
+    input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#e9eef5}
+    button{margin-top:14px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e9eef5;font-weight:700;cursor:pointer}
+    .err{color:#ff8f8f;margin-top:10px;min-height:20px}
+    .top{display:flex;align-items:center;gap:12px}
+    .top img{height:34px}
+    .muted{color:#b7c3d4}
   </style>
 </head>
-
 <body>
   <div class="wrap">
-    <header class="brandbar">
-      <div class="brand">
-        <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR">
-        <div style="font-weight:900;">FrontlineQSR</div>
+    <div class="top">
+      <img src="./assets/frontlineqsr-logo.png" alt="FrontlineQSR">
+      <div>
+        <div style="font-weight:800">FrontlineQSR</div>
+        <div class="muted" style="font-size:13px">Portal Access</div>
       </div>
-      <div class="pill" id="loginContext">Sign in</div>
-    </header>
+    </div>
 
-    <main class="card">
-      <h1 style="margin:0 0 8px;">Sign in</h1>
-      <div class="meta">Admin and Client logins are separate. You will be routed automatically.</div>
+    <div class="card">
+      <h1 style="margin:0 0 6px">Sign in</h1>
+      <div class="muted">Admin and Client logins are separate.</div>
 
-      <form id="loginForm" autocomplete="on">
-        <label for="username">Username (email recommended)</label>
-        <input id="username" name="username" type="text" placeholder="you@flqsr.com" autocomplete="username" required />
+      <form id="loginForm">
+        <label for="username">Username</label>
+        <input id="username" autocomplete="username" />
 
         <label for="password">Password</label>
-        <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password" required />
+        <input id="password" type="password" autocomplete="current-password" />
 
-        <div class="row">
-          <button class="btn primary" type="submit" id="loginBtn">Login</button>
-          <button class="btn" type="button" id="logoutBtn">Logout</button>
-          <span class="meta" id="whoAmI" style="margin-left:auto;"></span>
-        </div>
-
-        <div class="error" id="err">Invalid username or password.</div>
-        <div class="ok" id="ok">Logged in. Redirecting…</div>
-
-        <div class="divider"></div>
-
-        <div class="tiny">
-          If you don’t have credentials yet, ask your admin to create them. (No credentials are displayed here.)
-        </div>
+        <button type="submit" id="loginBtn">Login</button>
+        <div class="err" id="err"></div>
       </form>
-    </main>
+
+      <div class="muted" style="font-size:12px;margin-top:10px">
+        If you don’t have access, contact your administrator.
+      </div>
+    </div>
   </div>
 
   <script>
-    (function () {
-      const $ = (id) => document.getElementById(id);
+    // After auth.js loads, handle login
+    document.getElementById("loginForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const u = document.getElementById("username").value.trim();
+      const p = document.getElementById("password").value;
+      const err = document.getElementById("err");
+      err.textContent = "";
 
-      function qs(name) {
-        const u = new URL(window.location.href);
-        return u.searchParams.get(name);
+      const result = window.FLQSR_AUTH?.login(u, p);
+      if (!result?.ok) {
+        err.textContent = "Invalid username or password.";
+        return;
       }
 
-      // Show context
-      const next = qs("next");
-      $("loginContext").textContent = next ? ("Next: " + decodeURIComponent(next)) : "Sign in";
-
-      // Prefill username if provided
-      const u = qs("u");
-      if (u) $("username").value = decodeURIComponent(u);
-
-      // If already logged in, show who + optional redirect
-      function refreshStatus() {
-        try {
-          const s = window.FLQSR_AUTH && window.FLQSR_AUTH.getSession();
-          if (s && s.username) {
-            $("whoAmI").textContent = `${s.role.toUpperCase()}: ${s.username}`;
-          } else {
-            $("whoAmI").textContent = "";
-          }
-        } catch(e) {}
+      // redirect based on role
+      const params = new URLSearchParams(location.search);
+      const next = params.get("next");
+      if (next) {
+        location.href = decodeURIComponent(next);
+        return;
       }
-      refreshStatus();
 
-      $("logoutBtn").addEventListener("click", () => {
-        if (window.FLQSR_AUTH) window.FLQSR_AUTH.logout();
-        $("ok").style.display = "none";
-        $("err").style.display = "none";
-        refreshStatus();
-      });
-
-      $("loginForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        $("err").style.display = "none";
-        $("ok").style.display = "none";
-
-        const username = $("username").value.trim();
-        const password = $("password").value;
-
-        const res = window.FLQSR_AUTH && window.FLQSR_AUTH.login(username, password);
-
-        if (!res || !res.ok) {
-          $("err").style.display = "block";
-          return;
-        }
-
-        $("ok").style.display = "block";
-        refreshStatus();
-
-        // redirect after login
-        const dest = window.FLQSR_AUTH.getPostLoginRedirect(next);
-        window.location.href = dest;
-      });
-
-      // Optional: if user is already logged in AND next exists, route immediately
-      try {
-        const s = window.FLQSR_AUTH && window.FLQSR_AUTH.getSession();
-        if (s && s.username && next) {
-          const dest = window.FLQSR_AUTH.getPostLoginRedirect(next);
-          window.location.href = dest;
-        }
-      } catch(e) {}
-    })();
+      if (result.role === "admin") location.href = "./admin.html";
+      else location.href = "./kpis.html";
+    });
   </script>
 </body>
 </html>
