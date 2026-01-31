@@ -2,71 +2,139 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Login</title>
+
   <link rel="stylesheet" href="assets/styles.css" />
-</head>
-<body>
+  <script src="assets/auth.js?v=1" defer></script>
 
-  <header class="brandbar">
-    <div class="left">
-      <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
-      <div class="title">Login</div>
-    </div>
-    <div class="right">
-      <div class="pill">FrontlineQSR</div>
-    </div>
-  </header>
-
-  <div class="layout">
-    <main class="main" style="max-width:720px; margin:0 auto;">
-      <section class="card">
-        <h1 style="margin:0 0 10px 0;">Sign in</h1>
-        <div class="meta">Admin and Client logins are separate.</div>
-
-        <div style="margin-top:14px;">
-          <label class="meta" for="username">Username</label>
-          <input id="username" style="width:100%; margin-top:6px;" autocomplete="username" />
-
-          <div style="height:10px;"></div>
-
-          <label class="meta" for="password">Password</label>
-          <input id="password" type="password" style="width:100%; margin-top:6px;" autocomplete="current-password" />
-
-          <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn primary" id="loginBtn" type="button">Login</button>
-          </div>
-
-          <div id="loginStatus" class="meta" style="margin-top:10px;"></div>
-
-          <div class="helper" style="margin-top:12px;">
-            Temp creds (change later):<br/>
-            Admin: <code>admin</code> / <code>admin123</code><br/>
-            Client: <code>client</code> / <code>client123</code>
-          </div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <script src="assets/auth.js"></script>
-  <script>
+  <script defer>
     document.addEventListener("DOMContentLoaded", () => {
-      const $ = (id) => document.getElementById(id);
+      // If already logged in, go home
+      if (window.FLQSR_AUTH && FLQSR_AUTH.isLoggedIn()) {
+        window.location.href = "index.html";
+        return;
+      }
 
-      $("loginBtn").addEventListener("click", () => {
-        const ok = FLQSR_AUTH.login($("username").value, $("password").value);
-        if (!ok) {
-          $("loginStatus").textContent = "❌ Invalid login.";
+      const msg = document.getElementById("loginMsg");
+      const form = document.getElementById("loginForm");
+
+      // Setup panel
+      const setupWrap = document.getElementById("setupWrap");
+      const setupBtn = document.getElementById("toggleSetupBtn");
+      const saveSetupBtn = document.getElementById("saveSetupBtn");
+
+      // show setup panel only if not configured yet
+      if (!FLQSR_AUTH.isConfigured()) {
+        setupWrap.style.display = "block";
+        msg.textContent = "First-time setup: create your Admin + Client logins below.";
+        msg.style.color = "#d2f7da";
+      }
+
+      setupBtn.addEventListener("click", () => {
+        setupWrap.style.display = (setupWrap.style.display === "none" ? "block" : "none");
+      });
+
+      saveSetupBtn.addEventListener("click", () => {
+        const aUser = document.getElementById("aUser").value.trim();
+        const aPass = document.getElementById("aPass").value.trim();
+        const cUser = document.getElementById("cUser").value.trim();
+        const cPass = document.getElementById("cPass").value.trim();
+
+        if (!aUser || !aPass || !cUser || !cPass) {
+          alert("Fill in all 4 fields to save credentials.");
           return;
         }
 
-        // ✅ route by role
-        const r = FLQSR_AUTH.role();
-        $("loginStatus").textContent = "✅ Logged in. Redirecting...";
-        window.location.href = (r === "admin") ? "admin.html" : "kpis.html";
+        FLQSR_AUTH.setCredentials({
+          admin: { username: aUser, password: aPass },
+          client: { username: cUser, password: cPass }
+        });
+
+        alert("Saved. Now log in using the credentials you set.");
+      });
+
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+
+        const res = FLQSR_AUTH.login(username, password);
+
+        if (!res.ok) {
+          msg.textContent = res.message || "Login failed.";
+          msg.style.color = "#ffb3b3";
+          return;
+        }
+
+        window.location.href = "index.html";
       });
     });
   </script>
+</head>
+
+<body>
+
+<header class="brandbar">
+  <div class="left">
+    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
+    <div class="title">Login</div>
+  </div>
+  <div class="right">
+    <div class="pill">FrontlineQSR</div>
+  </div>
+</header>
+
+<div class="layout">
+  <main class="main" style="max-width:740px; margin:0 auto;">
+    <section class="card">
+      <h1>Sign in</h1>
+      <p class="muted">Admin and Client logins are separate.</p>
+
+      <form id="loginForm" class="list" style="margin-top:12px;">
+        <label class="muted" for="username" style="display:block; margin-top:10px;">Username</label>
+        <input id="username" type="text" autocomplete="username" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
+
+        <label class="muted" for="password" style="display:block; margin-top:10px;">Password</label>
+        <input id="password" type="password" autocomplete="current-password" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
+
+        <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn primary" type="submit">Login</button>
+          <button class="btn" type="button" id="toggleSetupBtn">Setup / Change Credentials</button>
+        </div>
+
+        <div id="loginMsg" class="meta" style="margin-top:10px;"></div>
+      </form>
+    </section>
+
+    <!-- Setup panel (hidden unless first run, or you toggle it) -->
+    <section class="card" id="setupWrap" style="display:none;">
+      <h3>Credential Setup</h3>
+      <p class="muted">These are stored in your browser (pilot mode). You can change them anytime.</p>
+
+      <div class="grid-2" style="margin-top:10px;">
+        <div>
+          <div class="meta" style="margin-bottom:6px;">Admin Username</div>
+          <input id="aUser" type="text" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
+          <div class="meta" style="margin:12px 0 6px;">Admin Password</div>
+          <input id="aPass" type="password" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
+        </div>
+
+        <div>
+          <div class="meta" style="margin-bottom:6px;">Client Username</div>
+          <input id="cUser" type="text" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
+          <div class="meta" style="margin:12px 0 6px;">Client Password</div>
+          <input id="cPass" type="password" style="width:100%; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06); color:#fff;" />
+        </div>
+      </div>
+
+      <div class="actions" style="margin-top:14px;">
+        <button class="btn primary" type="button" id="saveSetupBtn">Save Credentials</button>
+      </div>
+    </section>
+  </main>
+</div>
+
 </body>
 </html>
