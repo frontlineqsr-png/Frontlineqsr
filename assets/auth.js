@@ -1,22 +1,15 @@
-/* assets/auth.js (v6)
-   FrontlineQSR role-gate auth (static demo; localStorage)
-   Fixes:
-   - admin can view client pages (client OR admin guard)
-   - stable redirects with ?next=
-*/
-
 (() => {
   "use strict";
 
-  const ROLE_KEY  = "flqsr_role";     // "admin" | "client"
+  const ROLE_KEY  = "flqsr_role";
   const USER_KEY  = "flqsr_user";
-  const CREDS_KEY = "flqsr_creds_v6"; // bump to avoid old cached creds
+  const CREDS_KEY = "flqsr_creds_v7"; // bump to kill old cached creds
 
-  // ✅ Admin login (you)
+  // Admin credentials
   const ADMIN_USER = "nrobinson@flqsr.com";
-  const ADMIN_PASS = "ChangeMeNow123!"; // change whenever you want
+  const ADMIN_PASS = "Ducks4life!";
 
-  // ✅ Client login (pilot)
+  // Client credentials
   const CLIENT_USER = "client";
   const CLIENT_PASS = "client123";
 
@@ -37,10 +30,6 @@
     const saved = safeParse(localStorage.getItem(CREDS_KEY), null);
     if (saved && saved.admin && saved.client) return saved;
     return DEFAULT_CREDS;
-  }
-
-  function saveCreds(creds) {
-    localStorage.setItem(CREDS_KEY, JSON.stringify(creds));
   }
 
   function setRole(role, username) {
@@ -109,7 +98,6 @@
     }
   }
 
-  // ✅ This is the key fix: allow "client OR admin"
   function requireClientOrAdmin() {
     const role = getRole();
     if (role !== "client" && role !== "admin") {
@@ -118,27 +106,10 @@
     }
   }
 
-  function requireClient() {
-    if (!isAuthed("client")) {
-      location.href = "login.htm?next=" + encodeURIComponent("kpis.html");
-    }
-  }
-
-  // Optional: reset storage quickly (useful on phone)
   function hardReset() {
     localStorage.removeItem(ROLE_KEY);
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(CREDS_KEY);
-  }
-
-  // Optional: update creds later without showing them on UI
-  function setCredentials(newAdminUser, newAdminPass, newClientUser, newClientPass) {
-    const creds = loadCreds();
-    if (newAdminUser) creds.admin.username = String(newAdminUser).trim();
-    if (newAdminPass) creds.admin.password = String(newAdminPass).trim();
-    if (newClientUser) creds.client.username = String(newClientUser).trim();
-    if (newClientPass) creds.client.password = String(newClientPass).trim();
-    saveCreds(creds);
   }
 
   window.FLQSR_AUTH = {
@@ -149,9 +120,7 @@
     getNextParam,
     goDefault,
     requireAdmin,
-    requireClient,
     requireClientOrAdmin,
-    hardReset,
-    setCredentials
+    hardReset
   };
 })();
