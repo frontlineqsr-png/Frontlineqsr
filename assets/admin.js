@@ -1,245 +1,254 @@
-/* assets/admin.js (v9)
-   Admin Review Queue — LocalStorage (pilot)
-
-   Fixes:
-   - approve writes flqsr_latest_approved_submission
-   - builds approved.kpis from approved.metrics (so KPI dashboard renders)
-   - locks baseline snapshot on first approval (flqsr_baseline_snapshot)
+/* assets/admin.js (multi-store approve)
+   Queue: flqsr_submission_queue (array)
+   Approve writes:
+     - flqsr_approved::<clientId>::<storeId>   (latest approved submission)
+     - flqsr_baseline::<clientId>::<storeId>   (first approved monthly snapshot, locked)
+     - flqsr_weekly::<clientId>::<storeId>     (append weekly snapshots)
+   Also maintains:
+     - flqsr_store_index::<clientId>           (list of storeIds seen/approved)
 */
 
 (() => {
   "use strict";
 
-  const QUEUE_KEY = "flqsr_submission_queue_v1";
-  const LATEST_APPROVED_KEY = "flqsr_latest_approved_submission";
-  const BASELINE_KEY = "flqsr_baseline_snapshot";
+  const QUEUE_KEY = "flqsr_submission_queue";
+
+  const approvedKey = (clientId, storeId) => `flqsr_approved::${clientId}::${storeId}`;
+  const baselineKey = (clientId, storeId) => `flqsr_baseline::${clientId}::${storeId}`;
+  const weeklyKey   = (clientId, storeId) => `flqsr_weekly::${clientId}::${storeId}`;
+  const storeIndexKey = (clientId) => `flqsr_store_index::${clientId}`;
 
   const $ = (id) => document.getElementById(id);
-  let selectedId = null;
 
-  function safeParse(v, fallback) {
-    try { return JSON.parse(v); } catch { return fallback; }
-  }
+  function safeParse(v, fallback) { try { return JSON.parse(v); } catch { return fallback; } }
 
   function loadQueue() {
-    return safeParse(localStorage.getItem(QUEUE_KEY), []);
+    return safeParse(localStorage.getItem(QUEUE_KEY) || "[]", []);
   }
-
   function saveQueue(q) {
     localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
   }
 
-  function fmtTime(iso) {
-    if (!iso) return "—";
-    try { return new Date(iso).toLocaleString(); } catch { return String(iso); }
-  }
-
-  function escapeHtml(s) {
-    return String(s || "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;");
-  }
-
-  function setStatus(msg) {
+  function setAdminStatus(msg, color) {
     const el = $("adminStatus");
-    if (el) el.textContent = msg || "";
+    if (!el) return;
+    el.textContent = msg;
+    if (color) el.style.color = color;
   }
 
-  function cardHtml(item) {
-    const status = item.status || "pending";
-    const pill = status === "approved" ? "✅ Approved" :
-                 status === "rejected" ? "❌ Rejected" : "🕒 Pending";
-    const months = (item.months || []).join(", ");
-
-    return `
-      <div class="card">
-        <div style="display:flex; justify-content:space-between; gap:10px;">
-          <div style="font-weight:800;">${escapeHtml(item.clientName || item.clientId || "Client")}</div>
-          <div class="pill">${pill}</div>
-        </div>
-        <div class="meta" style="margin-top:6px;">Submitted: ${escapeHtml(fmtTime(item.createdAt))}</div>
-        <div class="meta">Months: ${escapeHtml(months || "—")}</div>
-        <div style="margin-top:10px;">
-          <button class="btn primary" id="open_${item.id}" type="button">Review</button>
-        </div>
-      </div>
-    `;
-  }
-
-  function clearDetails() {
-    selectedId = null;
-    $("detailsEmpty")?.classList.remove("hidden");
-    $("detailsPanel")?.classList.add("hidden");
-    setStatus("");
-  }
-
-  function openDetails(id) {
-    const q = loadQueue();
-    const item = q.find(x => x.id === id);
-    if (!item) return;
-
-    selectedId = id;
-
-    $("detailsEmpty")?.classList.add("hidden");
-    $("detailsPanel")?.classList.remove("hidden");
-
-    $("dClient").textContent = item.clientName || item.clientId || "Client";
-    $("dSubmitted").textContent = fmtTime(item.createdAt);
-
-    const status = (item.status || "pending").toUpperCase();
-    const st = $("dStatus");
-    if (st) st.textContent = status;
-
-    $("dFiles").textContent = (item.files || []).map(f => f.name).join(", ") || "—";
-    $("dMonths").textContent = (item.months || []).join(", ") || "—";
-    $("adminNotes").value = item.adminNotes || "";
-
-    setStatus("");
-  }
+  let selectedId = null;
 
   function renderQueue() {
-    const q = loadQueue();
+    const queue = loadQueue();
+
     const list = $("queueList");
     const empty = $("queueEmpty");
     if (!list || !empty) return;
 
-    if (!q.length) {
-      empty.style.display = "";
-      list.innerHTML = "";
-      clearDetails();
+    list.innerHTML = "";
+
+    if (!queue.length) {
+      empty.style.display = "block";
+      return;
+    }
+    empty.style.display = "none";
+
+    // newest first
+    const sorted = [...queue].sort((a,b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+
+    for (const sub of sorted) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.style.cursor = "pointer";
+
+      const client = sub.clientId || "client";
+      const store  = sub.storeId || "store";
+      const status = sub.status || "pending";
+
+      card.innerHTML = `
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
+          <div>
+            <div style="font-weight:900;">${client} — ${store}</div>
+            <div class="meta" style="margin-top:4px;">${new Date(sub.createdAt).toLocaleString()}</div>
+          </div>
+          <div class="pill">${status}</div>
+        </div>
+        <div class="meta" style="margin-top:10px;">
+          Monthly: ${(sub.monthly||[]).length} file(s) • Weekly: ${(sub.weekly||[]).length} file(s)
+        </div>
+      `;
+
+      card.addEventListener("click", () => selectSubmission(sub.id));
+      list.appendChild(card);
+    }
+  }
+
+  function selectSubmission(id) {
+    const queue = loadQueue();
+    const sub = queue.find(x => x.id === id);
+    selectedId = id;
+
+    const empty = $("detailsEmpty");
+    const panel = $("detailsPanel");
+    if (!empty || !panel) return;
+
+    if (!sub) {
+      empty.style.display = "block";
+      panel.classList.add("hidden");
       return;
     }
 
     empty.style.display = "none";
-    list.innerHTML = q.map(cardHtml).join("");
+    panel.classList.remove("hidden");
 
-    q.forEach(item => {
-      const btn = document.getElementById("open_" + item.id);
-      if (btn) btn.addEventListener("click", () => openDetails(item.id));
-    });
+    $("dClient").textContent = `${sub.clientId || ""} — ${sub.storeId || ""}`;
+    $("dSubmitted").textContent = new Date(sub.createdAt).toLocaleString();
+    $("dStatus").textContent = sub.status || "pending";
+
+    const fileLines = [];
+    for (const m of (sub.monthly || [])) fileLines.push(`• ${m.month} — ${m.fileName}`);
+    for (const w of (sub.weekly || [])) fileLines.push(`• Weekly — ${w.fileName}`);
+
+    $("dFiles").textContent = fileLines.length ? fileLines.join("\n") : "—";
+
+    const months = (sub.monthly || []).map(x => x.month).filter(Boolean);
+    $("dMonths").textContent = months.length ? months.join(", ") : "—";
+
+    setAdminStatus("", "");
+    $("adminNotes").value = "";
   }
 
-  // ✅ Build a "kpis" object that targets.js understands
-  function buildKpisFromMetrics(metrics) {
-    if (!metrics || typeof metrics !== "object") return {};
-    const kpis = {};
-    Object.keys(metrics).forEach(name => {
-      kpis[name] = { value: metrics[name] };
-    });
-    return kpis;
-  }
-
-  function maybeSetBaseline(approvedItem) {
-    const baselineExists = localStorage.getItem(BASELINE_KEY);
-    if (baselineExists) return false;
-
-    // Lock baseline = first approved snapshot
-    const baseline = {
-      createdAt: new Date().toISOString(),
-      baselineFromSubmissionId: approvedItem.id,
-      snapshot: approvedItem
-    };
-
-    localStorage.setItem(BASELINE_KEY, JSON.stringify(baseline));
-    return true;
+  function addToStoreIndex(clientId, storeId) {
+    const key = storeIndexKey(clientId);
+    const idx = safeParse(localStorage.getItem(key) || "[]", []);
+    if (!idx.includes(storeId)) idx.push(storeId);
+    idx.sort();
+    localStorage.setItem(key, JSON.stringify(idx));
   }
 
   function approveSelected() {
-    const q = loadQueue();
-    const item = q.find(x => x.id === selectedId);
-    if (!item) { setStatus("Select a submission first."); return; }
+    const queue = loadQueue();
+    const sub = queue.find(x => x.id === selectedId);
+    if (!sub) return setAdminStatus("❌ Select a submission first.", "#ff6b6b");
 
-    item.status = "approved";
-    item.reviewedAt = new Date().toISOString();
-    item.adminNotes = $("adminNotes").value || "";
+    const clientId = sub.clientId;
+    const storeId  = sub.storeId;
+    if (!clientId || !storeId) return setAdminStatus("❌ Missing client/store on submission.", "#ff6b6b");
 
-    // ✅ Ensure kpis exists for dashboard rendering
-    if (!item.kpis || typeof item.kpis !== "object") {
-      item.kpis = buildKpisFromMetrics(item.metrics);
+    const notes = ($("adminNotes").value || "").trim();
+
+    // 1) save latest approved
+    const approvedPayload = {
+      ...sub,
+      status: "approved",
+      approvedAt: new Date().toISOString(),
+      adminNotes: notes
+    };
+    localStorage.setItem(approvedKey(clientId, storeId), JSON.stringify(approvedPayload));
+
+    // 2) baseline lock per store (first approval only)
+    const bKey = baselineKey(clientId, storeId);
+    const hasBaseline = !!localStorage.getItem(bKey);
+    if (!hasBaseline) {
+      // baseline = first approved monthly set
+      const baselinePayload = {
+        clientId,
+        storeId,
+        baselineAt: new Date().toISOString(),
+        monthly: sub.monthly || [],
+        note: "Baseline locked on first approval"
+      };
+      localStorage.setItem(bKey, JSON.stringify(baselinePayload));
     }
 
-    // ✅ Write latest approved (source of truth)
-    localStorage.setItem(LATEST_APPROVED_KEY, JSON.stringify(item));
+    // 3) append weekly snapshots (optional)
+    const wKey = weeklyKey(clientId, storeId);
+    const existingWeekly = safeParse(localStorage.getItem(wKey) || "[]", []);
+    const newWeekly = (sub.weekly || []).map(w => ({
+      fileName: w.fileName,
+      text: w.text,
+      receivedAt: sub.createdAt
+    }));
+    if (newWeekly.length) {
+      localStorage.setItem(wKey, JSON.stringify(existingWeekly.concat(newWeekly)));
+    }
 
-    // ✅ Set baseline once (first approval only)
-    const baselineSet = maybeSetBaseline(item);
+    // 4) add store to index
+    addToStoreIndex(clientId, storeId);
 
-    saveQueue(q);
+    // 5) mark queue item approved (keep it for audit OR remove — your choice)
+    sub.status = "approved";
+    sub.approvedAt = approvedPayload.approvedAt;
+    sub.adminNotes = notes;
+    saveQueue(queue);
 
-    setStatus(
-      baselineSet
-        ? "Approved ✅ Baseline locked (first approved report). KPIs should now update."
-        : "Approved ✅ KPIs should now update."
-    );
-
+    setAdminStatus("✅ Approved. Baseline stored (if first time). Weekly appended (if provided).", "#7dff9b");
     renderQueue();
-    openDetails(item.id);
+    selectSubmission(selectedId);
   }
 
   function rejectSelected() {
-    const q = loadQueue();
-    const item = q.find(x => x.id === selectedId);
-    if (!item) { setStatus("Select a submission first."); return; }
+    const queue = loadQueue();
+    const sub = queue.find(x => x.id === selectedId);
+    if (!sub) return setAdminStatus("❌ Select a submission first.", "#ff6b6b");
 
-    item.status = "rejected";
-    item.reviewedAt = new Date().toISOString();
-    item.adminNotes = $("adminNotes").value || "";
+    const notes = ($("adminNotes").value || "").trim();
+    sub.status = "rejected";
+    sub.rejectedAt = new Date().toISOString();
+    sub.adminNotes = notes;
+    saveQueue(queue);
 
-    saveQueue(q);
-    setStatus("Rejected ❌");
-
+    setAdminStatus("Rejected with notes.", "#ffb86b");
     renderQueue();
-    openDetails(item.id);
+    selectSubmission(selectedId);
   }
 
   function clearQueue() {
-    if (!confirm("Clear the entire queue?")) return;
-    saveQueue([]);
-    clearDetails();
+    localStorage.setItem(QUEUE_KEY, "[]");
+    selectedId = null;
     renderQueue();
-    setStatus("Queue cleared.");
+    const empty = $("detailsEmpty");
+    const panel = $("detailsPanel");
+    if (empty && panel) {
+      empty.style.display = "block";
+      panel.classList.add("hidden");
+    }
+    setAdminStatus("Queue cleared.", "#b7c3d4");
   }
 
   function addDemo() {
-    const q = loadQueue();
     const demo = {
-      id: "sub_" + Math.random().toString(16).slice(2),
-      clientId: "example-location",
-      clientName: "Example Location",
+      id: "sub_demo_" + Math.random().toString(16).slice(2),
+      clientId: "filibertos_pilot",
+      storeId: "AZ-001",
       createdAt: new Date().toISOString(),
       status: "pending",
-      months: ["2026-01","2025-12","2025-11"],
-      files: [{ name: "2026-01.csv" }, { name: "2025-12.csv" }, { name: "2025-11.csv" }],
-      metrics: {
-        "Sales": 120000,
-        "Labor": 32000,
-        "Transactions": 8400,
-        "Labor %": 26.7,
-        "Average Ticket": 14.29,
-        "Sales per Labor $": 3.75,
-        "Transactions per Labor $": 0.26
-      },
-      metricsByMonth: {},
-      adminNotes: ""
+      monthly: [
+        { month: "2026-01", fileName: "month1.csv", text: "Date,Location,Sales,Labor,Transactions\n2026-01-01,AZ-001,1000,200,100" },
+        { month: "2025-12", fileName: "month2.csv", text: "Date,Location,Sales,Labor,Transactions\n2025-12-01,AZ-001,950,210,98" },
+        { month: "2025-11", fileName: "month3.csv", text: "Date,Location,Sales,Labor,Transactions\n2025-11-01,AZ-001,900,220,95" },
+      ],
+      weekly: [
+        { fileName: "week1.csv", text: "Date,Location,Sales,Labor,Transactions\n2026-01-07,AZ-001,250,45,25" }
+      ]
     };
-    demo.kpis = buildKpisFromMetrics(demo.metrics);
 
-    q.unshift(demo);
+    const q = loadQueue();
+    q.push(demo);
     saveQueue(q);
+    setAdminStatus("Demo submission added.", "#7dff9b");
     renderQueue();
-    setStatus("Demo added.");
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
+  function boot() {
     $("refreshQueueBtn")?.addEventListener("click", renderQueue);
     $("addDemoBtn")?.addEventListener("click", addDemo);
     $("clearQueueBtn")?.addEventListener("click", clearQueue);
-
     $("approveBtn")?.addEventListener("click", approveSelected);
     $("rejectBtn")?.addEventListener("click", rejectSelected);
 
     renderQueue();
-  });
+  }
+
+  document.addEventListener("DOMContentLoaded", boot);
 })();
