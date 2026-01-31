@@ -1,7 +1,6 @@
 /* assets/targets.js
-   Renders Targets + Recommendations into two blocks:
-   - #targetsTable
-   - #targetsRecs
+   Targets table + RED-only recommendations
+   Reads from approvedSnapshot to keep it locked after approval.
 */
 
 (() => {
@@ -10,8 +9,13 @@
   const APPROVED_KEY = "flqsr_latest_approved_submission";
   const $ = (id) => document.getElementById(id);
 
-  function safeParse(v) { try { return JSON.parse(v); } catch { return null; } }
-  function getApproved() { return safeParse(localStorage.getItem(APPROVED_KEY)); }
+  function safeParse(str) {
+    try { return JSON.parse(str); } catch { return null; }
+  }
+
+  function getApproved() {
+    return safeParse(localStorage.getItem(APPROVED_KEY) || "");
+  }
 
   function pct(n) {
     if (!Number.isFinite(n)) return "—";
@@ -23,7 +27,7 @@
     return n.toLocaleString(undefined, { style: "currency", currency: "USD" });
   }
 
-  function statusPill(ok) {
+  function pill(ok) {
     const bg = ok ? "rgba(46,204,113,.18)" : "rgba(231,76,60,.18)";
     const br = ok ? "rgba(46,204,113,.55)" : "rgba(231,76,60,.55)";
     const dot = ok ? "🟢" : "🔴";
@@ -31,67 +35,92 @@
     return `<span class="pill" style="background:${bg};border-color:${br};display:inline-block;">${dot} ${label}</span>`;
   }
 
-  function render() {
+  function calcKpisFromMonthlyTotals(mt) {
+    const m0 = mt?.m0;
+    const m1 = mt?.m1;
+    if (!m0 || !m1) return null;
+
+    const salesMoM = m1.sales ? (m0.sales - m1.sales) / m1.sales : NaN;
+    const txMoM = m1.transactions ? (m0.transactions - m1.transactions) / m1.transactions : NaN;
+    const laborPct = m0.sales ? (m0.labor / m0.sales) : NaN;
+    const avgTicket = m0.transactions ? (m0.sales / m0.transactions) : NaN;
+
+    return { salesMoM, txMoM, laborPct, avgTicket };
+  }
+
+  function buildRedOnly(kpis, targets) {
+    const recs = [];
+    if (!kpis) return recs;
+
+    if (Number.isFinite(kpis.salesMoM) && kpis.salesMoM < targets.salesMoM) {
+      recs.push("🔴 Sales growth below target → tighten promo execution + upsell routines.");
+    }
+    if (Number.isFinite(kpis.txMoM) && kpis.txMoM < targets.txMoM) {
+      recs.push("🔴 Transactions below target → focus on speed-of-service + guest count drivers.");
+    }
+    if (Number.isFinite(kpis.laborPct) && kpis.laborPct > targets.laborPctMax) {
+      recs.push("🔴 Labor above target → audit schedules by daypart + reduce overtime.");
+    }
+    if (Number.isFinite(kpis.avgTicket) && kpis.avgTicket < targets.avgTicket) {
+      recs.push("🔴 Avg ticket below target → coach add-ons + suggestive sell consistency.");
+    }
+
+    return recs;
+  }
+
+  function init() {
     const tableHost = $("targetsTable");
     const recHost = $("targetsRecs");
     if (!tableHost || !recHost) return;
 
-    const sub = getApproved();
-    if (!sub || !sub.monthlyTotals?.m0 || !sub.monthlyTotals?.m1) {
-      tableHost.innerHTML = `<div class="meta">No approved data yet.</div>`;
-      recHost.innerHTML = `<div class="meta">Upload data and get Admin approval.</div>`;
+    const approved = getApproved();
+    if (!approved || !approved.approvedSnapshot) {
+      tableHost.innerHTML = `<div class="meta">No approved targets yet.</div>`;
+      recHost.innerHTML = `<div class="meta">Upload + Admin approve to unlock.</div>`;
       return;
     }
 
-    const m0 = sub.monthlyTotals.m0;
-    const m1 = sub.monthlyTotals.m1;
+    const snap = approved.approvedSnapshot;
 
-    // Actuals
-    const salesMoM = (m0.sales - m1.sales) / m1.sales;
-    const txMoM = (m0.transactions - m1.transactions) / m1.transactions;
-    const laborPct = m0.labor / m0.sales;
-    const avgTicket = m0.sales / m0.transactions;
+    const clientId = snap.clientId || approved.clientId || approved.clientName || "Client";
+    const targets = snap.targets || { salesMoM: 0.05, txMoM: 0.04, laborPctMax: 0.27, avgTicket: 14.0 };
 
-    // Targets (v1 defaults — we can pull from masterlist.csv next)
-    const TARGETS = {
-      salesMoM: 0.05,      // +5%
-      txMoM: 0.04,         // +4%
-      laborPctMax: 0.27,   // <= 27%
-      avgTicket: 14.00     // $14.00
-    };
+    // KPIs from snapshot if present; otherwise compute
+    const kpis = snap.kpis || calcKpisFromMonthlyTotals(snap.monthlyTotals);
 
     const rows = [
       {
         name: "Sales MoM",
-        actual: pct(salesMoM),
-        target: pct(TARGETS.salesMoM),
-        variance: pct(salesMoM - TARGETS.salesMoM),
-        ok: salesMoM >= TARGETS.salesMoM
+        actual: pct(kpis?.salesMoM),
+        target: pct(targets.salesMoM),
+        variance: (Number.isFinite(kpis?.salesMoM) ? pct(kpis.salesMoM - targets.salesMoM) : "—"),
+        ok: Number.isFinite(kpis?.salesMoM) ? (kpis.salesMoM >= targets.salesMoM) : false
       },
       {
         name: "Labor %",
-        actual: pct(laborPct),
-        target: "≤ " + pct(TARGETS.laborPctMax),
-        variance: pct(laborPct - TARGETS.laborPctMax),
-        ok: laborPct <= TARGETS.laborPctMax
+        actual: pct(kpis?.laborPct),
+        target: "≤ " + pct(targets.laborPctMax),
+        variance: (Number.isFinite(kpis?.laborPct) ? pct(kpis.laborPct - targets.laborPctMax) : "—"),
+        ok: Number.isFinite(kpis?.laborPct) ? (kpis.laborPct <= targets.laborPctMax) : false
       },
       {
         name: "Transactions MoM",
-        actual: pct(txMoM),
-        target: pct(TARGETS.txMoM),
-        variance: pct(txMoM - TARGETS.txMoM),
-        ok: txMoM >= TARGETS.txMoM
+        actual: pct(kpis?.txMoM),
+        target: pct(targets.txMoM),
+        variance: (Number.isFinite(kpis?.txMoM) ? pct(kpis.txMoM - targets.txMoM) : "—"),
+        ok: Number.isFinite(kpis?.txMoM) ? (kpis.txMoM >= targets.txMoM) : false
       },
       {
         name: "Avg Ticket",
-        actual: money(avgTicket),
-        target: money(TARGETS.avgTicket),
-        variance: money(avgTicket - TARGETS.avgTicket),
-        ok: avgTicket >= TARGETS.avgTicket
+        actual: money(kpis?.avgTicket),
+        target: money(targets.avgTicket),
+        variance: (Number.isFinite(kpis?.avgTicket) ? money(kpis.avgTicket - targets.avgTicket) : "—"),
+        ok: Number.isFinite(kpis?.avgTicket) ? (kpis.avgTicket >= targets.avgTicket) : false
       }
     ];
 
     tableHost.innerHTML = `
+      <div class="meta" style="margin-bottom:10px;"><strong>${clientId}</strong></div>
       <div style="overflow:auto;">
         <table style="width:100%; border-collapse:collapse;">
           <thead>
@@ -110,7 +139,7 @@
                 <td style="padding:8px;">${r.actual}</td>
                 <td style="padding:8px;">${r.target}</td>
                 <td style="padding:8px;">${r.variance}</td>
-                <td style="padding:8px;">${statusPill(r.ok)}</td>
+                <td style="padding:8px;">${pill(r.ok)}</td>
               </tr>
             `).join("")}
           </tbody>
@@ -118,22 +147,17 @@
       </div>
     `;
 
-    const recs = [];
+    // RED-only recommendations (locked)
+    const recs = snap.recommendations && Array.isArray(snap.recommendations)
+      ? snap.recommendations
+      : buildRedOnly(kpis, targets);
 
-    if (salesMoM < TARGETS.salesMoM) recs.push("🔴 Sales growth below target → tighten promo execution + upsell routines.");
-    else recs.push("🟢 Sales growth on track → document what’s working (daypart/channel/item mix).");
-
-    if (txMoM < TARGETS.txMoM) recs.push("🔴 Transactions below target → focus on speed-of-service + guest count drivers.");
-    else recs.push("🟢 Transactions on track → keep throughput consistent and protect peak times.");
-
-    if (laborPct > TARGETS.laborPctMax) recs.push("🔴 Labor above target → audit schedules by daypart + reduce overtime.");
-    else recs.push("🟢 Labor on track → maintain staffing plan while controlling slow periods.");
-
-    if (avgTicket < TARGETS.avgTicket) recs.push("🔴 Avg ticket below target → coach add-ons + ensure suggestive sell is consistent.");
-    else recs.push("🟢 Avg ticket on track → keep upsell coaching and tracking.");
-
-    recHost.innerHTML = `<ul class="list">${recs.map(x => `<li>${x}</li>`).join("")}</ul>`;
+    if (!recs.length) {
+      recHost.innerHTML = `<div class="meta">✅ No critical issues detected. Keep executing the current plan.</div>`;
+    } else {
+      recHost.innerHTML = `<ul class="list">${recs.map(x => `<li>${x}</li>`).join("")}</ul>`;
+    }
   }
 
-  document.addEventListener("DOMContentLoaded", render);
+  document.addEventListener("DOMContentLoaded", init);
 })();
