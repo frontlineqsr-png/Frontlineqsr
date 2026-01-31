@@ -2,82 +2,94 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FrontlineQSR | Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FrontlineQSR | Home</title>
 
   <link rel="stylesheet" href="assets/styles.css" />
 
-  <!-- ✅ AUTH -->
-  <script src="assets/auth.js?v=3"></script>
-
-  <!-- ✅ ROUTING: index acts like "app entry" -->
-  <script>
+  <!-- Auth gate -->
+  <script src="assets/auth.js?v=1" defer></script>
+  <script defer>
     document.addEventListener("DOMContentLoaded", () => {
-      // If auth script didn't load for any reason, fall back to login
-      if (!window.FLQSR_AUTH) {
-        window.location.href = "login.html";
+      // If not logged in -> go to login
+      if (!window.FLQSR_AUTH || !FLQSR_AUTH.isLoggedIn()) {
+        window.location.href = "login.htm";
         return;
       }
 
-      const role = FLQSR_AUTH.role();
+      const role = FLQSR_AUTH.getRole(); // "admin" | "client"
+      const who = FLQSR_AUTH.getUsername() || "User";
 
-      // Not logged in → go login
-      if (!role) {
-        window.location.href = "login.html";
-        return;
-      }
+      const roleLabel = document.getElementById("roleLabel");
+      const welcome = document.getElementById("welcomeText");
+      const adminOnly = document.querySelectorAll("[data-role='admin']");
+      const clientOnly = document.querySelectorAll("[data-role='client']");
 
-      // Logged in → route by role
-      if (role === "admin") {
-        window.location.href = "admin.html";
-      } else {
-        window.location.href = "kpis.html";
-      }
+      roleLabel.textContent = role === "admin" ? "Admin" : "Client";
+      welcome.textContent = `Welcome, ${who}.`;
+
+      adminOnly.forEach(el => el.style.display = (role === "admin" ? "" : "none"));
+      clientOnly.forEach(el => el.style.display = (role === "client" ? "" : "none"));
+
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        FLQSR_AUTH.logout();
+        window.location.href = "login.htm";
+      });
     });
   </script>
 </head>
 
 <body>
 
-  <!-- Top brand bar -->
-  <header class="brandbar">
-    <div class="left">
-      <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
-      <div class="title">FrontlineQSR Portal</div>
-    </div>
-
-    <div class="right" style="display:flex; gap:10px; align-items:center;">
-      <div class="pill">Secure Pilot</div>
-      <!-- In case redirect is blocked by browser for any reason -->
-      <a class="btn" href="login.html">Login</a>
-    </div>
-  </header>
-
-  <div class="layout">
-    <main class="main" style="max-width:900px; margin:0 auto;">
-
-      <section class="card">
-        <h1 style="margin:0 0 10px 0;">Welcome to FrontlineQSR</h1>
-        <div class="meta">
-          Redirecting you to the correct dashboard…
-        </div>
-
-        <div class="helper" style="margin-top:12px;">
-          If you are not redirected automatically, tap <strong>Login</strong> above.
-        </div>
-      </section>
-
-      <section class="card" style="margin-top:14px;">
-        <h2 style="margin:0 0 10px 0;">What this portal does</h2>
-        <ul class="list">
-          <li>Clients upload monthly CSVs (sales, labor, transactions).</li>
-          <li>Admin reviews + approves.</li>
-          <li>KPIs, Targets, and Recommendations unlock after approval.</li>
-        </ul>
-      </section>
-
-    </main>
+<header class="brandbar">
+  <div class="left">
+    <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
+    <div class="title">Dashboard Home</div>
   </div>
+  <div class="right">
+    <div class="pill">Role: <span id="roleLabel">...</span></div>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <nav class="nav">
+      <a class="active" href="index.html">Overview</a>
+      <a href="kpis.html">KPIs</a>
+      <a href="action-plan.html">Action Plan</a>
+      <a href="reports.html">Reports</a>
+      <a href="upload.html">Client Uploads</a>
+      <a href="payments.html">Payments</a>
+      <a href="contracts.html">Contracts</a>
+
+      <!-- admin-only link -->
+      <a data-role="admin" href="admin.html">Admin Review</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <section class="card">
+      <h1>FrontlineQSR</h1>
+      <p class="muted" id="welcomeText">Welcome...</p>
+
+      <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn primary" href="kpis.html">Go to KPIs</a>
+        <a class="btn" href="upload.html" data-role="client">Upload Data</a>
+        <a class="btn" href="admin.html" data-role="admin">Admin Review</a>
+        <button class="btn" id="logoutBtn" type="button">Logout</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h3>Quick Notes</h3>
+      <ul class="list">
+        <li>Clients can upload data + view KPIs + Action Plan.</li>
+        <li>Admins can review/approve submissions and unlock KPI updates.</li>
+        <li>This is still “static-site auth” (browser storage). Real security comes when we add a backend later.</li>
+      </ul>
+    </section>
+  </main>
+</div>
 
 </body>
 </html>
