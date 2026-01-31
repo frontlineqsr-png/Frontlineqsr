@@ -1,82 +1,94 @@
 // assets/masterlist-loader.js
-// Loads assets/masterlist.csv into window.FLQSR_MASTERLIST.clients
-// Static-site friendly (GitHub Pages / custom domain). Cache-busts for iPhone Safari.
+// Loads assets/masterlist.csv into window.FLQSR_MASTERLIST with clients + stores.
+// Supports CSV headers:
+// client_id,client_name,store_id,store_name,district,region,city,state
 
-window.FLQSR_MASTERLIST = window.FLQSR_MASTERLIST || { clients: {} };
+(() => {
+  "use strict";
 
-function _flqsr_parseCsv(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim().length);
-  if (!lines.length) return [];
+  window.FLQSR_MASTERLIST = window.FLQSR_MASTERLIST || { clients: {}, storesByClient: {} };
 
-  const splitLine = (line) => {
-    const out = [];
-    let cur = "", inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') inQuotes = !inQuotes;
-      else if (ch === "," && !inQuotes) { out.push(cur); cur = ""; }
-      else cur += ch;
-    }
-    out.push(cur);
-    return out.map(s => s.trim().replace(/^"|"$/g, ""));
-  };
+  function parseCSV(text) {
+    const lines = String(text || "").split(/\r?\n/).filter(l => l.trim().length);
+    if (!lines.length) return [];
 
-  const header = splitLine(lines[0]);
-  const rows = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = splitLine(lines[i]);
-    const row = {};
-    header.forEach((h, idx) => row[h] = cols[idx] ?? "");
-    rows.push(row);
-  }
-  return rows;
-}
-
-function _flqsr_num(v) {
-  const n = Number(String(v ?? "").trim());
-  return Number.isFinite(n) ? n : NaN;
-}
-
-async function _flqsr_loadMasterList() {
-  const url = `assets/masterlist.csv?v=${Date.now()}`; // cache-bust
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) throw new Error(`Could not load masterlist.csv (${res.status})`);
-
-  const rows = _flqsr_parseCsv(await res.text());
-  const clients = {};
-
-  for (const r of rows) {
-    const id = String(r.client_id || "").trim();
-    if (!id) continue;
-
-    clients[id] = {
-      id,
-      name: String(r.name || "").trim(),
-      brand: String(r.brand || "").trim(),
-      laborType: (String(r.labor_type || "dollars").trim().toLowerCase() === "hours") ? "hours" : "dollars",
-      targets: {
-        laborPct: _flqsr_num(r.target_labor_pct),
-        avgTicket: _flqsr_num(r.target_avg_ticket),
-        salesMoMGrowth: _flqsr_num(r.target_sales_mom),
-        transactionsMoM: _flqsr_num(r.target_tx_mom),
-      },
-      rules: {
-        issueLaborOverPct: _flqsr_num(r.issue_labor_over_pct),
-        issueSalesUnderPct: _flqsr_num(r.issue_sales_under_pct),
-        escalateLaborOverMonths: _flqsr_num(r.escalate_labor_over_months),
-      },
-      shi: {
-        wSales: _flqsr_num(r.shi_weight_sales),
-        wLabor: _flqsr_num(r.shi_weight_labor),
-        wTicket: _flqsr_num(r.shi_weight_ticket),
-        wTx: _flqsr_num(r.shi_weight_tx),
+    // simple CSV split (supports quoted commas)
+    function splitLine(line) {
+      const out = [];
+      let cur = "";
+      let q = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') { q = !q; continue; }
+        if (ch === "," && !q) { out.push(cur.trim()); cur = ""; continue; }
+        cur += ch;
       }
-    };
+      out.push(cur.trim());
+      return out.map(s => s.replace(/^"|"$/g, "").trim());
+    }
+
+    const header = splitLine(lines[0]).map(h => h.trim());
+    const rows = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      const cols = splitLine(lines[i]);
+      const row = {};
+      header.forEach((h, idx) => row[h] = cols[idx] ?? "");
+      rows.push(row);
+    }
+    return rows;
   }
 
-  window.FLQSR_MASTERLIST.clients = clients;
-  return clients;
-}
+  async function loadMasterlist() {
+    const url = `./assets/masterlist.csv?v=${Date.now()}`; // cache-bust for Safari/iPhone
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Could not load masterlist.csv (${res.status})`);
+    const text = await res.text();
+    const rows = parseCSV(text);
 
-// Other scripts can await this
-window.FLQSR_MASTERLIST_READY = _flqsr_loadMasterList();
+    const clients = {};
+    const storesByClient = {};
+
+    for (const r of rows) {
+      const clientId = String(r.client_id || "").trim();
+      const clientName = String(r.client_name || clientId || "").trim();
+      const storeId = String(r.store_id || "").trim();
+      const storeName = String(r.store_name || storeId || "").trim();
+
+      if (!clientId) continue;
+
+      if (!clients[clientId]) {
+        clients[clientId] = { id: clientId, name: clientName };
+        storesByClient[clientId] = [];
+      }
+
+      if (storeId) {
+        storesByClient[clientId].push({
+          store_id: storeId,
+          store_name: storeName,
+          district: String(r.district || "").trim(),
+          region: String(r.region || "").trim(),
+          city: String(r.city || "").trim(),
+          state: String(r.state || "").trim()
+        });
+      }
+    }
+
+    // sort stores for nicer dropdowns
+    Object.keys(storesByClient).forEach(cid => {
+      storesByClient[cid].sort((a,b) => (a.store_name || "").localeCompare(b.store_name || ""));
+    });
+
+    window.FLQSR_MASTERLIST.clients = clients;
+    window.FLQSR_MASTERLIST.storesByClient = storesByClient;
+
+    return window.FLQSR_MASTERLIST;
+  }
+
+  window.FLQSR_MASTERLIST_READY = loadMasterlist()
+    .catch(err => {
+      console.error("Masterlist load failed:", err);
+      window.FLQSR_MASTERLIST_ERROR = String(err?.message || err);
+      return window.FLQSR_MASTERLIST;
+    });
+})();
