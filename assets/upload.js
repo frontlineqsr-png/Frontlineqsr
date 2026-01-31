@@ -2,7 +2,6 @@
 (() => {
   "use strict";
 
-  // ---- DOM ----
   const $ = (id) => document.getElementById(id);
 
   const clientSel = $("clientSelect");
@@ -10,13 +9,15 @@
   const errBox    = $("masterErr");
   const statusBox = $("status");
 
-  function setStatus(msg) {
-    if (statusBox) statusBox.textContent = msg;
+  function setErr(msg) {
+    if (errBox) {
+      errBox.textContent = msg || "";
+      errBox.style.display = msg ? "block" : "none";
+    }
   }
 
-  function setError(msg) {
-    if (!errBox) return;
-    errBox.textContent = msg || "";
+  function setStatus(msg) {
+    if (statusBox) statusBox.textContent = msg || "";
   }
 
   function option(value, label) {
@@ -31,97 +32,65 @@
     sel.appendChild(option("", placeholder));
   }
 
-  function populateClients(master, session) {
-    const clients = master?.clients || {};
-    const idsAll = Object.keys(clients);
+  function populateClients(master) {
+    clearSelect(clientSel, "Select client");
+    const ids = Object.keys(master.clients || {}).sort((a,b) =>
+      (master.clients[a].name || "").localeCompare(master.clients[b].name || "")
+    );
 
-    // Optional: if client login should only see their own client_id,
-    // store it in session.client_id and filter here.
-    let ids = idsAll.slice();
-    if (session?.role === "client" && session?.client_id) {
-      ids = ids.filter(id => id === session.client_id);
+    for (const id of ids) {
+      clientSel.appendChild(option(id, master.clients[id].name));
     }
 
-    ids.sort((a,b) => (clients[a]?.name || a).localeCompare(clients[b]?.name || b));
-
-    clientSel.innerHTML = "";
     if (!ids.length) {
-      clientSel.appendChild(option("", "(no clients found)"));
-      clientSel.disabled = true;
-      return;
+      clearSelect(clientSel, "No clients found");
     }
-
-    clientSel.disabled = false;
-    clientSel.appendChild(option("", "Select client"));
-    ids.forEach(id => {
-      clientSel.appendChild(option(id, clients[id]?.name || id));
-    });
   }
 
   function populateStores(master, clientId) {
-    const stores = master?.storesByClient?.[clientId] || [];
-
-    clearSelect(storeSel, stores.length ? "Select store" : "(no stores)");
-    storeSel.disabled = stores.length === 0;
-
-    stores.forEach(s => {
-      storeSel.appendChild(option(s.store_id, `${s.store_name} (${s.store_id})`));
-    });
+    clearSelect(storeSel, "Select store");
+    if (!clientId) {
+      clearSelect(storeSel, "Select a client first");
+      return;
+    }
+    const stores = (master.storesByClient?.[clientId] || []);
+    for (const s of stores) {
+      storeSel.appendChild(option(s.store_id, `${s.store_id} — ${s.store_name}`));
+    }
+    if (!stores.length) {
+      clearSelect(storeSel, "No stores for this client");
+    }
   }
 
   async function init() {
-    // Gate page: allow admin + client
-    const session = window.FLQSR_AUTH?.requireRole(["admin","client"]) || null;
-
-    // default UI state
-    clearSelect(clientSel, "Loading…");
-    clearSelect(storeSel, "Select a client first");
-    storeSel.disabled = true;
-    setError("");
-    setStatus("Loading master client/store list…");
-
-    // WAIT for masterlist to load
-    const master = await window.FLQSR_MASTERLIST_READY;
-
-    // If loader set a global error, show it
-    if (window.FLQSR_MASTERLIST_ERROR) {
-      setError(
-        "Masterlist load failed:\n" +
-        window.FLQSR_MASTERLIST_ERROR +
-        "\n\nCheck:\n- /assets/masterlist.csv\n- /assets/masterlist-loader.js"
-      );
-      clearSelect(clientSel, "(error loading)");
-      clientSel.disabled = true;
-      setStatus("Fix masterlist.csv path first.");
+    if (!clientSel || !storeSel) {
+      console.error("[UPLOAD] Missing #clientSelect or #storeSelect in upload.html");
       return;
     }
 
-    populateClients(master, session);
+    setErr("");
+    setStatus("Loading master client list…");
+    clearSelect(clientSel, "Loading…");
+    clearSelect(storeSel, "Select a client first");
 
-    // if only one client (client role filtered), auto-select it
-    if (session?.role === "client" && session?.client_id) {
-      clientSel.value = session.client_id;
-      populateStores(master, session.client_id);
+    try {
+      const master = await window.FLOSR_MASTERLIST_READY;
+      populateClients(master);
+      populateStores(master, "");
+
+      clientSel.addEventListener("change", () => {
+        populateStores(master, clientSel.value);
+      });
+
+      setStatus("Masterlist loaded ✅ Select client + store.");
+    } catch (e) {
+      console.error("[UPLOAD] Masterlist init failed:", e);
+      clearSelect(clientSel, "Failed to load");
+      clearSelect(storeSel, "Failed to load");
+      setStatus("");
+      setErr(`Could not load masterlist: ${e.message}`);
     }
-
-    clientSel.addEventListener("change", () => {
-      const cid = clientSel.value;
-      if (!cid) {
-        clearSelect(storeSel, "Select a client first");
-        storeSel.disabled = true;
-        return;
-      }
-      populateStores(master, cid);
-    });
-
-    setStatus("Ready. Pick client + store, then upload files.");
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    init().catch((e) => {
-      console.error(e);
-      setError("Upload page init failed:\n" + (e?.message || String(e)));
-      setStatus("Open DevTools console for the exact error.");
-    });
-  });
+  document.addEventListener("DOMContentLoaded", init);
 })();
