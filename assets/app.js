@@ -1,201 +1,164 @@
-/*************************************************
- * FrontlineQSR – Upload + Master List Integration
- * assets/app.js
- *************************************************/
+/* assets/app.js (v6)
+   Upload -> Validate -> Submit to Queue (localStorage)
+   Writes to flqsr_submission_queue_v1 so admin.js can read it
+*/
 
-// ---------- CONFIG ----------
-const REQUIRED_COLUMNS = ["Date", "Location", "Sales", "Labor", "Transactions"];
-const STORAGE_KEY_QUEUE = "flqsr_submission_queue";
+(() => {
+  "use strict";
 
-// ---------- MASTER LIST HELPERS ----------
-async function waitForMasterList() {
-  if (window.FLQSR_MASTERLIST_READY) {
-    try {
-      await window.FLQSR_MASTERLIST_READY;
-    } catch (e) {
-      console.warn("Master list failed to load", e);
+  const QUEUE_KEY = "flqsr_submission_queue_v1";
+  const REQUIRED_COLS = ["Date", "Location", "Sales", "Labor", "Transactions"];
+
+  const $ = (id) => document.getElementById(id);
+
+  function safeParse(v, fallback) {
+    try { return JSON.parse(v); } catch { return fallback; }
+  }
+
+  function loadQueue() {
+    return safeParse(localStorage.getItem(QUEUE_KEY), []);
+  }
+
+  function saveQueue(q) {
+    localStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+  }
+
+  function setStatus(text) {
+    const el = $("statusText");
+    if (el) el.textContent = text || "";
+  }
+
+  function showIssues(issues) {
+    const host = $("issuesList");
+    if (!host) return;
+    if (!issues.length) { host.innerHTML = ""; return; }
+    host.innerHTML = `
+      <ul class="list">
+        ${issues.map(i => `<li>${escapeHtml(i)}</li>`).join("")}
+      </ul>
+    `;
+  }
+
+  function escapeHtml(s) {
+    return String(s || "")
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;");
+  }
+
+  function parseHeader(csvText) {
+    const firstLine = (csvText || "").split(/\r?\n/)[0] || "";
+    return firstLine.split(",").map(s => s.trim());
+  }
+
+  function readFileText(file) {
+    return new Promise((resolve, reject) => {
+      const fr = new FileReader();
+      fr.onload = () => resolve(String(fr.result || ""));
+      fr.onerror = reject;
+      fr.readAsText(file);
+    });
+  }
+
+  function makeSlot(i) {
+    return `
+      <div class="card">
+        <div style="font-weight:800;">Month ${i + 1}</div>
+        <div class="meta" style="margin-top:6px;">Pick month + CSV</div>
+
+        <div style="margin-top:10px;">
+          <div class="meta">Month</div>
+          <input type="month" id="m_${i}" />
+        </div>
+
+        <div style="margin-top:10px;">
+          <div class="meta">CSV File</div>
+          <input type="file" id="f_${i}" accept=".csv,text/csv" />
+        </div>
+      </div>
+    `;
+  }
+
+  async function validateAndSubmit() {
+    const issues = [];
+    const picks = [];
+
+    for (let i = 0; i < 5; i++) {
+      const month = $("m_" + i)?.value || "";
+      const file = $("f_" + i)?.files?.[0] || null;
+
+      if (!month && !file) continue; // allow fewer than 5
+      if (!month) issues.push(`Slot ${i + 1}: month is missing.`);
+      if (!file) issues.push(`Slot ${i + 1}: CSV file is missing.`);
+      if (month && file) picks.push({ month, file });
     }
-  }
-  return window.FLQSR_MASTERLIST?.clients || {};
-}
 
-async function populateClientDropdown() {
-  const sel = document.getElementById("clientSelect");
-  if (!sel) return;
+    if (picks.length < 3) issues.push("Upload at least 3 months to submit (recommended 3 current + 2 previous).");
 
-  const clients = await waitForMasterList();
-  const entries = Object.entries(clients);
+    // unique months
+    const months = picks.map(p => p.month);
+    const dup = months.filter((m, idx) => months.indexOf(m) !== idx);
+    if (dup.length) issues.push("Duplicate months detected. Each month must be unique.");
 
-  if (!entries.length) {
-    sel.innerHTML = `<option value="">No clients found</option>`;
-    return;
-  }
-
-  sel.innerHTML = entries
-    .map(([id, c]) => {
-      const name = c?.name || id;
-      const brand = c?.brand ? ` (${c.brand})` : "";
-      return `<option value="${id}">${name}${brand}</option>`;
-    })
-    .join("");
-}
-
-function getSelectedClient() {
-  const sel = document.getElementById("clientSelect");
-  if (!sel) return { id: "", name: "" };
-
-  const id = sel.value;
-  const c = window.FLQSR_MASTERLIST?.clients?.[id];
-  return {
-    id,
-    name: c?.name || id
-  };
-}
-
-// ---------- CSV HELPERS ----------
-function parseCsv(text) {
-  const lines = text.split(/\r?\n/).filter(l => l.trim().length);
-  if (!lines.length) return [];
-
-  const splitLine = (line) => {
-    const out = [];
-    let cur = "", inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') inQuotes = !inQuotes;
-      else if (ch === "," && !inQuotes) {
-        out.push(cur);
-        cur = "";
-      } else {
-        cur += ch;
+    // validate headers
+    for (const p of picks) {
+      const text = await readFileText(p.file);
+      const header = parseHeader(text);
+      const missing = REQUIRED_COLS.filter(c => !header.includes(c));
+      if (missing.length) {
+        issues.push(`${p.file.name}: missing required columns: ${missing.join(", ")}`);
       }
     }
-    out.push(cur);
-    return out.map(s => s.trim().replace(/^"|"$/g, ""));
-  };
 
-  const header = splitLine(lines[0]);
-  const rows = [];
+    showIssues(issues);
 
-  for (let i = 1; i < lines.length; i++) {
-    const cols = splitLine(lines[i]);
-    const row = {};
-    header.forEach((h, idx) => row[h] = cols[idx] ?? "");
-    rows.push(row);
-  }
-  return rows;
-}
-
-function validateColumns(rows) {
-  if (!rows.length) return REQUIRED_COLUMNS;
-  const cols = Object.keys(rows[0]);
-  return REQUIRED_COLUMNS.filter(c => !cols.includes(c));
-}
-
-// ---------- UI BUILD ----------
-function buildUploadSlots() {
-  const container = document.getElementById("uploadSlots");
-  if (!container) return;
-
-  const months = [
-    { key: "m2", label: "Two Months Ago" },
-    { key: "m1", label: "Last Month" },
-    { key: "m0", label: "Current Month" }
-  ];
-
-  container.innerHTML = months.map(m => `
-    <div class="card">
-      <h4>${m.label}</h4>
-      <input type="file" accept=".csv" id="file_${m.key}" />
-      <div class="meta" id="status_${m.key}">No file selected</div>
-    </div>
-  `).join("");
-}
-
-// ---------- STORAGE ----------
-function loadQueue() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY_QUEUE) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function saveQueue(queue) {
-  localStorage.setItem(STORAGE_KEY_QUEUE, JSON.stringify(queue));
-}
-
-// ---------- MAIN VALIDATION ----------
-async function validateAndQueue() {
-  const months = ["m2", "m1", "m0"];
-  const issues = [];
-  const monthlyTotals = {};
-  const files = [];
-
-  for (const m of months) {
-    const input = document.getElementById(`file_${m}`);
-    if (!input || !input.files.length) {
-      issues.push(`${m}: No file selected`);
-      continue;
+    if (issues.length) {
+      setStatus("Fix issues above and try again.");
+      return;
     }
 
-    const file = input.files[0];
-    files.push(file.name);
+    // Build submission object
+    const sub = {
+      id: "sub_" + Math.random().toString(16).slice(2),
+      clientId: "example-location",
+      clientName: "Example Location",
+      createdAt: new Date().toISOString(),
+      status: "pending",
+      months: picks.map(p => p.month),
+      files: picks.map(p => ({ name: p.file.name, size: p.file.size })),
+      adminNotes: ""
+    };
 
-    const text = await file.text();
-    const rows = parseCsv(text);
-    const missing = validateColumns(rows);
+    const q = loadQueue();
+    q.unshift(sub);
+    saveQueue(q);
 
-    if (missing.length) {
-      issues.push(`${m}: Missing columns ${missing.join(", ")}`);
-      continue;
+    setStatus("Submitted ✅ Now wait for Admin approval in Admin Review.");
+    showIssues([]);
+  }
+
+  function resetForm() {
+    for (let i = 0; i < 5; i++) {
+      const m = $("m_" + i); if (m) m.value = "";
+      const f = $("f_" + i); if (f) f.value = "";
     }
+    setStatus("Reset complete.");
+    showIssues([]);
+  }
 
-    let sales = 0, labor = 0, tx = 0;
-    rows.forEach(r => {
-      sales += Number(r.Sales) || 0;
-      labor += Number(r.Labor) || 0;
-      tx += Number(r.Transactions) || 0;
+  document.addEventListener("DOMContentLoaded", () => {
+    const host = $("uploadSlots");
+    if (host) host.innerHTML = Array.from({ length: 5 }).map((_, i) => makeSlot(i)).join("");
+
+    $("validateBtn")?.addEventListener("click", () => {
+      setStatus("Validating…");
+      validateAndSubmit().catch(err => {
+        console.error(err);
+        setStatus("Validation error. Check console / try again.");
+      });
     });
 
-    monthlyTotals[m] = { sales, labor, transactions: tx };
-  }
-
-  const status = document.getElementById("statusText");
-  const list = document.getElementById("issuesList");
-
-  if (issues.length) {
-    status.innerHTML = `<span style="color:#f88">Found ${issues.length} issue(s).</span>`;
-    list.innerHTML = `<ul class="list">${issues.map(i => `<li>${i}</li>`).join("")}</ul>`;
-    return;
-  }
-
-  // ----- BUILD SUBMISSION -----
-  const client = getSelectedClient();
-  const queue = loadQueue();
-
-  const submission = {
-    id: crypto.randomUUID(),
-    clientId: client.id,
-    clientName: client.name,
-    createdAt: new Date().toISOString(),
-    status: "pending",
-    files,
-    monthlyTotals
-  };
-
-  queue.push(submission);
-  saveQueue(queue);
-
-  status.innerHTML = `<span style="color:#7f7">All good ✓ Submission queued for Admin Review.</span>`;
-  list.innerHTML = "";
-}
-
-// ---------- INIT ----------
-document.addEventListener("DOMContentLoaded", async () => {
-  buildUploadSlots();
-  await populateClientDropdown();
-
-  document.getElementById("validateBtn")?.addEventListener("click", validateAndQueue);
-  document.getElementById("resetBtn")?.addEventListener("click", () => location.reload());
-});
+    $("resetBtn")?.addEventListener("click", resetForm);
+  });
+})();
