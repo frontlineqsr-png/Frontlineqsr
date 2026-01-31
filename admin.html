@@ -6,30 +6,29 @@
   <title>FrontlineQSR | Admin Review</title>
   <link rel="stylesheet" href="assets/styles.css" />
 
-  <!-- ✅ AUTH (must be /assets/auth.js) -->
-  <script src="assets/auth.js?v=3" defer></script>
-
-  <!-- Admin logic -->
-  <script src="assets/admin.js?v=3" defer></script>
+  <!-- ✅ AUTH (Admin-only) -->
+  <script src="assets/auth.js?v=4" defer></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      FLQSR_AUTH.requireAdmin();
+    });
+  </script>
 </head>
 
 <body>
 
-  <!-- Top brand bar -->
   <header class="brandbar">
     <div class="left">
       <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
       <div class="title">Admin Dashboard</div>
     </div>
-
-    <div class="right" style="display:flex; gap:10px; align-items:center;">
+    <div class="right">
       <div class="pill" id="rolePill">Role: Admin</div>
-      <button class="btn" type="button" onclick="FLQSR_AUTH.logout()">Logout</button>
+      <button class="btn" id="logoutBtn" type="button">Logout</button>
     </div>
   </header>
 
   <div class="layout">
-    <!-- Sidebar -->
     <aside class="sidebar">
       <nav class="nav">
         <a href="index.html">Overview</a>
@@ -37,31 +36,17 @@
         <a href="action-plan.html">Action Plan</a>
         <a href="reports.html">Reports</a>
         <a href="upload.html">Client Uploads</a>
-        <a class="active" href="admin.html" id="adminNavLink">Admin Review</a>
-        <a href="payments.html">Payments</a>
-        <a href="contracts.html">Contracts</a>
+        <a class="active" href="admin.html">Admin Review</a>
       </nav>
     </aside>
 
-    <!-- Main -->
     <main class="main">
-
-      <!-- ✅ HARD GATE: Admin only -->
-      <script>
-        document.addEventListener("DOMContentLoaded", () => {
-          FLQSR_AUTH.requireRole(["admin"]);
-
-          // Safety: if auth is missing, requireRole will redirect to login.html.
-          const pill = document.getElementById("rolePill");
-          if (pill) pill.textContent = "Role: " + (FLQSR_AUTH.role() || "—");
-        });
-      </script>
 
       <section class="card">
         <h1 style="margin:0 0 6px 0;">Admin Review Queue</h1>
         <div class="meta">
-          Review client submissions, approve to lock KPI/targets/recommendations, or reject with notes.
-          (Pilot v1 uses browser storage — no backend yet.)
+          Review client submissions, approve to unlock KPI updates, or reject with notes.
+          (Pilot v1 uses your browser storage — no backend yet.)
         </div>
 
         <div class="actions" style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -77,11 +62,7 @@
 
       <section class="card" style="margin-top:14px;">
         <h2 style="margin:0 0 10px 0;">Submissions</h2>
-
-        <div id="queueEmpty" class="meta">
-          No submissions yet. Have a client submit from <a href="upload.html">Upload Data</a>.
-        </div>
-
+        <div id="queueEmpty" class="meta">No submissions yet. Have a client submit from <a href="upload.html">Upload Data</a>.</div>
         <div id="queueList" class="grid-2" style="margin-top:10px;"></div>
       </section>
 
@@ -128,6 +109,21 @@
 
     </main>
   </div>
+
+  <script src="assets/admin.js?v=4"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      try {
+        const role = FLQSR_AUTH.getRole();
+        const pill = document.getElementById("rolePill");
+        if (pill) pill.textContent = "Role: " + (role || "admin");
+      } catch(e) {}
+
+      const btn = document.getElementById("logoutBtn");
+      if (btn) btn.addEventListener("click", () => FLQSR_AUTH.logout());
+    });
+  </script>
 
 </body>
 </html>
