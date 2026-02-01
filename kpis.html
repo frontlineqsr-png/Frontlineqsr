@@ -1,87 +1,275 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | KPIs</title>
 
-  <link rel="stylesheet" href="assets/styles.css" />
+  <!-- Your existing global stylesheet -->
+  <link rel="stylesheet" href="./assets/styles.css" />
 
-  <!-- ✅ AUTH (Client-only) -->
-  <script src="assets/auth.js?v=4" defer></script>
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      FLQSR_AUTH.requireClient();
-    });
-  </script>
+  <!-- Auth -->
+  <script defer src="./assets/auth.js"></script>
 
-  <!-- ✅ KPI logic (keep these filenames if you already use them) -->
-  <!-- If you already have targets.js + masterlist-loader.js, leave these on -->
-  <script src="assets/masterlist-loader.js?v=4" defer></script>
-  <script src="assets/targets.js?v=4" defer></script>
+  <!-- Targets + KPI logic (keep your existing files) -->
+  <script defer src="./assets/targets.js"></script>
+  <script defer src="./assets/kpis.js"></script>
+
+  <style>
+    /* Dashboard shell (matches the dark look you had) */
+    :root{
+      --bg:#0b0f14;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.04);
+      --line: rgba(255,255,255,.12);
+      --text:#e9eef5;
+      --muted:#b7c3d4;
+      --good:#42d392;
+      --warn:#ffcc66;
+      --bad:#ff6b6b;
+    }
+    body{background:var(--bg);color:var(--text);margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
+    .layout{display:grid;grid-template-columns: 240px 1fr;min-height:100vh}
+    .side{
+      padding:16px 14px;
+      border-right:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+    }
+    .brand{
+      display:flex;align-items:center;gap:10px;margin-bottom:14px
+    }
+    .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--good)}
+    .brand h1{font-size:16px;margin:0}
+    .nav a{
+      display:block;
+      padding:10px 12px;
+      border-radius:12px;
+      margin:8px 0;
+      color:var(--text);
+      text-decoration:none;
+      border:1px solid transparent;
+      background:transparent;
+      font-weight:700;
+    }
+    .nav a:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.08)}
+    .nav a.active{background:rgba(66,211,146,.12);border-color:rgba(66,211,146,.35)}
+    .content{padding:18px}
+    .topbar{
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+      padding:14px 16px;border:1px solid var(--line);
+      border-radius:16px;background:var(--panel);
+      margin-bottom:14px;
+    }
+    .topbar .title{font-size:26px;font-weight:900;line-height:1.1;margin:0}
+    .topbar .sub{color:var(--muted);font-size:13px;margin-top:6px}
+    .btn{
+      padding:10px 12px;border-radius:12px;border:1px solid var(--line);
+      background:rgba(255,255,255,.06);color:var(--text);
+      font-weight:800;cursor:pointer;
+    }
+    .btn:hover{background:rgba(255,255,255,.09)}
+    .pill{
+      display:inline-flex;gap:8px;align-items:center;
+      padding:8px 10px;border:1px solid var(--line);
+      background:rgba(0,0,0,.18);border-radius:999px;color:var(--muted);
+      font-size:12px;font-weight:800;
+    }
+
+    .section{
+      border:1px solid var(--line);
+      border-radius:16px;background:var(--panel);
+      padding:14px 14px;margin-top:14px;
+    }
+    .section h2{margin:0 0 10px;font-size:18px}
+    .metaRow{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px}
+    .kpiGrid{
+      display:grid;grid-template-columns: 1fr 1fr;gap:12px;
+    }
+    @media (max-width: 980px){ .layout{grid-template-columns:1fr} .side{display:none} .kpiGrid{grid-template-columns:1fr} }
+
+    .card{
+      border:1px solid var(--line);
+      border-radius:16px;background:var(--panel2);
+      padding:14px;
+      min-height:92px;
+    }
+    .card .label{color:var(--muted);font-weight:900;font-size:12px;text-transform:none}
+    .card .value{font-weight:1000;font-size:28px;margin-top:4px;letter-spacing:.2px}
+    .card .mini{margin-top:6px;color:var(--muted);font-size:12px;line-height:1.35}
+    .debugLine{margin-top:8px;color:var(--muted);font-size:12px}
+
+    table{width:100%;border-collapse:separate;border-spacing:0 8px}
+    th{color:var(--muted);font-size:12px;text-align:left;padding:0 10px}
+    td{
+      padding:10px;
+      background:rgba(0,0,0,.18);
+      border-top:1px solid rgba(255,255,255,.10);
+      border-bottom:1px solid rgba(255,255,255,.10);
+    }
+    td:first-child{border-left:1px solid rgba(255,255,255,.10);border-radius:12px 0 0 12px}
+    td:last-child{border-right:1px solid rgba(255,255,255,.10);border-radius:0 12px 12px 0}
+
+    .statusDot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+    .good{background:var(--good)}
+    .warn{background:var(--warn)}
+    .bad{background:var(--bad)}
+    .flex2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width: 980px){ .flex2{grid-template-columns:1fr} }
+
+    ul{margin:0;padding-left:18px}
+    li{margin:8px 0;color:var(--text)}
+    .muted{color:var(--muted)}
+  </style>
 </head>
 
 <body>
-
-  <header class="brandbar">
-    <div class="left">
-      <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR Logo" />
-      <div class="title">Client Dashboard</div>
-    </div>
-    <div class="right">
-      <div class="pill" id="rolePill">Role: Client</div>
-      <button class="btn" id="logoutBtn" type="button">Logout</button>
-    </div>
-  </header>
+  <!-- ADMIN ONLY -->
+  <script>FLQSR_AUTH.requireAdmin();</script>
 
   <div class="layout">
-    <aside class="sidebar">
+    <!-- Sidebar -->
+    <aside class="side">
+      <div class="brand">
+        <span class="dot"></span>
+        <div>
+          <h1>FrontlineQSR</h1>
+          <div class="muted" style="font-size:12px;font-weight:800;">Admin Dashboard</div>
+        </div>
+      </div>
+
       <nav class="nav">
+        <a href="app.html">Overview</a>
         <a class="active" href="kpis.html">KPIs</a>
         <a href="action-plan.html">Action Plan</a>
         <a href="reports.html">Reports</a>
-        <a href="upload.html">Upload Data</a>
+        <a href="upload.html">Upload</a>
+        <a href="admin.html">Admin Review</a>
       </nav>
+
+      <button class="btn" style="margin-top:10px;width:100%" onclick="FLQSR_AUTH.logout()">Logout</button>
     </aside>
 
-    <main class="main">
-      <section class="card">
-        <h1 style="margin:0 0 6px 0;">KPIs</h1>
-        <div class="meta">
-          Your KPI status updates after Admin approves your latest upload.
+    <!-- Main -->
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <div class="title">KPIs</div>
+          <div class="sub">Latest approved snapshot + trends vs last month & 2 months ago.</div>
+          <div class="metaRow">
+            <span class="pill">Submitted: <span id="submittedAt">—</span></span>
+            <span class="pill">Approved: <span id="approvedAt">—</span></span>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+          <button class="btn" id="btnRefresh">Refresh</button>
+          <button class="btn" id="btnClear">Clear Local Cache</button>
+        </div>
+      </div>
+
+      <!-- KPI Cards -->
+      <section class="section">
+        <h2>KPI Cards</h2>
+        <div class="kpiGrid">
+          <div class="card">
+            <div class="label">Sales (Current)</div>
+            <div class="value" id="kpiSales">$0.00</div>
+            <div class="mini">
+              MoM: <span id="kpiSalesMoM">—</span><br/>
+              Prev: <span id="kpiSalesPrev">—</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="label">Labor % (Current)</div>
+            <div class="value" id="kpiLabor">—</div>
+            <div class="mini">
+              MoM: <span id="kpiLaborMoM">—</span><br/>
+              Prev: <span id="kpiLaborPrev">—</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="label">Transactions (Current)</div>
+            <div class="value" id="kpiTx">—</div>
+            <div class="mini">
+              MoM: <span id="kpiTxMoM">—</span><br/>
+              Prev: <span id="kpiTxPrev">—</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="label">Avg Ticket (Current)</div>
+            <div class="value" id="kpiTicket">—</div>
+            <div class="mini">
+              MoM: <span id="kpiTicketMoM">—</span><br/>
+              Prev: <span id="kpiTicketPrev">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="debugLine" id="debugLine">(Debug) —</div>
+
+        <div class="section" style="margin-top:12px;background:rgba(255,255,255,.03)">
+          <div class="muted" style="font-weight:900;margin-bottom:6px">Monthly Totals (Debug View)</div>
+          <div class="muted" id="debugMonthly">—</div>
         </div>
       </section>
 
-      <!-- ✅ KPI CONTENT CONTAINER (targets.js can render into this) -->
-      <section class="card" style="margin-top:14px;">
-        <h2 style="margin:0 0 10px 0;">Store Health</h2>
-        <div id="kpiCards" class="grid-2"></div>
-        <div id="kpiEmpty" class="meta" style="margin-top:10px;">
-          No approved KPI snapshot found yet. Upload your files and have Admin approve.
+      <!-- Targets + Recs -->
+      <section class="section">
+        <h2>Targets & Recommendations</h2>
+        <div class="flex2">
+          <div>
+            <div class="muted" style="font-weight:900;margin-bottom:8px">Targets vs Actual</div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="padding-left:10px">KPI</th>
+                  <th>Actual</th>
+                  <th>Target</th>
+                  <th>Variance</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="targetsBody">
+                <!-- kpis.js should fill rows here -->
+              </tbody>
+            </table>
+          </div>
+
+          <div>
+            <div class="muted" style="font-weight:900;margin-bottom:8px">Recommendations</div>
+            <div class="card" style="min-height:190px">
+              <ul id="recsList">
+                <!-- kpis.js should fill list here -->
+              </ul>
+              <div class="muted" style="margin-top:8px;font-size:12px">
+                Tip: These recommendations are auto-generated from Targets + KPI variance.
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <!-- ✅ Recommendations -->
-      <section class="card" style="margin-top:14px;">
-        <h2 style="margin:0 0 10px 0;">Recommendations</h2>
-        <div id="recommendations" class="meta">Loading…</div>
-      </section>
+      <div class="muted" style="margin-top:14px;font-size:12px">
+        If the page ever looks “unstyled,” it usually means <code>assets/styles.css</code> didn’t load or a script path changed.
+      </div>
     </main>
   </div>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      // Role pill + logout
-      try {
-        const role = FLQSR_AUTH.getRole();
-        const pill = document.getElementById("rolePill");
-        if (pill) pill.textContent = "Role: " + (role || "client");
-      } catch(e) {}
-
-      const btn = document.getElementById("logoutBtn");
-      if (btn) btn.addEventListener("click", () => FLQSR_AUTH.logout());
+    // Buttons (safe even if your kpis.js also attaches handlers)
+    document.getElementById("btnRefresh").addEventListener("click", () => location.reload());
+    document.getElementById("btnClear").addEventListener("click", () => {
+      // Keep auth, clear KPI/report caches only
+      Object.keys(localStorage).forEach(k => {
+        if (k.startsWith("flqsr_") || k.startsWith("FLQSR_") || k.includes("reports") || k.includes("kpi")) {
+          // Avoid wiping auth key if you want:
+          if (!k.toLowerCase().includes("auth")) localStorage.removeItem(k);
+        }
+      });
+      location.reload();
     });
   </script>
-
 </body>
 </html>
