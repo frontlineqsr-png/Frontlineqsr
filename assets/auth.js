@@ -1,80 +1,85 @@
 (() => {
+  "use strict";
+
   const KEY = "flqsr_auth_v2";
 
-  function defaults(){
-    return {
-      accounts:{
-        admin:{ username:"admin", password:"admin123" },
-        client:{ username:"client", password:"Client123!" }
-      },
-      session:null
-    };
+  const DEFAULTS = {
+    accounts: {
+      admin: { username: "nrobinson@flqsr.com", password: "admin123" },
+      client: { username: "client", password: "client123" }
+    },
+    session: null
+  };
+
+  function defaults() {
+    return JSON.parse(JSON.stringify(DEFAULTS));
   }
 
-  function load(){
-    try{
+  function load() {
+    try {
       const raw = localStorage.getItem(KEY);
-      if(!raw) return defaults();
+      if (!raw) return defaults();
       const parsed = JSON.parse(raw);
-      if(!parsed.accounts?.admin || !parsed.accounts?.client) return defaults();
+      if (!parsed?.accounts?.admin || !parsed?.accounts?.client) return defaults();
       return parsed;
-    }catch{
+    } catch {
       return defaults();
     }
   }
 
-  function save(v){ localStorage.setItem(KEY, JSON.stringify(v)); }
-
-  function login(role,u,p){
-    const s = load();
-    const acct = s.accounts?.[role];
-    if(!acct) return false;
-
-    const okUser = String(acct.username||"").trim().toLowerCase() === String(u||"").trim().toLowerCase();
-    const okPass = String(acct.password||"") === String(p||"");
-
-    if(okUser && okPass){
-      s.session = { role, user: acct.username, ts: Date.now() };
-      save(s);
-      return true;
-    }
-    return false;
+  function save(v) {
+    localStorage.setItem(KEY, JSON.stringify(v));
   }
 
-  function session(){
+  function login(role, u, p) {
+    const s = load();
+    const acct = s.accounts?.[role];
+    if (!acct) return { ok: false, msg: "Unknown role." };
+
+    const user = String(u || "").trim().toLowerCase();
+    const pass = String(p || "");
+
+    const au = String(acct.username || "").trim().toLowerCase();
+    const ap = String(acct.password || "");
+
+    if (user === au && pass === ap) {
+      s.session = { role, user: acct.username, ts: Date.now() };
+      save(s);
+      return { ok: true };
+    }
+
+    return { ok: false, msg: "Invalid username or password." };
+  }
+
+  function session() {
     return load().session;
   }
 
-  function logout(){
+  function logout() {
     const s = load();
     s.session = null;
     save(s);
-    location.href = "login.html";
+    location.href = "login.html"; // FIXED (no space)
   }
 
-  function guard(){
+  function requireRole(roles) {
     const s = session();
-    const page = (location.pathname.split("/").pop() || "").toLowerCase();
-
-    const protectedPages = ["upload.html","reports.html","admin.html"];
-    if(protectedPages.includes(page) && !s){
+    if (!s) {
       location.href = "login.html";
-      return;
+      return false;
     }
-
-    // client cannot access admin
-    if(page === "admin.html" && s?.role !== "admin"){
+    if (Array.isArray(roles) && !roles.includes(s.role)) {
       location.href = "reports.html";
-      return;
+      return false;
     }
-
-    // toggle admin-only items
-    document.querySelectorAll(".adminOnly").forEach(el=>{
-      el.style.display = (s?.role === "admin") ? "" : "none";
-    });
+    return true;
   }
 
-  window.FLQSR_AUTH = { login, session, logout, guard };
+  // Helper for one-time reset from console if needed
+  function resetToDefaults() {
+    save(defaults());
+    return true;
+  }
 
-  document.addEventListener("DOMContentLoaded", guard);
+  window.FLQSR_AUTH = { login, session, logout, requireRole, resetToDefaults };
 })();
