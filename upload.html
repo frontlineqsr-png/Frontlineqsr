@@ -5,180 +5,153 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Upload Data</title>
 
-  <!-- Shared styles -->
   <link rel="stylesheet" href="./assets/styles.css" />
 
-  <style>
-    body { background:#0b0f14; color:#e9eef5; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; margin:0; }
-    .wrap { max-width:1100px; margin:0 auto; padding:18px; }
-    .topbar { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:14px; }
-    .title { font-size:28px; font-weight:900; margin:0; }
-    .muted { color:#b7c3d4; font-size:13px; margin-top:4px; }
-    .btn { padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.06); color:#e9eef5; cursor:pointer; font-weight:600; }
-    .btn.primary { border-color:rgba(106,228,255,.45); background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(125,255,155,.12)); }
-    .card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:16px; margin:14px 0; }
-    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    @media(max-width:900px){ .grid2{ grid-template-columns:1fr; } }
-    label { display:block; margin:10px 0 6px; color:#b7c3d4; font-size:13px; }
-    select, input[type="month"], input[type="file"] {
-      width:100%; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.12);
-      background:rgba(255,255,255,.03); color:#e9eef5;
-    }
-    .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    @media(max-width:900px){ .row{ grid-template-columns:1fr; } }
-    .subhead { font-size:16px; font-weight:800; margin:0 0 8px; }
-    .hint { color:#b7c3d4; font-size:13px; margin:0; }
-    .err { color:#ffb4b4; margin-top:8px; white-space:pre-wrap; }
-    .status { color:#e9eef5; margin-top:10px; white-space:pre-wrap; }
-    .miniTips { color:#b7c3d4; font-size:13px; line-height:1.35; }
-    .actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
-  </style>
-
-  <!-- IMPORTANT: scripts must load in this order -->
+  <!-- Auth first -->
   <script defer src="./assets/auth.js"></script>
+
+  <!-- Masterlist (clients/stores) -->
   <script defer src="./assets/masterlist-loader.js"></script>
+
+  <!-- Upload page logic -->
   <script defer src="./assets/upload.js"></script>
+
+  <style>
+    body{background:#0b0f14;color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .muted{color:#b7c3d4;font-size:13px}
+    .card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;margin-top:14px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:900px){.grid2{grid-template-columns:1fr}}
+    label{display:block;margin:10px 0 6px;color:#b7c3d4}
+    select,input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#e9eef5}
+    .btn{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e9eef5;font-weight:700;cursor:pointer}
+    .btn.primary{border-color:rgba(106,228,255,.45);background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(125,255,155,.12))}
+    .err{color:#ff8b8b}
+  </style>
 </head>
 
 <body>
   <div class="wrap">
-
-    <div class="topbar">
+    <div class="top">
       <div>
-        <h1 class="title">Upload Data</h1>
-        <div class="muted">
-          Upload <strong>3 months (required)</strong> + <strong>3 weeks (optional)</strong>.
-          Submissions are approved <strong>per store</strong>.
-        </div>
+        <div style="font-size:28px;font-weight:900">Upload Data</div>
+        <div class="muted">Upload 3 months (required) + 3 weeks (optional). Submissions are approved per store.</div>
       </div>
-      <div style="display:flex; gap:10px; align-items:center;">
-        <button class="btn" onclick="FLQSR_AUTH.logout()">Logout</button>
-      </div>
+      <button class="btn" onclick="FLQSR_AUTH.logout()">Logout</button>
     </div>
 
-    <!-- SELECT CLIENT + STORE -->
     <div class="card">
-      <div class="subhead">Select Client + Store</div>
-      <div class="row">
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px">Select Client + Store</div>
+      <div class="grid2">
         <div>
-          <label for="clientSelect">Client</label>
+          <label>Client</label>
           <select id="clientSelect">
-            <option value="">Loading...</option>
+            <option value="">Loading…</option>
           </select>
+          <div class="muted">Tip: Uses one row per store in <code>assets/masterlist.csv</code>.</div>
         </div>
-
         <div>
-          <label for="storeSelect">Store</label>
+          <label>Store</label>
           <select id="storeSelect" disabled>
             <option value="">Select a client first</option>
           </select>
         </div>
       </div>
-
-      <div class="miniTips" style="margin-top:10px;">
-        Tip: Uses one row per store in <code>assets/masterlist.csv</code>.
-      </div>
-
-      <!-- REQUIRED for debugging / user feedback -->
-      <div id="masterErr" class="err" style="display:none;"></div>
+      <div id="masterErr" class="err" style="margin-top:10px;display:none"></div>
     </div>
 
-    <!-- MONTHLY (REQUIRED) -->
     <div class="card">
-      <div class="subhead">Monthly Data (Required)</div>
-      <p class="hint">Required columns: <strong>Date, Location, Sales, Labor, Transactions</strong></p>
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px">Monthly Data (Required)</div>
+      <div class="muted">Required columns: Date, Location, Sales, Labor, Transactions</div>
 
-      <div class="grid2">
-        <div class="card" style="margin:0;">
-          <div class="subhead" style="font-size:14px;">Month 1</div>
+      <div class="grid2" style="margin-top:10px">
+        <div class="card" style="margin:0">
+          <div style="font-weight:800">Month 1</div>
           <label>Month</label>
           <input id="m1Month" type="month" />
           <label>CSV</label>
           <input id="m1File" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0;">
-          <div class="subhead" style="font-size:14px;">Month 2</div>
+        <div class="card" style="margin:0">
+          <div style="font-weight:800">Month 2</div>
           <label>Month</label>
           <input id="m2Month" type="month" />
           <label>CSV</label>
           <input id="m2File" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0;">
-          <div class="subhead" style="font-size:14px;">Month 3</div>
+        <div class="card" style="margin:0">
+          <div style="font-weight:800">Month 3</div>
           <label>Month</label>
           <input id="m3Month" type="month" />
           <label>CSV</label>
           <input id="m3File" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0;">
-          <div class="subhead" style="font-size:14px;">Monthly Tips</div>
-          <div class="miniTips">
+        <div class="card" style="margin:0">
+          <div style="font-weight:800">Monthly Tips</div>
+          <div class="muted" style="margin-top:10px">
             • One file per month<br/>
-            • Export from POS / reporting tool<br/>
+            • Export from POS<br/>
             • Labor can be dollars or hours (standardize later)
           </div>
         </div>
       </div>
     </div>
 
-    <!-- WEEKLY (OPTIONAL) -->
     <div class="card">
-      <div class="subhead">Weekly Data (Optional)</div>
-      <p class="hint">Used for execution progress during the current month.</p>
+      <div style="font-size:18px;font-weight:800;margin-bottom:6px">Weekly Data (Optional)</div>
+      <div class="muted">Used for execution progress during the current month (3 weeks).</div>
 
-      <div class="grid2">
-        <div class="card" style="margin:0;">
-          <div class="subhead" style="font-size:14px;">Week 1</div>
-          <label>Week label (optional)</label>
-          <input id="w1Label" type="text" placeholder="e.g., 2026-W05" />
+      <div class="grid2" style="margin-top:10px">
+        <div class="card" style="margin:0">
+          <div style="font-weight:800">Week 1</div>
+          <label>Week Start</label>
+          <input id="w1Start" type="date" />
           <label>CSV</label>
           <input id="w1File" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0;">
-          <div class="subhead" style="font-size:14px;">Week 2</div>
-          <label>Week label (optional)</label>
-          <input id="w2Label" type="text" placeholder="e.g., 2026-W06" />
+        <div class="card" style="margin:0">
+          <div style="font-weight:800">Week 2</div>
+          <label>Week Start</label>
+          <input id="w2Start" type="date" />
           <label>CSV</label>
           <input id="w2File" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0;">
-          <div class="subhead" style="font-size:14px;">Week 3</div>
-          <label>Week label (optional)</label>
-          <input id="w3Label" type="text" placeholder="e.g., 2026-W07" />
+        <div class="card" style="margin:0">
+          <div style="font-weight:800">Week 3</div>
+          <label>Week Start</label>
+          <input id="w3Start" type="date" />
           <label>CSV</label>
           <input id="w3File" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0;">
-          <div class="subhead" style="font-size:14px;">Weekly Tips</div>
-          <div class="miniTips">
-            • Upload only if you have weekly snapshots<br/>
-            • These are optional and won’t block submission<br/>
-            • Used to show progress vs baseline in reports
+        <div class="card" style="margin:0">
+          <div style="font-weight:800">Submit</div>
+          <div class="muted" style="margin-top:10px">Validate files then submit for admin approval.</div>
+          <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn primary" id="btnSubmit" type="button">Validate & Submit</button>
+            <button class="btn" id="btnReset" type="button">Reset</button>
           </div>
+          <div id="status" class="muted" style="margin-top:10px">Add files, then click Validate & Submit.</div>
         </div>
       </div>
     </div>
-
-    <!-- ACTIONS -->
-    <div class="card">
-      <div class="subhead">Submit</div>
-
-      <div class="actions">
-        <!-- upload.js should bind to this button id -->
-        <button id="validateSubmitBtn" class="btn primary" type="button">Validate &amp; Submit</button>
-        <button id="resetBtn" class="btn" type="button">Reset</button>
-      </div>
-
-      <!-- REQUIRED: upload.js writes status here -->
-      <div id="status" class="status">Add files, then click Validate &amp; Submit.</div>
-    </div>
-
   </div>
+
+  <script>
+    // Hard gate: if not logged in, redirect
+    document.addEventListener("DOMContentLoaded", () => {
+      if (window.FLQSR_AUTH && !FLQSR_AUTH.isLoggedIn()) {
+        const next = encodeURIComponent("upload.html");
+        window.location.href = `login.html?next=${next}&reason=not_logged_in`;
+      }
+    });
+  </script>
 </body>
 </html>
