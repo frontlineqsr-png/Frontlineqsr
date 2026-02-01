@@ -3,163 +3,141 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>FrontlineQSR | Upload</title>
-
-  <link rel="stylesheet" href="./assets/styles.css" />
-  <script defer src="./assets/auth.js"></script>
-  <script defer src="./assets/upload.js"></script>
-
+  <title>FrontlineQSR | Upload Data</title>
+  <link rel="stylesheet" href="/assets/styles.css" />
+  <script defer src="/assets/auth.js"></script>
+  <script defer src="/assets/upload.js"></script>
   <style>
-    :root{--bg:#0b0f14;--panel:rgba(255,255,255,.06);--panel2:rgba(255,255,255,.04);--line:rgba(255,255,255,.12);--text:#e9eef5;--muted:#b7c3d4;--good:#42d392;}
-    body{background:var(--bg);color:var(--text);margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial}
-    .layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
-    .side{padding:16px 14px;border-right:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.02))}
-    .brand{display:flex;align-items:center;gap:10px;margin-bottom:14px}
-    .brand .dot{width:10px;height:10px;border-radius:50%;background:var(--good)}
-    .brand h1{font-size:16px;margin:0}
-    .nav a{display:block;padding:10px 12px;border-radius:12px;margin:8px 0;color:var(--text);text-decoration:none;border:1px solid transparent;font-weight:800}
-    .nav a:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.08)}
-    .nav a.active{background:rgba(66,211,146,.12);border-color:rgba(66,211,146,.35)}
-    .content{padding:18px}
-    .panel{padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--panel)}
-    .panel2{padding:14px;border:1px solid var(--line);border-radius:16px;background:var(--panel2)}
-    .btn{padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);font-weight:800;cursor:pointer}
-    .btn:hover{background:rgba(255,255,255,.09)}
-    .muted{color:var(--muted)}
+    body{background:#0b0f14;color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0}
+    .shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+    .nav{border-right:1px solid rgba(255,255,255,.10);padding:18px}
+    .brand{display:flex;gap:10px;align-items:center;margin:8px 0 18px}
+    .pill{width:10px;height:10px;border-radius:3px;background:#6ae4ff}
+    .nav a{display:block;padding:10px 12px;border-radius:12px;color:#e9eef5;text-decoration:none;margin:6px 0;border:1px solid transparent}
+    .nav a.active{border-color:rgba(106,228,255,.35);background:rgba(106,228,255,.08)}
+    .nav .muted{color:#98a7bb;font-size:12px;margin-top:14px}
+    .main{padding:22px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px}
+    .h1{font-size:28px;font-weight:900;margin:0}
+    .sub{color:#98a7bb;margin-top:4px}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media (max-width:980px){.layout{grid-template-columns:1fr}.side{display:none}.grid2{grid-template-columns:1fr}}
+    .grid3{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width: 980px){.shell{grid-template-columns:1fr}.nav{display:none}.grid2,.grid3{grid-template-columns:1fr}}
+    label{display:block;margin:8px 0 6px;color:#b7c3d4}
+    input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#e9eef5}
+    .fileRow{display:grid;grid-template-columns:1fr;gap:10px}
+    .btn{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(125,255,163,.06));color:#e9eef5;font-weight:800;cursor:pointer}
+    .btn2{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#e9eef5;font-weight:800;cursor:pointer}
+    .status{margin-top:10px;color:#98a7bb;font-size:13px}
+    .err{color:#ff7b7b;font-weight:900}
+    .ok{color:#7dffa3;font-weight:900}
+    .hint{color:#98a7bb;font-size:12px;margin-top:8px}
+    .boxTitle{font-weight:900;margin:0 0 6px}
   </style>
 </head>
-
 <body>
-  <script>FLQSR_AUTH.requireAdmin();</script>
-
-  <div class="layout">
-    <aside class="side">
+  <div class="shell">
+    <div class="nav">
       <div class="brand">
-        <span class="dot"></span>
+        <div class="pill"></div>
         <div>
-          <h1>FrontlineQSR</h1>
-          <div class="muted" style="font-size:12px;font-weight:800;">Admin Dashboard</div>
+          <div style="font-weight:900">FrontlineQSR</div>
+          <div class="muted">Admin MVP</div>
         </div>
       </div>
 
-      <nav class="nav">
-        <a href="app.html">Overview</a>
-        <a href="kpis.html">KPIs</a>
-        <a href="action-plan.html">Action Plan</a>
-        <a href="reports.html">Reports</a>
-        <a class="active" href="upload.html">Upload</a>
-        <a href="admin.html">Admin Review</a>
-      </nav>
+      <a href="/upload.html" class="active">Upload</a>
+      <a href="/admin.html">Admin Review</a>
+      <a href="/kpis.html">KPIs</a>
+      <a href="/reports.html">Reports</a>
+      <a href="/action-plan.html">Action Plan</a>
 
-      <button class="btn" style="margin-top:10px;width:100%" onclick="FLQSR_AUTH.logout()">Logout</button>
-    </aside>
+      <div class="muted">Tip: Use Upload → Admin Review → KPIs/Reports.</div>
+    </div>
 
-    <main class="content">
-      <div class="panel" style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+    <div class="main">
+      <div class="top">
         <div>
-          <div style="font-size:26px;font-weight:900;">Upload Data</div>
-          <div class="muted" style="margin-top:6px;font-size:13px;">
-            Upload 3 months (required) + up to 3 weeks (optional). Admin review happens in Admin Review.
-          </div>
+          <div class="h1">Upload Data</div>
+          <div class="sub">Upload 3 months (required) + 3 weeks (optional). Admin approves then KPIs/Reports update.</div>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="btn" id="btnValidate">Validate & Submit</button>
-          <button class="btn" id="btnReset">Reset</button>
-        </div>
+        <button class="btn2" id="logoutBtn">Logout</button>
       </div>
 
-      <!-- Your upload.js should already control these inputs by ID.
-           If your upload.js expects different IDs, tell me and I’ll match them exactly. -->
-      <div class="panel" style="margin-top:14px;">
-        <div style="font-weight:900;margin-bottom:8px;">Monthly Data (Required)</div>
-        <div class="grid2">
-          <div class="panel2">
-            <div style="font-weight:900;">Month 1</div>
-            <div class="muted" style="font-size:12px;margin-top:6px;">Month (YYYY-MM)</div>
-            <input id="m1Month" type="month" style="width:100%;margin-top:6px;">
-            <div class="muted" style="font-size:12px;margin-top:10px;">CSV</div>
-            <input id="m1File" type="file" accept=".csv" style="width:100%;margin-top:6px;">
+      <div class="card">
+        <p class="boxTitle">Monthly Data (Required)</p>
+        <div class="hint">Required columns (any order, case-insensitive): <b>Date</b>, <b>Location</b>, <b>Sales</b>, <b>Labor</b>, <b>Transactions</b></div>
+
+        <div class="grid3" style="margin-top:12px">
+          <div class="card">
+            <p class="boxTitle">Month 1</p>
+            <label>Month (YYYY-MM)</label>
+            <input id="m1Month" placeholder="2025-10" />
+            <label>CSV</label>
+            <input id="m1File" type="file" accept=".csv,text/csv" />
           </div>
 
-          <div class="panel2">
-            <div style="font-weight:900;">Month 2</div>
-            <div class="muted" style="font-size:12px;margin-top:6px;">Month (YYYY-MM)</div>
-            <input id="m2Month" type="month" style="width:100%;margin-top:6px;">
-            <div class="muted" style="font-size:12px;margin-top:10px;">CSV</div>
-            <input id="m2File" type="file" accept=".csv" style="width:100%;margin-top:6px;">
+          <div class="card">
+            <p class="boxTitle">Month 2</p>
+            <label>Month (YYYY-MM)</label>
+            <input id="m2Month" placeholder="2025-11" />
+            <label>CSV</label>
+            <input id="m2File" type="file" accept=".csv,text/csv" />
           </div>
 
-          <div class="panel2">
-            <div style="font-weight:900;">Month 3</div>
-            <div class="muted" style="font-size:12px;margin-top:6px;">Month (YYYY-MM)</div>
-            <input id="m3Month" type="month" style="width:100%;margin-top:6px;">
-            <div class="muted" style="font-size:12px;margin-top:10px;">CSV</div>
-            <input id="m3File" type="file" accept=".csv" style="width:100%;margin-top:6px;">
-          </div>
-
-          <div class="panel2">
-            <div class="muted" style="font-weight:900;">Monthly Tips</div>
-            <ul class="muted" style="margin:10px 0 0 18px;">
-              <li>Required columns: Date, Location, Sales, Labor, Transactions</li>
-              <li>Date format: YYYY-MM-DD</li>
-              <li>Location should match store name (for now)</li>
-            </ul>
+          <div class="card">
+            <p class="boxTitle">Month 3</p>
+            <label>Month (YYYY-MM)</label>
+            <input id="m3Month" placeholder="2025-12" />
+            <label>CSV</label>
+            <input id="m3File" type="file" accept=".csv,text/csv" />
           </div>
         </div>
       </div>
 
-      <div class="panel" style="margin-top:14px;">
-        <div style="font-weight:900;margin-bottom:8px;">Weekly Data (Optional)</div>
-        <div class="grid2">
-          <div class="panel2">
-            <div style="font-weight:900;">Week 1</div>
-            <div class="muted" style="font-size:12px;margin-top:6px;">Week Start (YYYY-MM-DD)</div>
-            <input id="w1Start" type="date" style="width:100%;margin-top:6px;">
-            <div class="muted" style="font-size:12px;margin-top:10px;">CSV</div>
-            <input id="w1File" type="file" accept=".csv" style="width:100%;margin-top:6px;">
+      <div class="card" style="margin-top:12px">
+        <p class="boxTitle">Weekly Data (Optional)</p>
+        <div class="hint">Used for progress during the current month (up to 3 weeks). Week Start should be Monday (ideal).</div>
+
+        <div class="grid3" style="margin-top:12px">
+          <div class="card">
+            <p class="boxTitle">Week 1</p>
+            <label>Week Start (YYYY-MM-DD)</label>
+            <input id="w1Start" placeholder="2026-01-05" />
+            <label>CSV</label>
+            <input id="w1File" type="file" accept=".csv,text/csv" />
           </div>
 
-          <div class="panel2">
-            <div style="font-weight:900;">Week 2</div>
-            <div class="muted" style="font-size:12px;margin-top:6px;">Week Start (YYYY-MM-DD)</div>
-            <input id="w2Start" type="date" style="width:100%;margin-top:6px;">
-            <div class="muted" style="font-size:12px;margin-top:10px;">CSV</div>
-            <input id="w2File" type="file" accept=".csv" style="width:100%;margin-top:6px;">
+          <div class="card">
+            <p class="boxTitle">Week 2</p>
+            <label>Week Start (YYYY-MM-DD)</label>
+            <input id="w2Start" placeholder="2026-01-12" />
+            <label>CSV</label>
+            <input id="w2File" type="file" accept=".csv,text/csv" />
           </div>
 
-          <div class="panel2">
-            <div style="font-weight:900;">Week 3</div>
-            <div class="muted" style="font-size:12px;margin-top:6px;">Week Start (YYYY-MM-DD)</div>
-            <input id="w3Start" type="date" style="width:100%;margin-top:6px;">
-            <div class="muted" style="font-size:12px;margin-top:10px;">CSV</div>
-            <input id="w3File" type="file" accept=".csv" style="width:100%;margin-top:6px;">
-          </div>
-
-          <div class="panel2">
-            <div class="muted" style="font-weight:900;">Weekly Tips</div>
-            <ul class="muted" style="margin:10px 0 0 18px;">
-              <li>Same columns as monthly (lite KPIs ok)</li>
-              <li>Use Monday start date if possible</li>
-              <li>If you don’t have weekly data yet, skip</li>
-            </ul>
+          <div class="card">
+            <p class="boxTitle">Week 3</p>
+            <label>Week Start (YYYY-MM-DD)</label>
+            <input id="w3Start" placeholder="2026-01-19" />
+            <label>CSV</label>
+            <input id="w3File" type="file" accept=".csv,text/csv" />
           </div>
         </div>
       </div>
 
-      <div class="panel" style="margin-top:14px;">
-        <div style="font-weight:900;">Status</div>
-        <div id="statusBox" class="muted" style="margin-top:8px;">Ready.</div>
-        <div id="errBox" style="margin-top:8px;color:#ff6b6b;font-weight:900;"></div>
+      <div class="card" style="margin-top:12px">
+        <p class="boxTitle">Submit</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn" id="submitBtn">Validate &amp; Submit</button>
+          <button class="btn2" id="resetBtn">Reset</button>
+        </div>
+        <div id="status" class="status"></div>
+        <div class="hint">After submit: approve in <b>Admin Review</b>. After approval: <b>KPIs</b>/<b>Reports</b> pull the latest approved snapshot.</div>
       </div>
 
-      <script>
-        // Wire buttons to existing upload.js if it exposes handlers
-        document.getElementById("btnReset").addEventListener("click", () => location.reload());
-        // If your upload.js attaches its own click listeners, this won’t hurt.
-      </script>
-    </main>
+    </div>
   </div>
 </body>
 </html>
