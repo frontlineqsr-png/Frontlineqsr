@@ -2,68 +2,52 @@
 (() => {
   "use strict";
 
-  const PENDING_KEY = "flqsr_pending_submission";
-  const APPROVED_KEY = "flqsr_approved_snapshot";
+  const PENDING_KEY = "flqsr_pending_submission_v1";
+  const APPROVED_KEY = "flqsr_approved_snapshot_v1";
 
   const $ = (id) => document.getElementById(id);
 
-  function safeParse(raw) {
-    try { return raw ? JSON.parse(raw) : null; } catch { return null; }
+  function setStatus(msg, isError = false) {
+    const box = $("statusBox");
+    if (!box) return;
+    box.textContent = msg;
+    box.style.color = isError ? "#ff7b7b" : "#b9f6ca";
   }
 
-  function pretty(obj) {
-    return obj ? JSON.stringify(obj, null, 2) : "";
-  }
-
-  function render() {
-    const pending = safeParse(localStorage.getItem(PENDING_KEY));
-    const approved = safeParse(localStorage.getItem(APPROVED_KEY));
-
-    $("pendingDump").textContent = pending ? pretty(pending) : "No pending submission found.";
-    $("approvedDump").textContent = approved ? pretty(approved) : "No approved snapshot found.";
-
-    $("status").textContent = pending
-      ? "Pending submission found ✅"
-      : "No pending submission. Go to Upload and submit first.";
+  function loadPending() {
+    try {
+      const raw = localStorage.getItem(PENDING_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
   }
 
   function approve() {
-    const pending = safeParse(localStorage.getItem(PENDING_KEY));
+    const pending = loadPending();
     if (!pending) {
-      $("msg").innerHTML = `<div class="err">No pending submission to approve.</div>`;
+      setStatus("No pending submission found. Go to Upload and Validate & Submit first.", true);
       return;
     }
 
-    // Create approved snapshot (you can evolve this later)
     const approved = {
-      approvedAt: new Date().toISOString(),
-      submittedAt: pending.submittedAt || null,
-      monthly: pending.monthly || [],
-      weekly: pending.weekly || [],
+      approvedAt: Date.now(),
+      submittedAt: pending.submittedAt,
+      monthly: pending.monthly,
+      weekly: pending.weekly
     };
 
     localStorage.setItem(APPROVED_KEY, JSON.stringify(approved));
-    $("msg").innerHTML = `<div class="ok">Approved ✅ KPIs can now read the approved snapshot.</div>`;
-    render();
+    setStatus("✅ Approved snapshot saved. Now open kpis.html.");
   }
 
-  function clearPending() {
-    localStorage.removeItem(PENDING_KEY);
-    $("msg").innerHTML = `<div class="ok">Pending cleared.</div>`;
-    render();
-  }
+  window.addEventListener("DOMContentLoaded", () => {
+    if (window.FLQSR_AUTH) window.FLQSR_AUTH.requireAdmin();
 
-  document.addEventListener("DOMContentLoaded", () => {
-    // auth guard
-    window.FLQSR_AUTH?.requireAdmin?.();
-
-    $("btnLogout")?.addEventListener("click", () => window.FLQSR_AUTH?.logout?.());
-    $("btnApprove")?.addEventListener("click", approve);
-    $("btnClearPending")?.addEventListener("click", clearPending);
-
-    $("btnGoUpload")?.addEventListener("click", () => location.href = "/upload.html");
-    $("btnGoKPIs")?.addEventListener("click", () => location.href = "/kpis.html");
-
-    render();
+    $("approveBtn")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      approve();
+    });
   });
 })();
