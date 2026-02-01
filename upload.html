@@ -2,76 +2,61 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Upload Data</title>
 
   <link rel="stylesheet" href="./assets/styles.css" />
-  <script defer src="./assets/auth.js"></script>
-  <script defer src="./assets/masterlist-loader.js"></script>
-  <script defer src="./assets/upload.js"></script>
 
   <style>
-    body{background:#0b0f14;color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helveticaica,Arial;margin:0}
+    body{background:#0b0f14;color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0}
     .wrap{max-width:1100px;margin:0 auto;padding:18px}
-    .top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
-    .muted{color:#b7c3d4;font-size:13px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
     .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;margin:12px 0}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
     @media(max-width:900px){.grid2{grid-template-columns:1fr}}
-    label{display:block;margin:10px 0 6px;color:#b7c3d4;font-size:13px}
+    label{display:block;margin:10px 0 6px;color:#b7c3d4;font-size:14px}
     select,input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#e9eef5}
+    .muted{color:#b7c3d4;font-size:13px}
+    .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
     .btn{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e9eef5;font-weight:700;cursor:pointer}
     .btn.primary{border-color:rgba(106,228,255,.45);background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(125,255,155,.12))}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .ok{color:#7dff9b}
-    .bad{color:#ff7d7d}
-    .small{font-size:12px;color:#b7c3d4}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+    #errorBox{color:#ff9b9b;font-weight:700;margin-top:8px;white-space:pre-wrap}
+    #statusBox{color:#b7c3d4;margin-top:6px;white-space:pre-wrap}
+    .sectionTitle{font-size:18px;font-weight:900;margin:0 0 6px}
+    .subTitle{margin:0;color:#b7c3d4}
   </style>
+
+  <!-- IMPORTANT: these scripts must be in this order -->
+  <script defer src="./assets/auth.js"></script>
+  <script defer src="./assets/masterlist-loader.js"></script>
+  <script defer src="./assets/upload.js"></script>
 </head>
 
 <body>
   <div class="wrap">
     <div class="top">
       <div>
-        <div style="font-size:28px;font-weight:900;">Upload Data</div>
-        <div class="muted">Upload <b>3 months (required)</b> + <b>3 weeks (optional)</b>. Submissions are queued for Admin approval per store.</div>
+        <div style="font-size:28px;font-weight:900">Upload Data</div>
+        <div class="muted">Upload <b>3 months</b> (required) + <b>up to 3 weeks</b> (optional). Submissions are approved per store.</div>
       </div>
-      <div class="row">
-        <button class="btn" type="button" onclick="FLQSR_AUTH.logout()">Logout</button>
-      </div>
+      <button class="btn" onclick="window.FLQSR_AUTH && FLQSR_AUTH.logout && FLQSR_AUTH.logout()">Logout</button>
     </div>
 
-    <!-- NAV (optional) -->
+    <!-- Client/Store -->
     <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div class="muted">
-          Signed in as: <span class="mono" id="who">loading…</span>
-        </div>
-        <div class="row">
-          <a class="btn" href="./kpis.html">KPIs</a>
-          <a class="btn" href="./reports.html">Reports</a>
-          <a class="btn" href="./action-plan.html">Action Plan</a>
-          <a class="btn" href="./admin.html" id="adminLink" style="display:none;">Admin Review</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- Client + Store -->
-    <div class="card">
-      <h2 style="margin:0 0 8px">Select Client + Store</h2>
+      <div class="sectionTitle">Select Client + Store</div>
       <div class="grid2">
         <div>
           <label for="clientSelect">Client</label>
           <select id="clientSelect">
-            <option value="">Loading…</option>
+            <option value="">Loading...</option>
           </select>
-          <div class="small">Tip: Clients/Stores load from <span class="mono">/assets/masterlist.csv</span></div>
+          <div class="muted" style="margin-top:6px">Tip: Uses one row per store in <code>assets/masterlist.csv</code>.</div>
         </div>
 
         <div>
           <label for="storeSelect">Store</label>
-          <select id="storeSelect" disabled>
+          <select id="storeSelect">
             <option value="">Select a client first</option>
           </select>
         </div>
@@ -80,40 +65,40 @@
 
     <!-- Monthly -->
     <div class="card">
-      <h2 style="margin:0 0 8px">Monthly Data (Required)</h2>
-      <div class="muted">Required columns: <span class="mono">Date, Location, Sales, Labor, Transactions</span></div>
+      <div class="sectionTitle">Monthly Data (Required)</div>
+      <p class="subTitle">Required columns: <b>Date, Location, Sales, Labor, Transactions</b></p>
 
-      <div class="grid2" style="margin-top:10px">
-        <div class="card" style="margin:0">
-          <h3 style="margin:0 0 8px">Month 1</h3>
-          <label>Month (YYYY-MM)</label>
-          <input id="m1Month" placeholder="2026-01" />
-          <label>CSV</label>
-          <input id="m1File" type="file" accept=".csv,text/csv" />
+      <div class="grid2" style="margin-top:12px">
+        <div class="card">
+          <div style="font-weight:900">Month 1</div>
+          <label for="month1">Month</label>
+          <input id="month1" type="month" />
+          <label for="fileMonth1">CSV</label>
+          <input id="fileMonth1" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0">
-          <h3 style="margin:0 0 8px">Month 2</h3>
-          <label>Month (YYYY-MM)</label>
-          <input id="m2Month" placeholder="2026-02" />
-          <label>CSV</label>
-          <input id="m2File" type="file" accept=".csv,text/csv" />
+        <div class="card">
+          <div style="font-weight:900">Month 2</div>
+          <label for="month2">Month</label>
+          <input id="month2" type="month" />
+          <label for="fileMonth2">CSV</label>
+          <input id="fileMonth2" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0">
-          <h3 style="margin:0 0 8px">Month 3</h3>
-          <label>Month (YYYY-MM)</label>
-          <input id="m3Month" placeholder="2026-03" />
-          <label>CSV</label>
-          <input id="m3File" type="file" accept=".csv,text/csv" />
+        <div class="card">
+          <div style="font-weight:900">Month 3</div>
+          <label for="month3">Month</label>
+          <input id="month3" type="month" />
+          <label for="fileMonth3">CSV</label>
+          <input id="fileMonth3" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0">
-          <h3 style="margin:0 0 8px">Monthly Tips</h3>
-          <div class="small">
+        <div class="card">
+          <div style="font-weight:900">Monthly Tips</div>
+          <div class="muted" style="margin-top:8px">
             • One file per month<br/>
-            • Export from POS as CSV<br/>
-            • Labor can be hours or dollars (we’ll standardize later)
+            • Export from POS/spreadsheets as CSV<br/>
+            • Labor can be dollars or hours (we’ll standardize later)
           </div>
         </div>
       </div>
@@ -121,37 +106,37 @@
 
     <!-- Weekly -->
     <div class="card">
-      <h2 style="margin:0 0 8px">Weekly Data (Optional)</h2>
-      <div class="muted">Used for execution progress during the current month (up to 3 weeks).</div>
+      <div class="sectionTitle">Weekly Data (Optional)</div>
+      <p class="subTitle">Used for execution progress during the current month (up to 3 weeks).</p>
 
-      <div class="grid2" style="margin-top:10px">
-        <div class="card" style="margin:0">
-          <h3 style="margin:0 0 8px">Week 1</h3>
-          <label>Week Start (YYYY-MM-DD)</label>
-          <input id="w1Start" placeholder="2026-01-05" />
-          <label>CSV</label>
-          <input id="w1File" type="file" accept=".csv,text/csv" />
+      <div class="grid2" style="margin-top:12px">
+        <div class="card">
+          <div style="font-weight:900">Week 1</div>
+          <label for="weekStart1">Week Start (YYYY-MM-DD)</label>
+          <input id="weekStart1" type="date" />
+          <label for="fileWeek1">CSV</label>
+          <input id="fileWeek1" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0">
-          <h3 style="margin:0 0 8px">Week 2</h3>
-          <label>Week Start (YYYY-MM-DD)</label>
-          <input id="w2Start" placeholder="2026-01-12" />
-          <label>CSV</label>
-          <input id="w2File" type="file" accept=".csv,text/csv" />
+        <div class="card">
+          <div style="font-weight:900">Week 2</div>
+          <label for="weekStart2">Week Start (YYYY-MM-DD)</label>
+          <input id="weekStart2" type="date" />
+          <label for="fileWeek2">CSV</label>
+          <input id="fileWeek2" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0">
-          <h3 style="margin:0 0 8px">Week 3</h3>
-          <label>Week Start (YYYY-MM-DD)</label>
-          <input id="w3Start" placeholder="2026-01-19" />
-          <label>CSV</label>
-          <input id="w3File" type="file" accept=".csv,text/csv" />
+        <div class="card">
+          <div style="font-weight:900">Week 3</div>
+          <label for="weekStart3">Week Start (YYYY-MM-DD)</label>
+          <input id="weekStart3" type="date" />
+          <label for="fileWeek3">CSV</label>
+          <input id="fileWeek3" type="file" accept=".csv,text/csv" />
         </div>
 
-        <div class="card" style="margin:0">
-          <h3 style="margin:0 0 8px">Weekly Tips</h3>
-          <div class="small">
+        <div class="card">
+          <div style="font-weight:900">Weekly Tips</div>
+          <div class="muted" style="margin-top:8px">
             • Week start should be Monday (ideal)<br/>
             • Weekly CSV can be “lite” KPIs<br/>
             • If you don’t have weekly data yet, skip it
@@ -162,35 +147,19 @@
 
     <!-- Submit -->
     <div class="card">
-      <h2 style="margin:0 0 10px">Submit</h2>
-      <div class="row">
-        <button class="btn primary" id="btnSubmit" type="button">Validate & Submit</button>
-        <button class="btn" id="btnReset" type="button">Reset</button>
+      <div class="sectionTitle">Submit</div>
+      <div class="btnrow">
+        <button id="btnSubmit" class="btn primary">Validate &amp; Submit</button>
+        <button id="btnReset" class="btn">Reset</button>
       </div>
 
-      <div id="errBox" class="bad" style="margin-top:10px;display:none"></div>
-      <div id="statusBox" class="muted" style="margin-top:10px">Ready.</div>
-      <div class="small" style="margin-top:8px">
-        After submit: Admin approves in <span class="mono">admin.html</span>. Once approved, KPIs/Reports/Action Plan can pull the approved snapshot.
+      <div id="errorBox"></div>
+      <div id="statusBox" class="muted"></div>
+
+      <div class="muted" style="margin-top:10px">
+        After submit: Admin approves in <code>admin.html</code>. Once approved, KPIs/Reports/Action Plan pull the approved snapshot.
       </div>
     </div>
   </div>
-
-  <script>
-    // Simple “who” display once auth.js loads
-    window.addEventListener("DOMContentLoaded", () => {
-      try {
-        const s = (window.FLQSR_AUTH && FLQSR_AUTH.getSession && FLQSR_AUTH.getSession()) || null;
-        if (s) {
-          document.getElementById("who").textContent = `${s.role} • ${s.username}`;
-          if (s.role === "admin") document.getElementById("adminLink").style.display = "inline-flex";
-        } else {
-          document.getElementById("who").textContent = "not logged in";
-        }
-      } catch {
-        document.getElementById("who").textContent = "auth not ready";
-      }
-    });
-  </script>
 </body>
 </html>
