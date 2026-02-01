@@ -1,129 +1,69 @@
+// /assets/admin.js
 (() => {
   "use strict";
 
-  const SUB_KEY = "flqsr_submissions_v1";
-  const APPR_KEY = "flqsr_approved_v1";
-  const BASE_KEY = "flqsr_baseline_v1";
+  const PENDING_KEY = "flqsr_pending_submission";
+  const APPROVED_KEY = "flqsr_approved_snapshot";
 
   const $ = (id) => document.getElementById(id);
 
-  function loadJSON(key, fallback) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : fallback;
-    } catch {
-      return fallback;
-    }
+  function safeParse(raw) {
+    try { return raw ? JSON.parse(raw) : null; } catch { return null; }
   }
 
-  function saveJSON(key, v) {
-    localStorage.setItem(key, JSON.stringify(v));
-  }
-
-  function fmt(ts) {
-    const d = new Date(ts);
-    return d.toLocaleString();
+  function pretty(obj) {
+    return obj ? JSON.stringify(obj, null, 2) : "";
   }
 
   function render() {
-    const queue = loadJSON(SUB_KEY, []);
-    const wrap = $("tableWrap");
-    if (!wrap) return;
+    const pending = safeParse(localStorage.getItem(PENDING_KEY));
+    const approved = safeParse(localStorage.getItem(APPROVED_KEY));
 
-    if (!queue.length) {
-      wrap.innerHTML = `<div style="margin-top:8px;color:#98a7bb">No pending submissions.</div>`;
+    $("pendingDump").textContent = pending ? pretty(pending) : "No pending submission found.";
+    $("approvedDump").textContent = approved ? pretty(approved) : "No approved snapshot found.";
+
+    $("status").textContent = pending
+      ? "Pending submission found ✅"
+      : "No pending submission. Go to Upload and submit first.";
+  }
+
+  function approve() {
+    const pending = safeParse(localStorage.getItem(PENDING_KEY));
+    if (!pending) {
+      $("msg").innerHTML = `<div class="err">No pending submission to approve.</div>`;
       return;
     }
 
-    wrap.innerHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>Submitted</th>
-            <th>Store</th>
-            <th>Months</th>
-            <th>Weeks</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${queue.map((s, idx) => `
-            <tr>
-              <td>${fmt(s.submittedAt)}</td>
-              <td>${s.storeName || s.storeId || "default"}</td>
-              <td>${(s.monthly||[]).map(x=>x.month).join(", ")}</td>
-              <td>${(s.weekly||[]).map(x=>x.start).join(", ") || "-"}</td>
-              <td>
-                <button class="approve btn" data-idx="${idx}">Approve</button>
-                <button class="reject btn2" data-idx="${idx}">Reject</button>
-              </td>
-            </tr>
-          `).join("")}
-        </tbody>
-      </table>
-    `;
+    // Create approved snapshot (you can evolve this later)
+    const approved = {
+      approvedAt: new Date().toISOString(),
+      submittedAt: pending.submittedAt || null,
+      monthly: pending.monthly || [],
+      weekly: pending.weekly || [],
+    };
 
-    wrap.querySelectorAll(".approve").forEach(btn => {
-      btn.addEventListener("click", () => approve(Number(btn.dataset.idx)));
-    });
-    wrap.querySelectorAll(".reject").forEach(btn => {
-      btn.addEventListener("click", () => reject(Number(btn.dataset.idx)));
-    });
-  }
-
-  function approve(idx) {
-    const queue = loadJSON(SUB_KEY, []);
-    const item = queue[idx];
-    if (!item) return;
-
-    // If baseline not set yet, lock baseline to first approval's 3 months
-    const baseline = loadJSON(BASE_KEY, null);
-    if (!baseline) {
-      saveJSON(BASE_KEY, {
-        storeId: item.storeId || "default",
-        storeName: item.storeName || "Default Store (Admin MVP)",
-        lockedAt: Date.now(),
-        monthly: item.monthly
-      });
-    }
-
-    // Latest approved snapshot
-    saveJSON(APPR_KEY, {
-      storeId: item.storeId || "default",
-      storeName: item.storeName || "Default Store (Admin MVP)",
-      approvedAt: Date.now(),
-      monthly: item.monthly,
-      weekly: item.weekly || []
-    });
-
-    // Remove from queue
-    queue.splice(idx, 1);
-    saveJSON(SUB_KEY, queue);
-    render();
-    alert("Approved. KPIs/Reports updated.");
-  }
-
-  function reject(idx) {
-    const queue = loadJSON(SUB_KEY, []);
-    if (!queue[idx]) return;
-    queue.splice(idx, 1);
-    saveJSON(SUB_KEY, queue);
+    localStorage.setItem(APPROVED_KEY, JSON.stringify(approved));
+    $("msg").innerHTML = `<div class="ok">Approved ✅ KPIs can now read the approved snapshot.</div>`;
     render();
   }
 
-  function bind() {
-    if (!window.FLQSR_AUTH?.requireAdmin?.()) return;
-
-    $("logoutBtn")?.addEventListener("click", () => window.FLQSR_AUTH.logout());
-    $("refreshBtn")?.addEventListener("click", render);
-    $("clearBtn")?.addEventListener("click", () => {
-      if (!confirm("Clear ALL pending submissions?")) return;
-      saveJSON(SUB_KEY, []);
-      render();
-    });
-
+  function clearPending() {
+    localStorage.removeItem(PENDING_KEY);
+    $("msg").innerHTML = `<div class="ok">Pending cleared.</div>`;
     render();
   }
 
-  document.addEventListener("DOMContentLoaded", bind);
+  document.addEventListener("DOMContentLoaded", () => {
+    // auth guard
+    window.FLQSR_AUTH?.requireAdmin?.();
+
+    $("btnLogout")?.addEventListener("click", () => window.FLQSR_AUTH?.logout?.());
+    $("btnApprove")?.addEventListener("click", approve);
+    $("btnClearPending")?.addEventListener("click", clearPending);
+
+    $("btnGoUpload")?.addEventListener("click", () => location.href = "/upload.html");
+    $("btnGoKPIs")?.addEventListener("click", () => location.href = "/kpis.html");
+
+    render();
+  });
 })();
