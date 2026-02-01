@@ -1,24 +1,22 @@
-// /assets/masterlist-loader.js
-// Loads ./assets/masterlist.csv into window.FLOSR_MASTERLIST
-// Provides window.FLOSR_MASTERLIST_READY (Promise)
+// assets/masterlist-loader.js
+// Loads assets/masterlist.csv into window.FLQSR_MASTERLIST
+// Expected headers:
+// client_id,client_name,store_id,store_name,district,region,city,state
 
 (() => {
   "use strict";
 
-  window.FLOSR_MASTERLIST = window.FLOSR_MASTERLIST || {
-    clients: {},        // { [clientId]: { id, name } }
-    storesByClient: {}  // { [clientId]: [ {store_id, store_name, district, region, city, state} ] }
-  };
+  window.FLQSR_MASTERLIST = window.FLQSR_MASTERLIST || { clients: {}, storesByClient: {} };
 
   function parseCSV(text) {
     const lines = String(text || "")
-      .replace(/\r/g, "")
-      .split("\n")
-      .filter(l => l.trim().length);
+      .split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(Boolean);
 
     if (!lines.length) return [];
 
-    // CSV split with quoted commas support
+    // simple CSV split supporting quoted commas
     function splitLine(line) {
       const out = [];
       let cur = "";
@@ -42,76 +40,61 @@
       header.forEach((h, idx) => row[h] = (cols[idx] ?? "").trim());
       rows.push(row);
     }
+
     return rows;
   }
 
   async function loadMasterlist() {
-    // Use relative path to avoid domain/path issues
-    const url = `./assets/masterlist.csv?v=${Date.now()}`;
+    // Find the folder this script is running from (/assets/)
+    const scriptEl = document.currentScript || [...document.scripts].slice(-1)[0];
+    const scriptUrl = new URL(scriptEl.src, window.location.href);
+    const assetsBase = new URL(".", scriptUrl);              // .../assets/
+    const csvUrl = new URL("masterlist.csv", assetsBase);    // .../assets/masterlist.csv
 
-    let res;
-    try {
-      res = await fetch(url, { cache: "no-store" });
-    } catch (e) {
-      console.error("[MASTERLIST] Fetch failed:", e);
-      throw new Error("Masterlist fetch failed (network).");
-    }
+    // Cache-bust for Safari/iPhone
+    const url = csvUrl.href + (csvUrl.search ? "&" : "?") + "v=" + Date.now();
 
-    if (!res.ok) {
-      console.error("[MASTERLIST] 404/HTTP error:", res.status, url);
-      throw new Error(`Masterlist not found (${res.status}). Check file path: ${url}`);
-    }
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`masterlist.csv fetch failed: ${res.status}`);
 
     const text = await res.text();
     const rows = parseCSV(text);
-
-    if (!rows.length) {
-      console.error("[MASTERLIST] CSV loaded but empty.");
-      throw new Error("Masterlist CSV is empty.");
-    }
-
-    // Validate required columns exist
-    const required = ["client_id","client_name","store_id","store_name"];
-    const sample = rows[0];
-    for (const col of required) {
-      if (!(col in sample)) {
-        console.error("[MASTERLIST] Missing column:", col, "Found columns:", Object.keys(sample));
-        throw new Error(`Masterlist missing column: ${col}`);
-      }
-    }
 
     const clients = {};
     const storesByClient = {};
 
     for (const r of rows) {
-      const clientId = String(r.client_id || "").trim();
-      const clientName = String(r.client_name || "").trim();
-      const storeId = String(r.store_id || "").trim();
-      const storeName = String(r.store_name || "").trim();
+      const client_id = (r.client_id || "").trim();
+      const client_name = (r.client_name || "").trim();
+      const store_id = (r.store_id || "").trim();
+      const store_name = (r.store_name || "").trim();
 
-      if (!clientId || !clientName || !storeId || !storeName) continue;
+      if (!client_id || !store_id) continue;
 
-      clients[clientId] = { id: clientId, name: clientName };
+      clients[client_id] = clients[client_id] || { id: client_id, name: client_name || client_id };
+      storesByClient[client_id] = storesByClient[client_id] || [];
 
-      storesByClient[clientId] = storesByClient[clientId] || [];
-      storesByClient[clientId].push({
-        store_id: storeId,
-        store_name: storeName,
-        district: String(r.district || "").trim(),
-        region: String(r.region || "").trim(),
-        city: String(r.city || "").trim(),
-        state: String(r.state || "").trim(),
+      storesByClient[client_id].push({
+        store_id,
+        store_name: store_name || store_id,
+        district: (r.district || "").trim(),
+        region: (r.region || "").trim(),
+        city: (r.city || "").trim(),
+        state: (r.state || "").trim(),
       });
     }
 
-    window.FLOSR_MASTERLIST.clients = clients;
-    window.FLOSR_MASTERLIST.storesByClient = storesByClient;
+    // Sort stores nicely
+    Object.keys(storesByClient).forEach(cid => {
+      storesByClient[cid].sort((a, b) => (a.store_name || "").localeCompare(b.store_name || ""));
+    });
 
-    console.log("[MASTERLIST] Loaded clients:", Object.keys(clients).length);
-    return window.FLOSR_MASTERLIST;
+    window.FLQSR_MASTERLIST.clients = clients;
+    window.FLQSR_MASTERLIST.storesByClient = storesByClient;
+
+    return window.FLQSR_MASTERLIST;
   }
 
-  // Expose a READY promise so other scripts can await
-  window.FLOSR_MASTERLIST_READY = loadMasterlist();
-
+  // Promise other pages can await
+  window.FLQSR_MASTERLIST_READY = loadMasterlist();
 })();
