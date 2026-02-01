@@ -4,8 +4,8 @@
   function defaults(){
     return {
       accounts:{
-        admin:{ username:"nrobinson@flqsr.com", password:"ChangeMe123!" },
-        client:{ username:"client@flqsr.com", password:"Client123!" }
+        admin:{ username:"admin", password:"admin123" },
+        client:{ username:"client", password:"Client123!" }
       },
       session:null
     };
