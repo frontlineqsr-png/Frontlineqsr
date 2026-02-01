@@ -1,26 +1,28 @@
+// /assets/auth.js
 (() => {
   "use strict";
 
-  // Admin-only auth for MVP (Option B)
-  // Stored in localStorage so it works on GitHub Pages.
-  const KEY = "flqsr_auth_v1";
+  const KEY = "flqsr_auth_v3";
 
-  function defaults() {
-    return {
-      admin: { username: "nrobinson", password: "admin123" },
-      session: null
-    };
-  }
+  const DEFAULT = {
+    accounts: {
+      admin: [
+        { username: "admin", password: "admin123" },
+        { username: "nrobinson@flqsr.com", password: "admin123" },
+      ],
+    },
+    session: null
+  };
 
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (!raw) return defaults();
+      if (!raw) return structuredClone(DEFAULT);
       const parsed = JSON.parse(raw);
-      if (!parsed?.admin?.username || !parsed?.admin?.password) return defaults();
+      if (!parsed?.accounts?.admin) return structuredClone(DEFAULT);
       return parsed;
     } catch {
-      return defaults();
+      return structuredClone(DEFAULT);
     }
   }
 
@@ -34,11 +36,16 @@
 
   function login(username, password) {
     const s = load();
-    const okUser = normalize(username) === normalize(s.admin.username);
-    const okPass = String(password || "") === String(s.admin.password);
-    if (!okUser || !okPass) return false;
+    const u = normalize(username);
+    const p = String(password || "");
 
-    s.session = { role: "admin", user: s.admin.username, ts: Date.now() };
+    const ok = (s.accounts.admin || []).some(acc =>
+      normalize(acc.username) === u && String(acc.password) === p
+    );
+
+    if (!ok) return false;
+
+    s.session = { role: "admin", user: u, ts: Date.now() };
     save(s);
     return true;
   }
@@ -47,13 +54,15 @@
     return load().session;
   }
 
-  function requireAdmin() {
+  function isAdmin() {
     const sess = session();
-    if (!sess || sess.role !== "admin") {
+    return !!sess && sess.role === "admin";
+  }
+
+  function requireAdmin() {
+    if (!isAdmin()) {
       location.href = "/login.html";
-      return false;
     }
-    return true;
   }
 
   function logout() {
@@ -63,17 +72,11 @@
     location.href = "/login.html";
   }
 
-  // Expose
   window.FLQSR_AUTH = {
     login,
     session,
+    isAdmin,
     requireAdmin,
-    logout,
-    // helper to change creds later if needed
-    setAdminCreds: (username, password) => {
-      const s = load();
-      s.admin = { username: String(username || "").trim(), password: String(password || "") };
-      save(s);
-    }
+    logout
   };
 })();
