@@ -1,23 +1,22 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-  <title>Admin</title>
-  <link rel="stylesheet" href="assets/styles.css">
-  <script src="assets/auth.js"></script>
-  <script src="assets/storage.js"></script>
-  <script src="assets/admin.js" defer></script>
+  <title>Admin | FrontlineQSR</title>
+  <script defer src="./assets/auth.js"></script>
 </head>
 <body>
-  <aside class="sidebar">
-    <a href="reports.html">Reports</a>
-    <a href="upload.html">Upload</a>
-    <a href="admin.html" class="active">Admin</a>
-    <button onclick="FLQSR_AUTH.logout()">Logout</button>
-  </aside>
+  <script>
+    FLQSR_AUTH.require("admin");
+  </script>
 
-  <main class="content">
-    <h1>Admin Review</h1>
-    <div id="list"></div>
-  </main>
+  <h1>Admin Dashboard</h1>
+
+  <nav>
+    <a href="upload.html">Upload</a>
+    <a href="reports.html">Reports</a>
+    <button onclick="FLQSR_AUTH.logout()">Logout</button>
+  </nav>
+
+  <p>Admin access confirmed.</p>
 </body>
 </html>
