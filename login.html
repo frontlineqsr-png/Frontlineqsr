@@ -1,47 +1,58 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Login</title>
   <link rel="stylesheet" href="./assets/styles.css" />
   <script defer src="./assets/auth.js"></script>
+  <style>
+    body{background:#0b0f14;color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;margin:0}
+    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:min(520px,100%);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px}
+    label{display:block;margin-top:14px;margin-bottom:6px;color:#b7c3d4}
+    input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#e9eef5}
+    button{margin-top:14px;padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#e9eef5;font-weight:800;cursor:pointer;width:100%}
+    .err{margin-top:10px;color:#ff7b7b;font-weight:800;min-height:18px}
+    .muted{color:#b7c3d4;font-size:13px}
+  </style>
 </head>
 <body>
   <div class="wrap">
-    <h2>FrontlineQSR Portal Access</h2>
+    <div class="card">
+      <div class="muted">FrontlineQSR</div>
+      <h2 style="margin:6px 0 6px;">Admin Sign In</h2>
+      <div class="muted">Pilot build mode — admin-only access.</div>
 
-    <label>Role</label>
-    <select id="role">
-      <option value="admin">Admin</option>
-      <option value="client">Client</option>
-    </select>
+      <label for="username">Email</label>
+      <input id="username" autocomplete="username" placeholder="nrobinson@flqsr.com"/>
 
-    <label>Username</label>
-    <input id="user" />
+      <label for="password">Password</label>
+      <input id="password" type="password" autocomplete="current-password" placeholder="••••••••"/>
 
-    <label>Password</label>
-    <input id="pass" type="password" />
+      <button id="btn" type="button">Sign In</button>
+      <div id="msg" class="err"></div>
 
-    <button onclick="doLogin()">Login</button>
-    <p id="msg" style="color:red;"></p>
+      <div class="muted" style="margin-top:10px;">
+        If login changes don’t apply, run once in console:<br/>
+        <code>FLQSR_AUTH.resetAuth(); location.reload();</code>
+      </div>
+    </div>
   </div>
 
   <script>
-    function doLogin() {
-      const ok = FLQSR_AUTH.login(
-        document.getElementById("role").value,
-        document.getElementById("user").value,
-        document.getElementById("pass").value
-      );
+    const $ = (id) => document.getElementById(id);
 
-      if (!ok) {
-        document.getElementById("msg").innerText = "Invalid credentials";
-        return;
-      }
+    $("btn").addEventListener("click", () => {
+      $("msg").textContent = "";
+      const res = FLQSR_AUTH.login($("username").value, $("password").value);
+      if (!res.ok) { $("msg").textContent = res.msg || "Login failed."; return; }
+      location.href = "admin.html";
+    });
 
-      const role = FLQSR_AUTH.session().role;
-      location.href = role === "admin" ? "admin.html" : "reports.html";
-    }
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") $("btn").click();
+    });
   </script>
 </body>
 </html>
