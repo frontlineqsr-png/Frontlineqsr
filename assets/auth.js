@@ -1,46 +1,46 @@
-// /assets/auth.js  (ADMIN-ONLY MODE)
 (() => {
   "use strict";
 
-  const KEY = "flqsr_auth_adminonly_v1";
+  // Admin-only auth for MVP (Option B)
+  // Stored in localStorage so it works on GitHub Pages.
+  const KEY = "flqsr_auth_v1";
 
-  const DEFAULT_STATE = {
-    admin: {
-      username: "nrobinson@flqsr.com",
-      password: "admin123"
-    },
-    session: null
-  };
+  function defaults() {
+    return {
+      admin: { username: "nrobinson", password: "admin123" },
+      session: null
+    };
+  }
 
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (!raw) return structuredClone(DEFAULT_STATE);
+      if (!raw) return defaults();
       const parsed = JSON.parse(raw);
-      return parsed?.admin ? parsed : structuredClone(DEFAULT_STATE);
+      if (!parsed?.admin?.username || !parsed?.admin?.password) return defaults();
+      return parsed;
     } catch {
-      return structuredClone(DEFAULT_STATE);
+      return defaults();
     }
   }
 
-  function save(state) {
-    localStorage.setItem(KEY, JSON.stringify(state));
+  function save(v) {
+    localStorage.setItem(KEY, JSON.stringify(v));
   }
 
-  function normalize(v) {
-    return String(v || "").trim().toLowerCase();
+  function normalize(s) {
+    return String(s || "").trim().toLowerCase();
   }
 
   function login(username, password) {
-    const state = load();
-    const okUser = normalize(state.admin.username) === normalize(username);
-    const okPass = String(state.admin.password) === String(password);
+    const s = load();
+    const okUser = normalize(username) === normalize(s.admin.username);
+    const okPass = String(password || "") === String(s.admin.password);
+    if (!okUser || !okPass) return false;
 
-    if (!okUser || !okPass) return { ok: false, msg: "Invalid credentials." };
-
-    state.session = { role: "admin", username: state.admin.username, ts: Date.now() };
-    save(state);
-    return { ok: true };
+    s.session = { role: "admin", user: s.admin.username, ts: Date.now() };
+    save(s);
+    return true;
   }
 
   function session() {
@@ -48,24 +48,32 @@
   }
 
   function requireAdmin() {
-    const s = session();
-    if (!s || s.role !== "admin") {
-      location.href = "login.html";
+    const sess = session();
+    if (!sess || sess.role !== "admin") {
+      location.href = "/login.html";
       return false;
     }
     return true;
   }
 
   function logout() {
-    const state = load();
-    state.session = null;
-    save(state);
-    location.href = "login.html";
+    const s = load();
+    s.session = null;
+    save(s);
+    location.href = "/login.html";
   }
 
-  function resetAuth() {
-    localStorage.removeItem(KEY);
-  }
-
-  window.FLQSR_AUTH = { login, session, requireAdmin, logout, resetAuth };
+  // Expose
+  window.FLQSR_AUTH = {
+    login,
+    session,
+    requireAdmin,
+    logout,
+    // helper to change creds later if needed
+    setAdminCreds: (username, password) => {
+      const s = load();
+      s.admin = { username: String(username || "").trim(), password: String(password || "") };
+      save(s);
+    }
+  };
 })();
