@@ -12,7 +12,7 @@
   // Seed users once (you can change passwords later in localStorage).
   // Admin login you wanted:
   const DEFAULT_USERS = [
-    { username: "nrobinson@flqsr.com", role: "admin", password: "ChangeMe123!" },
+    { username: "nrobinson@flqsr.com", role: "admin", password: "Ducks4life!" },
     { username: "client@demo.com", role: "client", password: "client123" }
   ];
 
