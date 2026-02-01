@@ -1,18 +1,14 @@
-/* /assets/auth.js
-   Admin-only auth for pilot.
-   - Uses localStorage session
-   - Has a "resetAuth()" helper you can call from login page
-*/
+// /assets/auth.js
 (() => {
   "use strict";
 
+  // Admin-only mode (clients disabled for now)
   const KEY = "flqsr_auth_v3";
 
   function defaults() {
     return {
-      admin: {
-        username: "hrobinson",
-        password: "admin123"
+      accounts: {
+        admin: { username: "nrobinson", password: "admin123" }
       },
       session: null
     };
@@ -23,9 +19,11 @@
       const raw = localStorage.getItem(KEY);
       if (!raw) return defaults();
       const parsed = JSON.parse(raw);
-      if (!parsed?.admin?.username || !parsed?.admin?.password) return defaults();
+
+      // Basic shape validation
+      if (!parsed?.accounts?.admin?.username || !parsed?.accounts?.admin?.password) return defaults();
       return parsed;
-    } catch (e) {
+    } catch {
       return defaults();
     }
   }
@@ -36,14 +34,16 @@
 
   function login(username, password) {
     const s = load();
-    const u = String(username || "").trim().toLowerCase();
-    const p = String(password || "").trim();
+    const acct = s.accounts.admin;
 
-    const okUser = u === String(s.admin.username).trim().toLowerCase();
-    const okPass = p === String(s.admin.password).trim();
+    const u = String(username || "").trim().toLowerCase();
+    const p = String(password || "");
+
+    const okUser = u === String(acct.username).trim().toLowerCase();
+    const okPass = p === String(acct.password);
 
     if (okUser && okPass) {
-      s.session = { role: "admin", user: s.admin.username, ts: Date.now() };
+      s.session = { role: "admin", user: acct.username, ts: Date.now() };
       save(s);
       return true;
     }
@@ -54,10 +54,15 @@
     return load().session;
   }
 
+  function isAdmin() {
+    return session()?.role === "admin";
+  }
+
   function requireAdmin() {
-    const sess = session();
-    if (!sess || sess.role !== "admin") {
-      location.href = "login.html";
+    if (!isAdmin()) {
+      // preserve target for redirect after login
+      const here = location.pathname.split("/").pop() || "upload.html";
+      location.href = `login.html?next=${encodeURIComponent(here)}`;
       return false;
     }
     return true;
@@ -70,16 +75,14 @@
     location.href = "login.html";
   }
 
-  function resetAuth() {
-    localStorage.removeItem(KEY);
-  }
-
+  // Expose API
   window.FLQSR_AUTH = {
+    load,
+    save,
     login,
     session,
+    isAdmin,
     requireAdmin,
-    logout,
-    resetAuth,
-    _key: KEY // for debugging if needed
+    logout
   };
 })();
