@@ -1,92 +1,47 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Login</title>
   <link rel="stylesheet" href="./assets/styles.css" />
   <script defer src="./assets/auth.js"></script>
-  <style>
-    body{background:#0b0f14;color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0}
-    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-    .card{width:min(520px,100%);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px}
-    h1{margin:6px 0 4px;font-size:34px}
-    .muted{color:#b7c3d4}
-    label{display:block;margin-top:14px;margin-bottom:6px;color:#b7c3d4}
-    input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#e9eef5}
-    .row{display:flex;gap:10px;margin-top:16px;align-items:center}
-    button{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#e9eef5;cursor:pointer}
-    button:hover{background:rgba(255,255,255,.12)}
-    .err{margin-top:10px;color:#ff9a9a}
-    .ok{margin-top:10px;color:#9affb3}
-    .hint{font-size:13px;margin-top:10px;color:#b7c3d4}
-  </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="card">
-      <div class="muted">FrontlineQSR</div>
-      <h1>Sign in</h1>
-      <div class="muted">Admin and Client logins are separate.</div>
+    <h2>FrontlineQSR Portal Access</h2>
 
-      <label for="user">Username</label>
-      <input id="user" autocomplete="username" placeholder="nrobinson@flqsr.com" />
+    <label>Role</label>
+    <select id="role">
+      <option value="admin">Admin</option>
+      <option value="client">Client</option>
+    </select>
 
-      <label for="pass">Password</label>
-      <input id="pass" type="password" autocomplete="current-password" />
+    <label>Username</label>
+    <input id="user" />
 
-      <div class="row">
-        <button id="btnAdmin" type="button">Login as Admin</button>
-        <button id="btnClient" type="button">Login as Client</button>
-      </div>
+    <label>Password</label>
+    <input id="pass" type="password" />
 
-      <div id="msg" class="err"></div>
-
-      <div class="hint">
-        If login was changed recently, clear saved auth once:<br/>
-        <code>localStorage.removeItem("flqsr_auth_v2"); location.reload();</code>
-      </div>
-    </div>
+    <button onclick="doLogin()">Login</button>
+    <p id="msg" style="color:red;"></p>
   </div>
 
   <script>
-    const $ = (id) => document.getElementById(id);
-    const msg = $("msg");
+    function doLogin() {
+      const ok = FLQSR_AUTH.login(
+        document.getElementById("role").value,
+        document.getElementById("user").value,
+        document.getElementById("pass").value
+      );
 
-    function go(role) {
-      // route after login
-      if (role === "admin") location.href = "admin.html";
-      else location.href = "reports.html";
-    }
-
-    function doLogin(role) {
-      msg.className = "err";
-      msg.textContent = "";
-      const u = $("user").value;
-      const p = $("pass").value;
-
-      if (!window.FLQSR_AUTH) {
-        msg.textContent = "Auth system not loaded. Check /assets/auth.js path.";
+      if (!ok) {
+        document.getElementById("msg").innerText = "Invalid credentials";
         return;
       }
 
-      const res = FLQSR_AUTH.login(role, u, p);
-      if (res.ok) {
-        msg.className = "ok";
-        msg.textContent = "Success. Redirecting...";
-        go(role);
-      } else {
-        msg.textContent = res.msg || "Invalid username or password.";
-      }
+      const role = FLQSR_AUTH.session().role;
+      location.href = role === "admin" ? "admin.html" : "reports.html";
     }
-
-    $("btnAdmin").addEventListener("click", () => doLogin("admin"));
-    $("btnClient").addEventListener("click", () => doLogin("client"));
-
-    // enter key submits as admin by default
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") doLogin("admin");
-    });
   </script>
 </body>
 </html>
