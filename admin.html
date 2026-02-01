@@ -1,144 +1,23 @@
 <!doctype html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>FrontlineQSR | Admin Review</title>
-
-  <!-- ✅ Admin ONLY -->
-  <meta name="flqsr-roles" content="admin">
-
-  <link rel="stylesheet" href="assets/styles.css?v=1" />
-
-  <!-- ✅ Auth gate -->
-  <script src="assets/auth.js?v=3" defer></script>
-
-  <!-- Admin logic -->
-  <script src="assets/admin.js?v=9" defer></script>
-
-  <style>
-    /* fallback */
-    .page { max-width: 1200px; margin: 0 auto; padding: 18px; }
-    .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
-    .brand { display:flex; align-items:center; gap:10px; font-weight:800; }
-    .brand img { height:34px; }
-    .navlinks { display:flex; gap:10px; flex-wrap:wrap; }
-    .navlinks a, .navlinks button {
-      border:1px solid rgba(255,255,255,.14);
-      background: rgba(255,255,255,.06);
-      color:#e9eef5;
-      padding:10px 12px;
-      border-radius:12px;
-      text-decoration:none;
-      font-weight:800;
-      cursor:pointer;
-    }
-    .navlinks a.primary {
-      border-color: rgba(125,255,155,.4);
-      background: rgba(125,255,155,.10);
-    }
-    .card { border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.05); border-radius:16px; padding:16px; margin-bottom:14px; }
-    .meta { opacity:.85; font-size:13px; }
-    .grid2 { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-    @media(max-width:900px){ .grid2{grid-template-columns:1fr;} }
-    textarea { width:100%; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.04); color:#e9eef5; }
-    .btn { border:1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color:#e9eef5; padding:10px 12px; border-radius:12px; font-weight:800; cursor:pointer; }
-    .btn.primary { border-color: rgba(125,255,155,.4); background: rgba(125,255,155,.10); }
-    .pill { display:inline-block; padding:6px 10px; border-radius:999px; border:1px solid rgba(255,255,255,.16); background: rgba(255,255,255,.06); font-size:12px; }
-    .hidden { display:none !important; }
-  </style>
+  <title>Admin</title>
+  <link rel="stylesheet" href="assets/styles.css">
+  <script src="assets/auth.js"></script>
+  <script src="assets/storage.js"></script>
+  <script src="assets/admin.js" defer></script>
 </head>
-
 <body>
-  <div class="page">
+  <aside class="sidebar">
+    <a href="reports.html">Reports</a>
+    <a href="upload.html">Upload</a>
+    <a href="admin.html" class="active">Admin</a>
+    <button onclick="FLQSR_AUTH.logout()">Logout</button>
+  </aside>
 
-    <!-- Top bar -->
-    <div class="topbar">
-      <div class="brand">
-        <img src="assets/frontlineqsr-logo.png" alt="FrontlineQSR" />
-        <div>
-          <div>FrontlineQSR</div>
-          <div class="meta">Admin Review</div>
-        </div>
-      </div>
-
-      <div class="navlinks">
-        <a class="primary" href="admin.html">Admin</a>
-        <a href="upload.html">Upload</a>
-        <a href="kpis.html">KPIs</a>
-        <a href="reports.html">Reports</a>
-        <button type="button" onclick="FLQSR_AUTH.logout()">Logout</button>
-      </div>
-    </div>
-
-    <!-- Controls -->
-    <div class="card">
-      <h2 style="margin:0;">Admin Review Queue</h2>
-      <div class="meta" style="margin-top:8px;">
-        Review client submissions, approve to unlock KPI updates, or reject with notes.
-        (Pilot v1 uses browser storage — no backend yet.)
-      </div>
-
-      <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn primary" id="refreshQueueBtn" type="button">Refresh Queue</button>
-        <button class="btn" id="addDemoBtn" type="button">Add Demo Submission</button>
-        <button class="btn" id="clearQueueBtn" type="button">Clear Queue</button>
-      </div>
-
-      <div class="meta" style="margin-top:10px;">
-        Tip: Use <strong>Add Demo Submission</strong> once so you can see the full workflow immediately.
-      </div>
-    </div>
-
-    <!-- Queue -->
-    <div class="card">
-      <h3 style="margin:0 0 10px;">Submissions</h3>
-      <div id="queueEmpty" class="meta">No submissions yet. Have a client submit from Upload.</div>
-      <div id="queueList" class="grid2" style="margin-top:10px;"></div>
-    </div>
-
-    <!-- Details -->
-    <div class="card">
-      <h3 style="margin:0 0 10px;">Details</h3>
-
-      <div id="detailsEmpty" class="meta">Select a submission to review.</div>
-
-      <div id="detailsPanel" class="hidden">
-        <div class="grid2">
-          <div class="card">
-            <div class="meta">Client</div>
-            <div id="dClient" style="font-weight:900;"></div>
-
-            <div class="meta" style="margin-top:10px;">Submitted</div>
-            <div id="dSubmitted"></div>
-
-            <div class="meta" style="margin-top:10px;">Status</div>
-            <div id="dStatus" class="pill"></div>
-          </div>
-
-          <div class="card">
-            <div class="meta">Files</div>
-            <div id="dFiles" class="meta" style="margin-top:6px;"></div>
-
-            <div class="meta" style="margin-top:10px;">Months</div>
-            <div id="dMonths" class="meta" style="margin-top:6px;"></div>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:12px;">
-          <div class="meta">Admin Notes (optional)</div>
-          <textarea id="adminNotes" rows="3" style="margin-top:8px;"></textarea>
-
-          <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn primary" id="approveBtn" type="button">Approve</button>
-            <button class="btn" id="rejectBtn" type="button">Reject</button>
-          </div>
-
-          <div id="adminStatus" class="meta" style="margin-top:10px;"></div>
-        </div>
-      </div>
-    </div>
-
-  </div>
+  <main class="content">
+    <h1>Admin Review</h1>
+    <div id="list"></div>
+  </main>
 </body>
 </html>
