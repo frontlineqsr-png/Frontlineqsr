@@ -1,23 +1,19 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-  <title>Reports</title>
-  <link rel="stylesheet" href="assets/styles.css">
-  <script src="assets/auth.js"></script>
-  <script src="assets/storage.js"></script>
-  <script src="assets/reports.js" defer></script>
+  <title>Reports | FrontlineQSR</title>
+  <script defer src="./assets/auth.js"></script>
+  <script defer src="./assets/reports.js"></script>
 </head>
 <body>
-  <aside class="sidebar">
-    <a href="reports.html" class="active">Reports</a>
-    <a href="upload.html">Upload</a>
-    <a href="admin.html" class="adminOnly">Admin</a>
-    <button onclick="FLQSR_AUTH.logout()">Logout</button>
-  </aside>
+  <script>
+    FLQSR_AUTH.require();
+  </script>
 
-  <main class="content">
-    <h1>Reports</h1>
-    <div id="out"></div>
-  </main>
+  <h1>Reports</h1>
+
+  <div id="output">Waiting for uploaded data…</div>
+
+  <button onclick="FLQSR_AUTH.logout()">Logout</button>
 </body>
 </html>
