@@ -6,76 +6,86 @@
   <title>FrontlineQSR | Login</title>
   <link rel="stylesheet" href="./assets/styles.css" />
   <script defer src="./assets/auth.js"></script>
-
   <style>
     body{background:#0b0f14;color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0}
-    .wrap{max-width:420px;margin:0 auto;padding:22px}
-    .card{margin-top:22px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px}
-    label{display:block;margin:12px 0 6px;color:#b7c3d4}
-    input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#e9eef5}
-    button{margin-top:14px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#e9eef5;font-weight:700;cursor:pointer}
-    .err{color:#ff8f8f;margin-top:10px;min-height:20px}
-    .top{display:flex;align-items:center;gap:12px}
-    .top img{height:34px}
+    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{width:min(520px,100%);background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px}
+    h1{margin:6px 0 4px;font-size:34px}
     .muted{color:#b7c3d4}
+    label{display:block;margin-top:14px;margin-bottom:6px;color:#b7c3d4}
+    input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#e9eef5}
+    .row{display:flex;gap:10px;margin-top:16px;align-items:center}
+    button{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.08);color:#e9eef5;cursor:pointer}
+    button:hover{background:rgba(255,255,255,.12)}
+    .err{margin-top:10px;color:#ff9a9a}
+    .ok{margin-top:10px;color:#9affb3}
+    .hint{font-size:13px;margin-top:10px;color:#b7c3d4}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="top">
-      <img src="./assets/frontlineqsr-logo.png" alt="FrontlineQSR">
-      <div>
-        <div style="font-weight:800">FrontlineQSR</div>
-        <div class="muted" style="font-size:13px">Portal Access</div>
-      </div>
-    </div>
-
     <div class="card">
-      <h1 style="margin:0 0 6px">Sign in</h1>
+      <div class="muted">FrontlineQSR</div>
+      <h1>Sign in</h1>
       <div class="muted">Admin and Client logins are separate.</div>
 
-      <form id="loginForm">
-        <label for="username">Username</label>
-        <input id="username" autocomplete="username" />
+      <label for="user">Username</label>
+      <input id="user" autocomplete="username" placeholder="nrobinson@flqsr.com" />
 
-        <label for="password">Password</label>
-        <input id="password" type="password" autocomplete="current-password" />
+      <label for="pass">Password</label>
+      <input id="pass" type="password" autocomplete="current-password" />
 
-        <button type="submit" id="loginBtn">Login</button>
-        <div class="err" id="err"></div>
-      </form>
+      <div class="row">
+        <button id="btnAdmin" type="button">Login as Admin</button>
+        <button id="btnClient" type="button">Login as Client</button>
+      </div>
 
-      <div class="muted" style="font-size:12px;margin-top:10px">
-        If you don’t have access, contact your administrator.
+      <div id="msg" class="err"></div>
+
+      <div class="hint">
+        If login was changed recently, clear saved auth once:<br/>
+        <code>localStorage.removeItem("flqsr_auth_v2"); location.reload();</code>
       </div>
     </div>
   </div>
 
   <script>
-    // After auth.js loads, handle login
-    document.getElementById("loginForm").addEventListener("submit", (e) => {
-      e.preventDefault();
-      const u = document.getElementById("username").value.trim();
-      const p = document.getElementById("password").value;
-      const err = document.getElementById("err");
-      err.textContent = "";
+    const $ = (id) => document.getElementById(id);
+    const msg = $("msg");
 
-      const result = window.FLQSR_AUTH?.login(u, p);
-      if (!result?.ok) {
-        err.textContent = "Invalid username or password.";
+    function go(role) {
+      // route after login
+      if (role === "admin") location.href = "admin.html";
+      else location.href = "reports.html";
+    }
+
+    function doLogin(role) {
+      msg.className = "err";
+      msg.textContent = "";
+      const u = $("user").value;
+      const p = $("pass").value;
+
+      if (!window.FLQSR_AUTH) {
+        msg.textContent = "Auth system not loaded. Check /assets/auth.js path.";
         return;
       }
 
-      // redirect based on role
-      const params = new URLSearchParams(location.search);
-      const next = params.get("next");
-      if (next) {
-        location.href = decodeURIComponent(next);
-        return;
+      const res = FLQSR_AUTH.login(role, u, p);
+      if (res.ok) {
+        msg.className = "ok";
+        msg.textContent = "Success. Redirecting...";
+        go(role);
+      } else {
+        msg.textContent = res.msg || "Invalid username or password.";
       }
+    }
 
-      if (result.role === "admin") location.href = "./admin.html";
-      else location.href = "./kpis.html";
+    $("btnAdmin").addEventListener("click", () => doLogin("admin"));
+    $("btnClient").addEventListener("click", () => doLogin("client"));
+
+    // enter key submits as admin by default
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") doLogin("admin");
     });
   </script>
 </body>
