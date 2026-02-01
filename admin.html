@@ -4,67 +4,60 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Admin Review</title>
-  <link rel="stylesheet" href="/assets/styles.css" />
-  <script defer src="/assets/auth.js"></script>
-  <script defer src="/assets/admin.js"></script>
+
+  <link rel="stylesheet" href="/assets/styles.css?v=3" />
+  <script defer src="/assets/auth.js?v=3"></script>
+  <script defer src="/assets/admin.js?v=3"></script>
+
   <style>
     body{background:#0b0f14;color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0}
-    .shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-    .nav{border-right:1px solid rgba(255,255,255,.10);padding:18px}
-    .brand{display:flex;gap:10px;align-items:center;margin:8px 0 18px}
-    .pill{width:10px;height:10px;border-radius:3px;background:#6ae4ff}
-    .nav a{display:block;padding:10px 12px;border-radius:12px;color:#e9eef5;text-decoration:none;margin:6px 0;border:1px solid transparent}
-    .nav a.active{border-color:rgba(106,228,255,.35);background:rgba(106,228,255,.08)}
-    .main{padding:22px}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px}
     .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px}
-    .h1{font-size:28px;font-weight:900;margin:0}
-    .sub{color:#98a7bb;margin-top:4px}
-    .btn{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(125,255,163,.06));color:#e9eef5;font-weight:900;cursor:pointer}
-    .btn2{padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#e9eef5;font-weight:900;cursor:pointer}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .muted{color:#98a7bb;font-size:13px}
-    table{width:100%;border-collapse:collapse;margin-top:10px}
-    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,.10);text-align:left;font-size:13px}
-    th{color:#b7c3d4}
-    @media (max-width: 980px){.shell{grid-template-columns:1fr}.nav{display:none}}
+    .title{font-size:28px;font-weight:900}
+    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px;margin-bottom:14px}
+    .btnRow{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#e9eef5;cursor:pointer;font-weight:700}
+    .btn.primary{background:rgba(16,185,129,.18);border-color:rgba(16,185,129,.35)}
+    .btn.danger{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35)}
+    pre{white-space:pre-wrap;word-break:break-word;background:rgba(0,0,0,.35);padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12)}
+    .muted{color:#b7c3d4;font-size:13px}
+    .ok{color:#8bffb0;font-weight:800}
+    .err{color:#ff6b6b;font-weight:800}
   </style>
 </head>
+
 <body>
-  <div class="shell">
-    <div class="nav">
-      <div class="brand">
-        <div class="pill"></div>
-        <div>
-          <div style="font-weight:900">FrontlineQSR</div>
-          <div class="muted">Admin MVP</div>
-        </div>
+  <div class="wrap">
+    <div class="top">
+      <div>
+        <div class="title">Admin Review</div>
+        <div class="muted">Approve the latest upload to generate the “approved snapshot” that KPIs/Reports use.</div>
       </div>
-      <a href="/upload.html">Upload</a>
-      <a href="/admin.html" class="active">Admin Review</a>
-      <a href="/kpis.html">KPIs</a>
-      <a href="/reports.html">Reports</a>
-      <a href="/action-plan.html">Action Plan</a>
+      <button class="btn" id="btnLogout" type="button">Logout</button>
     </div>
 
-    <div class="main">
-      <div class="top">
-        <div>
-          <div class="h1">Admin Review</div>
-          <div class="sub">Approve submissions to lock baseline (first approval) and set latest approved snapshot.</div>
-        </div>
-        <button class="btn2" id="logoutBtn">Logout</button>
+    <div class="card">
+      <div class="btnRow">
+        <button class="btn primary" id="btnApprove" type="button">Approve Pending Submission</button>
+        <button class="btn danger" id="btnClearPending" type="button">Clear Pending</button>
+        <button class="btn" id="btnGoUpload" type="button">Go to Upload</button>
+        <button class="btn" id="btnGoKPIs" type="button">Go to KPIs</button>
       </div>
 
-      <div class="card">
-        <div class="row">
-          <button class="btn2" id="refreshBtn">Refresh</button>
-          <button class="btn2" id="clearBtn">Clear Pending Queue</button>
-          <div class="muted">Approvals update KPIs/Reports instantly (localStorage).</div>
-        </div>
+      <div id="status" class="muted" style="margin-top:10px;"></div>
+      <div id="msg" style="margin-top:10px;"></div>
+    </div>
 
-        <div id="tableWrap"></div>
-      </div>
+    <div class="card">
+      <h3 style="margin:0 0 8px;">Pending Submission (raw)</h3>
+      <div class="muted">This is what you just uploaded. Approve it to make it “live”.</div>
+      <pre id="pendingDump">Loading…</pre>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 8px;">Approved Snapshot (raw)</h3>
+      <div class="muted">KPIs reads from this.</div>
+      <pre id="approvedDump">Loading…</pre>
     </div>
   </div>
 </body>
