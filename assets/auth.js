@@ -1,21 +1,13 @@
-// /assets/auth.js
+// /assets/auth.js  (ADMIN-ONLY MODE)
 (() => {
   "use strict";
 
-  const KEY = "flqsr_auth_v3";
+  const KEY = "flqsr_auth_adminonly_v1";
 
   const DEFAULT_STATE = {
-    users: {
-      admin: {
-        username: "nrobinson@flqsr.com",
-        password: "admin123",
-        role: "admin"
-      },
-      client: {
-        username: "client@flqsr.com",
-        password: "client123",
-        role: "client"
-      }
+    admin: {
+      username: "nrobinson@flqsr.com",
+      password: "admin123"
     },
     session: null
   };
@@ -25,7 +17,7 @@
       const raw = localStorage.getItem(KEY);
       if (!raw) return structuredClone(DEFAULT_STATE);
       const parsed = JSON.parse(raw);
-      return parsed?.users ? parsed : structuredClone(DEFAULT_STATE);
+      return parsed?.admin ? parsed : structuredClone(DEFAULT_STATE);
     } catch {
       return structuredClone(DEFAULT_STATE);
     }
@@ -35,24 +27,32 @@
     localStorage.setItem(KEY, JSON.stringify(state));
   }
 
+  function normalize(v) {
+    return String(v || "").trim().toLowerCase();
+  }
+
   function login(username, password) {
     const state = load();
-    const u = String(username || "").trim().toLowerCase();
-    const p = String(password || "").trim();
+    const okUser = normalize(state.admin.username) === normalize(username);
+    const okPass = String(state.admin.password) === String(password);
 
-    const user = Object.values(state.users).find(
-      x => String(x.username).trim().toLowerCase() === u && String(x.password) === p
-    );
+    if (!okUser || !okPass) return { ok: false, msg: "Invalid credentials." };
 
-    if (!user) return false;
-
-    state.session = {
-      role: user.role,
-      username: user.username,
-      ts: Date.now()
-    };
-
+    state.session = { role: "admin", username: state.admin.username, ts: Date.now() };
     save(state);
+    return { ok: true };
+  }
+
+  function session() {
+    return load().session;
+  }
+
+  function requireAdmin() {
+    const s = session();
+    if (!s || s.role !== "admin") {
+      location.href = "login.html";
+      return false;
+    }
     return true;
   }
 
@@ -60,30 +60,12 @@
     const state = load();
     state.session = null;
     save(state);
-    window.location.href = "/login.html";
+    location.href = "login.html";
   }
 
-  function session() {
-    return load().session;
-  }
-
-  function requireRole(role) {
-    const s = session();
-    if (!s || (role && s.role !== role)) {
-      window.location.href = "/login.html";
-    }
-  }
-
-  // IMPORTANT: use this once after changing usernames/passwords
   function resetAuth() {
     localStorage.removeItem(KEY);
   }
 
-  window.FLQSR_AUTH = {
-    login,
-    logout,
-    session,
-    requireRole,
-    resetAuth
-  };
+  window.FLQSR_AUTH = { login, session, requireAdmin, logout, resetAuth };
 })();
