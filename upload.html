@@ -1,35 +1,28 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
 <head>
-  <title>Upload</title>
-  <link rel="stylesheet" href="assets/styles.css">
-  <script src="assets/auth.js"></script>
-  <script src="assets/storage.js"></script>
-  <script src="assets/upload.js" defer></script>
+  <title>Upload | FrontlineQSR</title>
+  <script defer src="./assets/auth.js"></script>
 </head>
 <body>
-  <aside class="sidebar">
-    <a href="reports.html">Reports</a>
-    <a href="upload.html" class="active">Upload</a>
-    <a href="admin.html" class="adminOnly">Admin</a>
-    <button onclick="FLQSR_AUTH.logout()">Logout</button>
-  </aside>
+  <script>
+    FLQSR_AUTH.require();
+  </script>
 
-  <main class="content">
-    <h1>Upload Data</h1>
+  <h1>Upload Data</h1>
 
-    <h3>Monthly (required)</h3>
-    <input type="file" id="m1">
-    <input type="file" id="m2">
-    <input type="file" id="m3">
+  <input type="file" multiple id="files" />
+  <button onclick="save()">Upload</button>
 
-    <h3>Weekly (optional)</h3>
-    <input type="file" id="w1">
-    <input type="file" id="w2">
-    <input type="file" id="w3">
+  <script>
+    function save() {
+      const files = document.getElementById("files").files;
+      const names = [...files].map(f => f.name);
+      localStorage.setItem("flqsr_upload_data", JSON.stringify(names));
+      alert("Uploaded!");
+    }
+  </script>
 
-    <button id="submit">Submit</button>
-    <div id="status"></div>
-  </main>
+  <button onclick="FLQSR_AUTH.logout()">Logout</button>
 </body>
 </html>
