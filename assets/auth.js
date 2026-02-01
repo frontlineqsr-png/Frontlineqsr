@@ -1,123 +1,78 @@
-/* assets/auth.js
-   FrontlineQSR Role-Based Auth (Static-site safe)
-   NOTE: This is NOT “secure” security (no server). It’s a UI gate for a prototype.
-*/
-
 (() => {
-  "use strict";
+  const KEY = "flqsr_auth_v2";
 
-  const AUTH_KEY = "flqsr_auth_session";
-  const USERS_KEY = "flqsr_users_v1";
-
-  // Seed users once (you can change passwords later in localStorage).
-  // Admin login you wanted:
-  const DEFAULT_USERS = [
-    { username: "nrobinson@flqsr.com", role: "admin", password: "Ducks4life!" },
-    { username: "client@demo.com", role: "client", password: "client123" }
-  ];
-
-  function safeParse(v, fallback) {
-    try { return JSON.parse(v); } catch { return fallback; }
+  function defaults(){
+    return {
+      accounts:{
+        admin:{ username:"nrobinson@flqsr.com", password:"ChangeMe123!" },
+        client:{ username:"client@flqsr.com", password:"Client123!" }
+      },
+      session:null
+    };
   }
 
-  function getUsers() {
-    const existing = safeParse(localStorage.getItem(USERS_KEY), null);
-    if (Array.isArray(existing) && existing.length) return existing;
-
-    localStorage.setItem(USERS_KEY, JSON.stringify(DEFAULT_USERS));
-    return DEFAULT_USERS;
-  }
-
-  function findUser(username) {
-    const u = String(username || "").trim().toLowerCase();
-    return getUsers().find(x => String(x.username).toLowerCase() === u) || null;
-  }
-
-  function getSession() {
-    return safeParse(localStorage.getItem(AUTH_KEY), null);
-  }
-
-  function setSession(session) {
-    localStorage.setItem(AUTH_KEY, JSON.stringify(session));
-  }
-
-  function clearSession() {
-    localStorage.removeItem(AUTH_KEY);
-  }
-
-  function getNextFromUrl() {
-    const params = new URLSearchParams(window.location.search);
-    const next = params.get("next");
-    return next && next.startsWith("/") ? next.slice(1) : next; // keep relative
-  }
-
-  function requireRole(allowedRoles = []) {
-    const session = getSession();
-    if (!session || !allowedRoles.includes(session.role)) {
-      const next = encodeURIComponent(window.location.pathname.split("/").pop() || "app.html");
-      window.location.href = `login.html?next=${next}&reason=not_logged_in`;
+  function load(){
+    try{
+      return JSON.parse(localStorage.getItem(KEY)) || defaults();
+    }catch{
+      return defaults();
     }
   }
 
-  function login(username, password) {
-    const user = findUser(username);
-    if (!user || String(user.password) !== String(password)) return false;
+  function save(v){ localStorage.setItem(KEY, JSON.stringify(v)); }
 
-    const session = {
-      username: String(user.username).trim(),
-      role: user.role,
-      loggedInAt: new Date().toISOString()
-    };
-    setSession(session);
+  function login(role,u,p){
+    const s = load();
+    const acct = s.accounts[role];
+    if(!acct) return false;
 
-    // Redirect priority:
-    // 1) ?next=whatever
-    // 2) role default
-    const next = getNextFromUrl();
-    if (next) {
-      window.location.href = next;
+    if(
+      acct.username.toLowerCase() === u.toLowerCase() &&
+      acct.password === p
+    ){
+      s.session = { role, user: acct.username, ts: Date.now() };
+      save(s);
       return true;
     }
-
-    if (user.role === "admin") window.location.href = "admin.html";
-    else window.location.href = "app.html";
-
-    return true;
+    return false;
   }
 
-  function logout() {
-    clearSession();
-    window.location.href = "login.html";
+  function session(){
+    return load().session;
   }
 
-  // Optional helpers (for you as admin) — run in DevTools console:
-  // FLQSR_AUTH.adminSetPassword("nrobinson@flqsr.com","NewPass123!")
-  // FLQSR_AUTH.adminAddUser("client@brand.com","client","Temp123!")
-  function adminSetPassword(username, newPassword) {
-    const users = getUsers();
-    const u = String(username || "").trim().toLowerCase();
-    const idx = users.findIndex(x => String(x.username).toLowerCase() === u);
-    if (idx === -1) return false;
-    users[idx].password = String(newPassword);
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    return true;
+  function logout(){
+    const s = load();
+    s.session = null;
+    save(s);
+    location.href = "login.html";
   }
 
-  function adminAddUser(username, role, password) {
-    const users = getUsers();
-    const u = String(username || "").trim().toLowerCase();
-    if (users.some(x => String(x.username).toLowerCase() === u)) return false;
-    users.push({ username: String(username).trim(), role: String(role), password: String(password) });
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-    return true;
+  function guard(){
+    const s = session();
+    const page = location.pathname.split("/").pop();
+
+    if(["upload.html","reports.html","admin.html"].includes(page) && !s){
+      location.href = "login.html";
+      return;
+    }
+
+    if(page === "admin.html" && s?.role !== "admin"){
+      location.href = "reports.html";
+      return;
+    }
+
+    document.querySelectorAll(".adminOnly").forEach(el=>{
+      el.style.display = s?.role === "admin" ? "" : "none";
+    });
   }
 
   window.FLQSR_AUTH = {
     login,
     logout,
-    requireRole,
-    getSession,
-    adminSetPassword,
-    adminAddUser
+    session,
+    guard
   };
+
+  document.addEventListener("DOMContentLoaded", guard);
 })();
