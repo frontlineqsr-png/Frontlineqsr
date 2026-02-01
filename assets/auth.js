@@ -1,28 +1,32 @@
-// /assets/auth.js
+/* /assets/auth.js
+   Admin-only auth for pilot.
+   - Uses localStorage session
+   - Has a "resetAuth()" helper you can call from login page
+*/
 (() => {
   "use strict";
 
   const KEY = "flqsr_auth_v3";
 
-  const DEFAULT = {
-    accounts: {
-      admin: [
-        { username: "admin", password: "admin123" },
-        { username: "nrobinson@flqsr.com", password: "admin123" },
-      ],
-    },
-    session: null
-  };
+  function defaults() {
+    return {
+      admin: {
+        username: "hrobinson",
+        password: "admin123"
+      },
+      session: null
+    };
+  }
 
   function load() {
     try {
       const raw = localStorage.getItem(KEY);
-      if (!raw) return structuredClone(DEFAULT);
+      if (!raw) return defaults();
       const parsed = JSON.parse(raw);
-      if (!parsed?.accounts?.admin) return structuredClone(DEFAULT);
+      if (!parsed?.admin?.username || !parsed?.admin?.password) return defaults();
       return parsed;
-    } catch {
-      return structuredClone(DEFAULT);
+    } catch (e) {
+      return defaults();
     }
   }
 
@@ -30,53 +34,52 @@
     localStorage.setItem(KEY, JSON.stringify(v));
   }
 
-  function normalize(s) {
-    return String(s || "").trim().toLowerCase();
-  }
-
   function login(username, password) {
     const s = load();
-    const u = normalize(username);
-    const p = String(password || "");
+    const u = String(username || "").trim().toLowerCase();
+    const p = String(password || "").trim();
 
-    const ok = (s.accounts.admin || []).some(acc =>
-      normalize(acc.username) === u && String(acc.password) === p
-    );
+    const okUser = u === String(s.admin.username).trim().toLowerCase();
+    const okPass = p === String(s.admin.password).trim();
 
-    if (!ok) return false;
-
-    s.session = { role: "admin", user: u, ts: Date.now() };
-    save(s);
-    return true;
+    if (okUser && okPass) {
+      s.session = { role: "admin", user: s.admin.username, ts: Date.now() };
+      save(s);
+      return true;
+    }
+    return false;
   }
 
   function session() {
     return load().session;
   }
 
-  function isAdmin() {
-    const sess = session();
-    return !!sess && sess.role === "admin";
-  }
-
   function requireAdmin() {
-    if (!isAdmin()) {
-      location.href = "/login.html";
+    const sess = session();
+    if (!sess || sess.role !== "admin") {
+      location.href = "login.html";
+      return false;
     }
+    return true;
   }
 
   function logout() {
     const s = load();
     s.session = null;
     save(s);
-    location.href = "/login.html";
+    location.href = "login.html";
+  }
+
+  function resetAuth() {
+    localStorage.removeItem(KEY);
   }
 
   window.FLQSR_AUTH = {
     login,
     session,
-    isAdmin,
     requireAdmin,
-    logout
+    logout,
+    resetAuth,
+    _key: KEY // for debugging if needed
   };
 })();
