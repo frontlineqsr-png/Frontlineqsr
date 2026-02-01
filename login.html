@@ -9,130 +9,74 @@
   <script defer src="./assets/auth.js"></script>
 
   <style>
-    .login-wrap{max-width:900px;margin:0 auto;padding:24px;}
-    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px;}
-    .row{display:grid;grid-template-columns:1fr;gap:12px;}
-    label{display:block;margin:10px 0 6px;color:#b7c3d4;}
-    input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#e9eef5;}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(0,0,0,.25);color:#e9eef5;cursor:pointer;}
-    .btn.primary{background:linear-gradient(135deg, rgba(16,148,98,.35), rgba(33,122,255,.20));border-color:rgba(16,148,98,.55);}
-    .muted{color:#b7c3d4;font-size:13px;margin-top:8px;}
-    .err{margin-top:10px;color:#ff6b6b;}
-    .top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px;}
+    /* If styles.css ever fails, keep it usable */
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial; background:#0b0f14; color:#e9eef5; }
+    .wrap { max-width:720px; margin:60px auto; padding:18px; }
+    .card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:18px; }
+    label { display:block; margin:10px 0 6px; opacity:.9; }
+    input { width:100%; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.06); color:#e9eef5; }
+    .row { display:flex; gap:10px; align-items:center; margin-top:12px; }
+    button { padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.14); background:rgba(46,204,113,.18); cursor:pointer; color:#e9eef5; font-weight:700; }
+    .err { margin-top:10px; color:#ff7b7b; min-height:22px; }
+    .muted { opacity:.75; }
   </style>
 </head>
 
 <body>
-  <div class="login-wrap">
-    <div class="top">
-      <div>
-        <div style="font-weight:800;font-size:20px;">FrontlineQSR</div>
-        <div class="muted">Portal Access (Admin Only)</div>
-      </div>
-    </div>
-
+  <div class="wrap">
     <div class="card">
-      <div style="font-weight:800;font-size:32px;margin-bottom:4px;">Sign in</div>
-      <div class="muted">Option B: Admin-only while we build pilots. (Clients can be re-enabled later.)</div>
+      <div style="font-size:26px;font-weight:900;">Sign in</div>
+      <div class="muted">Admin-only while we build pilots.</div>
 
-      <!-- AUTOFILL BLOCKERS -->
-      <!-- These hidden fields help stop Chrome/Safari from auto-filling the real fields -->
-      <form id="loginForm" autocomplete="off" novalidate>
-        <input type="text" name="fake_user" autocomplete="username" style="position:absolute;left:-9999px;top:-9999px;height:0;width:0;opacity:0;">
-        <input type="password" name="fake_pass" autocomplete="current-password" style="position:absolute;left:-9999px;top:-9999px;height:0;width:0;opacity:0;">
+      <form id="loginForm" autocomplete="off">
+        <!-- These help discourage autofill (not perfect in Chrome/Safari, but helps) -->
+        <input type="text" name="fakeusernameremembered" style="display:none" autocomplete="username">
+        <input type="password" name="fakepasswordremembered" style="display:none" autocomplete="new-password">
+
+        <label for="u">Username</label>
+        <input id="u" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" />
+
+        <label for="p">Password</label>
+        <input id="p" type="password" autocomplete="new-password" />
 
         <div class="row">
-          <div>
-            <label for="u">Username</label>
-            <input
-              id="u"
-              name="username_real"
-              type="text"
-              inputmode="text"
-              autocomplete="off"
-              autocapitalize="none"
-              spellcheck="false"
-              placeholder="Enter username"
-            />
-          </div>
+          <button type="submit">Login</button>
+          <div class="muted">Redirects to Upload after login.</div>
+        </div>
 
-          <div>
-            <label for="p">Password</label>
-            <input
-              id="p"
-              name="password_real"
-              type="password"
-              autocomplete="new-password"
-              placeholder="Enter password"
-            />
-          </div>
-
-          <div style="display:flex;gap:10px;align-items:center;margin-top:6px;">
-            <button class="btn primary" type="submit">Login</button>
-            <button class="btn" type="button" id="resetBtn">Reset</button>
-            <div class="muted">Redirects to Upload after login.</div>
-          </div>
-
-          <div id="err" class="err" style="display:none;"></div>
-          <div class="muted">Tip: If login ever acts weird after changes, click <b>Reset</b> then hard refresh (Cmd+Shift+R).</div>
+        <div id="err" class="err"></div>
+        <div class="muted" style="margin-top:10px;">
+          Tip: If you changed credentials, click Logout then hard refresh (Cmd+Shift+R).
         </div>
       </form>
     </div>
   </div>
 
   <script>
-    (function(){
-      const form = document.getElementById("loginForm");
+    window.addEventListener("DOMContentLoaded", () => {
       const u = document.getElementById("u");
       const p = document.getElementById("p");
       const err = document.getElementById("err");
-      const resetBtn = document.getElementById("resetBtn");
 
-      // IMPORTANT: clear any autofilled values on load so it never "shows" your creds
-      window.addEventListener("load", () => {
-        u.value = "";
-        p.value = "";
-        err.style.display = "none";
-        err.textContent = "";
-      });
+      // Clear any autofill that sneaks in
+      u.value = "";
+      p.value = "";
 
-      function showErr(msg){
-        err.textContent = msg;
-        err.style.display = "block";
-      }
-
-      resetBtn.addEventListener("click", () => {
-        try {
-          window.FLQSR_AUTH?.resetAuth?.();
-          // also clear other older keys if they existed
-          localStorage.removeItem("flqsr_auth_v2");
-          localStorage.removeItem("flqsr_auth_v1");
-        } catch(e){}
-        u.value = "";
-        p.value = "";
-        showErr("Auth reset. Now try logging in again.");
-      });
-
-      form.addEventListener("submit", (e) => {
+      document.getElementById("loginForm").addEventListener("submit", (e) => {
         e.preventDefault();
-        err.style.display = "none";
         err.textContent = "";
 
-        if (!window.FLQSR_AUTH) {
-          showErr("auth.js not loaded. Check that /assets/auth.js exists and the script path is correct.");
-          return;
-        }
-
-        const ok = window.FLQSR_AUTH.login(u.value, p.value);
+        const ok = window.FLQSR_AUTH?.login(u.value, p.value);
         if (!ok) {
-          showErr("Invalid username or password.");
+          err.textContent = "Invalid username or password.";
           return;
         }
 
-        // Success → go to upload
-        location.href = "upload.html";
+        const params = new URLSearchParams(location.search);
+        const next = params.get("next") || "upload.html";
+        location.href = next;
       });
-    })();
+    });
   </script>
 </body>
 </html>
