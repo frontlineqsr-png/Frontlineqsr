@@ -4,140 +4,115 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>FrontlineQSR | Upload Data</title>
-  <link rel="stylesheet" href="/assets/styles.css" />
-  <script defer src="/assets/auth.js"></script>
-  <script defer src="/assets/upload.js"></script>
+
+  <!-- ✅ CSS -->
+  <link rel="stylesheet" href="/assets/styles.css?v=3" />
+
+  <!-- ✅ AUTH must load correctly (fixes iPhone 404 issue) -->
+  <script defer src="/assets/auth.js?v=3"></script>
+
+  <!-- ✅ Upload logic -->
+  <script defer src="/assets/upload.js?v=3"></script>
+
   <style>
-    body{background:#0b0f14;color:#e9eef5;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:0}
-    .shell{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-    .nav{border-right:1px solid rgba(255,255,255,.10);padding:18px}
-    .brand{display:flex;gap:10px;align-items:center;margin:8px 0 18px}
-    .pill{width:10px;height:10px;border-radius:3px;background:#6ae4ff}
-    .nav a{display:block;padding:10px 12px;border-radius:12px;color:#e9eef5;text-decoration:none;margin:6px 0;border:1px solid transparent}
-    .nav a.active{border-color:rgba(106,228,255,.35);background:rgba(106,228,255,.08)}
-    .nav .muted{color:#98a7bb;font-size:12px;margin-top:14px}
-    .main{padding:22px}
-    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-    .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:16px}
-    .h1{font-size:28px;font-weight:900;margin:0}
-    .sub{color:#98a7bb;margin-top:4px}
-    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    .grid3{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-    @media (max-width: 980px){.shell{grid-template-columns:1fr}.nav{display:none}.grid2,.grid3{grid-template-columns:1fr}}
-    label{display:block;margin:8px 0 6px;color:#b7c3d4}
-    input{width:100%;padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#e9eef5}
-    .fileRow{display:grid;grid-template-columns:1fr;gap:10px}
-    .btn{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:linear-gradient(135deg,rgba(106,228,255,.18),rgba(125,255,163,.06));color:#e9eef5;font-weight:800;cursor:pointer}
-    .btn2{padding:12px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:#e9eef5;font-weight:800;cursor:pointer}
-    .status{margin-top:10px;color:#98a7bb;font-size:13px}
-    .err{color:#ff7b7b;font-weight:900}
-    .ok{color:#7dffa3;font-weight:900}
-    .hint{color:#98a7bb;font-size:12px;margin-top:8px}
-    .boxTitle{font-weight:900;margin:0 0 6px}
+    /* lightweight “dashboard” look if styles.css is missing/older cached */
+    body { background:#0b0f14; color:#e9eef5; font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial; margin:0; }
+    .wrap { max-width:1100px; margin:0 auto; padding:18px; }
+    .top { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:14px; }
+    .title { font-size:28px; font-weight:900; }
+    .muted { color:#b7c3d4; font-size:13px; }
+    .card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:16px; margin-bottom:14px; }
+    .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    @media (max-width: 900px){ .grid2 { grid-template-columns:1fr; } }
+    label { display:block; margin:10px 0 6px; color:#b7c3d4; font-size:13px; }
+    input[type="file"], input[type="date"], input[type="text"]{ width:100%; padding:12px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); color:#e9eef5; }
+    .btnRow { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    .btn { padding:10px 14px; border-radius:12px; border:1px solid rgba(255,255,255,.16); background:rgba(255,255,255,.06); color:#e9eef5; cursor:pointer; font-weight:700; }
+    .btn.primary { background:rgba(16,185,129,.18); border-color:rgba(16,185,129,.35); }
+    .btn.ghost { background:transparent; }
+    .error { color:#ff6b6b; font-weight:700; margin-top:10px; white-space:pre-wrap; }
+    .status { color:#cfe3ff; margin-top:10px; white-space:pre-wrap; }
   </style>
 </head>
+
 <body>
-  <div class="shell">
-    <div class="nav">
-      <div class="brand">
-        <div class="pill"></div>
-        <div>
-          <div style="font-weight:900">FrontlineQSR</div>
-          <div class="muted">Admin MVP</div>
-        </div>
+  <div class="wrap">
+
+    <div class="top">
+      <div>
+        <div class="title">Upload Data</div>
+        <div class="muted">Upload 3 months (required) + up to 3 weekly files (optional). Admin-only for now.</div>
       </div>
-
-      <a href="/upload.html" class="active">Upload</a>
-      <a href="/admin.html">Admin Review</a>
-      <a href="/kpis.html">KPIs</a>
-      <a href="/reports.html">Reports</a>
-      <a href="/action-plan.html">Action Plan</a>
-
-      <div class="muted">Tip: Use Upload → Admin Review → KPIs/Reports.</div>
+      <button class="btn ghost" id="btnLogout" type="button">Logout</button>
     </div>
 
-    <div class="main">
-      <div class="top">
+    <!-- Monthly -->
+    <div class="card">
+      <h3 style="margin:0 0 6px;">Monthly Data (Required)</h3>
+      <div class="muted">Required columns: <b>Date</b>, <b>Location</b>, <b>Sales</b>, <b>Labor</b>, <b>Transactions</b></div>
+
+      <div class="grid2" style="margin-top:10px;">
         <div>
-          <div class="h1">Upload Data</div>
-          <div class="sub">Upload 3 months (required) + 3 weeks (optional). Admin approves then KPIs/Reports update.</div>
+          <label>Month 1 CSV</label>
+          <input id="m1File" type="file" accept=".csv,text/csv" />
         </div>
-        <button class="btn2" id="logoutBtn">Logout</button>
-      </div>
-
-      <div class="card">
-        <p class="boxTitle">Monthly Data (Required)</p>
-        <div class="hint">Required columns (any order, case-insensitive): <b>Date</b>, <b>Location</b>, <b>Sales</b>, <b>Labor</b>, <b>Transactions</b></div>
-
-        <div class="grid3" style="margin-top:12px">
-          <div class="card">
-            <p class="boxTitle">Month 1</p>
-            <label>Month (YYYY-MM)</label>
-            <input id="m1Month" placeholder="2025-10" />
-            <label>CSV</label>
-            <input id="m1File" type="file" accept=".csv,text/csv" />
-          </div>
-
-          <div class="card">
-            <p class="boxTitle">Month 2</p>
-            <label>Month (YYYY-MM)</label>
-            <input id="m2Month" placeholder="2025-11" />
-            <label>CSV</label>
-            <input id="m2File" type="file" accept=".csv,text/csv" />
-          </div>
-
-          <div class="card">
-            <p class="boxTitle">Month 3</p>
-            <label>Month (YYYY-MM)</label>
-            <input id="m3Month" placeholder="2025-12" />
-            <label>CSV</label>
-            <input id="m3File" type="file" accept=".csv,text/csv" />
-          </div>
+        <div>
+          <label>Month 2 CSV</label>
+          <input id="m2File" type="file" accept=".csv,text/csv" />
+        </div>
+        <div>
+          <label>Month 3 CSV</label>
+          <input id="m3File" type="file" accept=".csv,text/csv" />
         </div>
       </div>
-
-      <div class="card" style="margin-top:12px">
-        <p class="boxTitle">Weekly Data (Optional)</p>
-        <div class="hint">Used for progress during the current month (up to 3 weeks). Week Start should be Monday (ideal).</div>
-
-        <div class="grid3" style="margin-top:12px">
-          <div class="card">
-            <p class="boxTitle">Week 1</p>
-            <label>Week Start (YYYY-MM-DD)</label>
-            <input id="w1Start" placeholder="2026-01-05" />
-            <label>CSV</label>
-            <input id="w1File" type="file" accept=".csv,text/csv" />
-          </div>
-
-          <div class="card">
-            <p class="boxTitle">Week 2</p>
-            <label>Week Start (YYYY-MM-DD)</label>
-            <input id="w2Start" placeholder="2026-01-12" />
-            <label>CSV</label>
-            <input id="w2File" type="file" accept=".csv,text/csv" />
-          </div>
-
-          <div class="card">
-            <p class="boxTitle">Week 3</p>
-            <label>Week Start (YYYY-MM-DD)</label>
-            <input id="w3Start" placeholder="2026-01-19" />
-            <label>CSV</label>
-            <input id="w3File" type="file" accept=".csv,text/csv" />
-          </div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:12px">
-        <p class="boxTitle">Submit</p>
-        <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn" id="submitBtn">Validate &amp; Submit</button>
-          <button class="btn2" id="resetBtn">Reset</button>
-        </div>
-        <div id="status" class="status"></div>
-        <div class="hint">After submit: approve in <b>Admin Review</b>. After approval: <b>KPIs</b>/<b>Reports</b> pull the latest approved snapshot.</div>
-      </div>
-
     </div>
+
+    <!-- Weekly -->
+    <div class="card">
+      <h3 style="margin:0 0 6px;">Weekly Data (Optional)</h3>
+      <div class="muted">Week start should be Monday (ideal). Weekly files can be “lite” KPIs.</div>
+
+      <div class="grid2" style="margin-top:10px;">
+        <div>
+          <label>Week 1 Start (YYYY-MM-DD)</label>
+          <input id="w1Date" type="date" />
+          <label>Week 1 CSV</label>
+          <input id="w1File" type="file" accept=".csv,text/csv" />
+        </div>
+
+        <div>
+          <label>Week 2 Start (YYYY-MM-DD)</label>
+          <input id="w2Date" type="date" />
+          <label>Week 2 CSV</label>
+          <input id="w2File" type="file" accept=".csv,text/csv" />
+        </div>
+
+        <div>
+          <label>Week 3 Start (YYYY-MM-DD)</label>
+          <input id="w3Date" type="date" />
+          <label>Week 3 CSV</label>
+          <input id="w3File" type="file" accept=".csv,text/csv" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <div class="card">
+      <h3 style="margin:0 0 6px;">Submit</h3>
+      <div class="btnRow">
+        <!-- ✅ IMPORTANT: type="button" prevents form refresh -->
+        <button id="btnValidateSubmit" type="button" class="btn primary">Validate &amp; Submit</button>
+        <button id="btnReset" type="button" class="btn">Reset</button>
+      </div>
+
+      <div id="errBox" class="error" style="display:none;"></div>
+      <div id="statusBox" class="status"></div>
+
+      <div class="muted" style="margin-top:10px;">
+        After submit: approve in <code>admin.html</code>. Once approved, KPIs/Reports pull the approved snapshot.
+      </div>
+    </div>
+
   </div>
 </body>
 </html>
